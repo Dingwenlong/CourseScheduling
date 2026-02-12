@@ -1,0 +1,15 @@
+package com.paike.admin.service;
+
+import com.paike.admin.dto.LoginRequest;
+import com.paike.admin.dto.LoginResponse;
+import com.paike.admin.entity.User;
+import com.baomidou.mybatisplus.extension.service.IService;
+
+public interface UserService extends IService<User> {
+
+    LoginResponse login(LoginRequest request);
+
+    User getByUsername(String username);
+
+    void updateLoginInfo(Long userId, String ip);
+}

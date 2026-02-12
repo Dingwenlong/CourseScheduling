@@ -7,89 +7,74 @@ spring:
   application:
     name: course-scheduling-admin
   
-  profiles:
-    active: dev
-  
   datasource:
-    type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/course_scheduling?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/course_scheduling?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: root123456
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
-      idle-timeout: 300000
-      max-lifetime: 1200000
-      connection-timeout: 20000
+      idle-timeout: 30000
+      pool-name: CourseSchedulingHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
       connection-test-query: SELECT 1
-  
-  redis:
-    host: localhost
-    port: 6379
-    password: 
-    database: 0
-    timeout: 3000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-        max-wait: -1ms
-  
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          min-idle: 0
+          max-idle: 8
+          max-active: 8
+          max-wait: -1ms
+
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
     serialization:
       write-dates-as-timestamps: false
-  
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 100MB
 
-# MyBatis Plus配置
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.paike.**.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    cache-enabled: true
-    lazy-loading-enabled: true
-    multiple-result-sets-enabled: true
-    use-column-label: true
-    use-generated-keys: true
-    auto-mapping-behavior: partial
-    default-executor-type: simple
-    default-statement-timeout: 25000
+  type-aliases-package: com.paike.admin.entity
   global-config:
     db-config:
       id-type: auto
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+    banner: false
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# 日志配置
+jwt:
+  secret: paike-scheduling-system-secret-key-2024-very-long-secret-key
+  expiration: 86400000
+
 logging:
   level:
-    root: info
     com.paike: debug
-    com.baomidou.mybatisplus: debug
+    org.springframework: info
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
-  file:
-    name: logs/course-scheduling.log
-    max-size: 10MB
-    max-history: 30
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
 
-# JWT配置
-jwt:
-  secret: paike-scheduling-system-secret-key-2024
-  expiration: 86400000  # 24小时
-  header: Authorization
-  token-prefix: "Bearer "
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    swagger-model-name: 实体类列表
 
-# 排课算法配置
 algorithm:
   genetic:
     population-size: 100
@@ -97,20 +82,9 @@ algorithm:
     crossover-rate: 0.8
     mutation-rate: 0.15
     elite-count: 10
+    target-fitness: 0.95
+    max-no-improvement-generations: 50
   greedy:
     enable-local-backtrack: true
     max-backtrack-depth: 3
-
-# 文件上传配置
-file:
-  upload:
-    path: ./uploads
-    max-size: 10485760  # 10MB
-    allowed-types: jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx
-
-# 跨域配置
-cors:
-  allowed-origins: "*"
-  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-  allowed-headers: "*"
-  max-age: 3600
+    max-retry-attempts: 10

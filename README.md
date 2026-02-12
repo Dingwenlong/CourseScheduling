@@ -1,96 +1,37 @@
-# 高校智能排课系统
+# 智能排课系统
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.2.0-green.svg" alt="Spring Boot"/>
-  <img src="https://img.shields.io/badge/Vue-3.4.0-brightgreen.svg" alt="Vue"/>
-  <img src="https://img.shields.io/badge/MySQL-8.0-blue.svg" alt="MySQL"/>
-  <img src="https://img.shields.io/badge/Redis-7.0-red.svg" alt="Redis"/>
-  <img src="https://img.shields.io/badge/JDK-17-orange.svg" alt="JDK"/>
-</p>
+基于 Spring Boot + Vue 3 的智能排课系统，支持贪心算法和遗传算法进行课程调度优化。
 
-## 项目简介
+## 技术栈
 
-高校智能排课系统是一款基于 **Spring Boot + Vue3** 开发的智能排课管理平台，采用 **贪心算法 + 遗传算法** 混合优化策略，实现高校课程表的自动化编排。系统支持多校区、多约束条件的复杂排课场景，可大幅提升排课效率，降低冲突率。
+### 后端
+- Java 17+
+- Spring Boot 3.4
+- MyBatis Plus
+- MySQL 8.0
+- Redis
+- JWT认证
 
-### 核心特性
-
-- 🤖 **智能算法**: 贪心算法快速初始化 + 遗传算法迭代优化
-- 🏫 **多校区支持**: 支持跨校区排课，自动计算通勤时间
-- 📊 **可视化展示**: 课表可视化、资源利用率统计图表
-- 🔄 **动态调整**: 支持一键调课、拖拽调整、实时冲突检测
-- 🔐 **权限管理**: 基于RBAC的细粒度权限控制
-- 🔌 **数据对接**: 支持正方、青果等主流教务系统数据导入
-
-## 技术架构
-
-### 后端技术栈
-
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| Spring Boot | 3.2.0 | 主框架 |
-| Spring Security | 6.x | 安全认证 |
-| MyBatis Plus | 3.5.5 | ORM框架 |
-| JWT | 0.12.x | Token认证 |
-| Redis | 7.x | 缓存/分布式锁 |
-| MySQL | 8.0 | 主数据库 |
-
-### 前端技术栈
-
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| Vue | 3.4.x | 前端框架 |
-| Element Plus | 2.5.x | UI组件库 |
-| Pinia | 2.1.x | 状态管理 |
-| ECharts | 5.4.x | 数据可视化 |
-| Axios | 1.6.x | HTTP请求 |
+### 前端
+- Vue 3
+- Vant 4 (移动端UI)
+- Vite
+- Pinia
+- Axios
 
 ## 项目结构
 
 ```
-course-scheduling-system/
-├── course-scheduling-common/          # 公共模块
-│   ├── constants/                     # 常量定义
-│   ├── utils/                         # 工具类
-│   ├── result/                        # 统一响应
-│   └── exception/                     # 全局异常
-│
-├── course-scheduling-admin/           # 管理端模块
-│   ├── controller/                    # 控制器
-│   ├── service/                       # 业务逻辑
-│   ├── mapper/                        # 数据访问
-│   └── dto/                           # 数据传输对象
-│
-├── course-scheduling-algorithm/       # 算法引擎模块
-│   ├── greedy/                        # 贪心算法
-│   ├── genetic/                       # 遗传算法
-│   ├── model/                         # 算法模型
-│   └── utils/                         # 算法工具
-│
-├── course-scheduling-adapter/         # 数据适配模块
-│   ├── config/                        # 适配配置
-│   ├── parser/                        # 数据解析
-│   └── sync/                          # 数据同步
-│
-├── course-scheduling-web/             # Web前端
-│   ├── src/
-│   │   ├── views/                     # 页面视图
-│   │   ├── components/                # 组件
-│   │   ├── api/                       # API接口
-│   │   └── store/                     # 状态管理
-│   └── package.json
-│
-├── database/                          # 数据库脚本
-│   ├── mysql/                         # MySQL脚本
-│   └── redis/                         # Redis配置
-│
-├── docs/                              # 项目文档
-│   ├── requirements/                  # 需求文档
-│   ├── design/                        # 设计文档
-│   └── api/                           # API文档
-│
-└── deploy/                            # 部署配置
-    ├── docker/                        # Docker配置
-    └── nginx/                         # Nginx配置
+course-scheduling/
+├── course-scheduling-common/      # 公共模块
+├── course-scheduling-algorithm/   # 算法模块
+├── course-scheduling-adapter/     # 适配模块
+├── course-scheduling-admin/       # 管理端模块
+├── course-scheduling-web/         # 前端项目
+├── docs/                          # 文档
+│   └── sql/                       # 数据库脚本
+├── scripts/                       # 启动脚本
+└── docker-compose.yml             # Docker配置
 ```
 
 ## 快速开始
@@ -98,144 +39,152 @@ course-scheduling-system/
 ### 环境要求
 
 - JDK 17+
-- Maven 3.9+
-- MySQL 8.0+
-- Redis 7.0+
 - Node.js 18+
+- Docker Desktop (包含MySQL和Redis)
+- Maven 3.8+
 
-### 后端部署
-
-1. **创建数据库**
-
-```bash
-mysql -u root -p < database/mysql/init-schema.sql
-```
-
-2. **修改配置**
-
-编辑 `course-scheduling-admin/src/main/resources/application-dev.yml`，修改数据库连接信息：
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/course_scheduling?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: your_username
-    password: your_password
-```
-
-3. **编译运行**
+### 一键启动
 
 ```bash
-# 编译项目
-mvn clean install
+# 启动所有服务（Docker + 后端 + 前端）
+scripts\start-all.bat
 
-# 运行应用
+# 停止所有服务
+scripts\stop-all.bat
+```
+
+启动成功后访问地址：
+
+| 服务 | 地址 |
+|------|------|
+| 前端页面 | http://localhost:3000 |
+| 后端API | http://localhost:8080 |
+| API文档 | http://localhost:8080/doc.html |
+
+### 测试账号
+
+| 角色 | 用户名 | 密码 |
+|------|--------|------|
+| 管理员 | admin | 123456 |
+| 教师 | teacher001 | 123456 |
+| 学生 | student001 | 123456 |
+
+### Docker服务信息
+
+| 服务 | 地址 | 用户名 | 密码 |
+|------|------|--------|------|
+| MySQL | localhost:3306 | root | root123456 |
+| Redis | localhost:6379 | - | - |
+
+## 手动启动（可选）
+
+### 1. 启动Docker容器
+
+```bash
+docker-compose up -d
+```
+
+### 2. 启动后端
+
+```bash
 cd course-scheduling-admin
 mvn spring-boot:run
 ```
 
-后端服务将启动在 `http://localhost:8080`
-
-### 前端部署
-
-1. **安装依赖**
+### 3. 启动前端
 
 ```bash
 cd course-scheduling-web
 npm install
-```
-
-2. **启动开发服务器**
-
-```bash
 npm run dev
 ```
 
-前端服务将启动在 `http://localhost:3000`
+## 功能特性
 
-3. **构建生产环境**
+### 排课算法
+- **贪心算法**：按优先级排序任务，依次分配最优时间槽和教室
+- **遗传算法**：通过选择、交叉、变异操作迭代寻找最优解
 
-```bash
-npm run build
+### 约束处理
+- 教师时间冲突检测
+- 教室占用冲突检测
+- 班级时间冲突检测
+
+### 业务功能
+- 课表生成与管理
+- 教学任务管理
+- 课表查询（按班级/教师/教室）
+- 调课申请与审批
+- 统计分析
+
+## 配置说明
+
+### 后端配置 (application.yml)
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/course_scheduling
+    username: root
+    password: root123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: your-secret-key
+  expiration: 86400000
+
+algorithm:
+  genetic:
+    population-size: 100
+    max-generations: 500
 ```
 
-## 系统功能
+### 前端配置 (vite.config.js)
 
-### 教务管理员功能
+```javascript
+server: {
+  port: 3000,
+  proxy: {
+    '/api': {
+      target: 'http://localhost:8080',
+      changeOrigin: true
+    }
+  }
+}
+```
 
-- 📅 **智能排课**: 配置约束条件，一键生成课表
-- 🔄 **排课调整**: 手动拖拽调整、一键调课
-- 📊 **数据统计**: 教室利用率、课程分布可视化
-- ⚙️ **系统设置**: 基础数据管理、权限配置
+## API接口
 
-### 教师功能
+| 模块 | 接口 | 说明 |
+|------|------|------|
+| 认证 | POST /auth/login | 用户登录 |
+| 课表 | POST /timetable/generate | 生成课表 |
+| 课表 | GET /timetable/{id}/details | 查询课表明细 |
+| 任务 | GET /task/page | 分页查询任务 |
+| 排课 | POST /schedule/execute | 执行排课 |
+| 调课 | POST /adjustment/execute | 执行调课 |
+| 统计 | GET /statistics/conflict-report/{id} | 冲突报告 |
 
-- 📋 **个人课表**: 查看个人授课安排
-- 📝 **调课申请**: 提交调课申请、查看审核状态
+## 构建部署
 
-### 学生功能
+### 后端构建
 
-- 📚 **班级课表**: 查看班级课程安排
-- ⭐ **课程反馈**: 对课程时段进行评分反馈
+```bash
+mvn clean package -DskipTests
+java -jar course-scheduling-admin/target/course-scheduling-admin-1.0.0-SNAPSHOT.jar
+```
 
-## 算法说明
+### 前端构建
 
-### 混合排课算法
-
-系统采用 **贪心算法 + 遗传算法** 的混合策略：
-
-1. **贪心算法阶段**: 快速生成满足硬性约束的初始可行解
-2. **遗传算法阶段**: 对初始解进行迭代优化，提升整体质量
-
-### 约束条件
-
-**硬性约束** (必须满足):
-- 教师时间不冲突
-- 教室不冲突
-- 班级时间不冲突
-- 教室容量匹配
-
-**软性约束** (尽量满足):
-- 核心课程优先上午
-- 减少跨校区通勤
-- 教师时间偏好
-- 课程分布均匀
-
-## 开发计划
-
-| 阶段 | 周期 | 主要任务 |
-|------|------|---------|
-| 第一阶段 | 第1-2周 | 需求分析、架构设计 |
-| 第二阶段 | 第3-4周 | 后端基础框架搭建 |
-| 第三阶段 | 第5-7周 | 核心算法开发 |
-| 第四阶段 | 第8-10周 | 排课业务功能开发 |
-| 第五阶段 | 第11-12周 | 前端界面开发 |
-| 第六阶段 | 第13-14周 | 数据对接、统计功能 |
-| 第七阶段 | 第15-16周 | 系统测试、性能优化 |
-| 第八阶段 | 第17-18周 | 部署上线、文档编写 |
-
-## 预期效果
-
-| 指标 | 目标值 |
-|------|--------|
-| 排课周期 | ≤2天 |
-| 调课响应 | ≤10秒 |
-| 冲突率 | ≤5% |
-| 教室利用率 | ≥85% |
-| 系统可用性 | ≥99.5% |
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request 来改进项目。
+```bash
+cd course-scheduling-web
+npm run build
+# 部署dist目录到Web服务器
+```
 
 ## 许可证
 
-本项目采用 [MIT](LICENSE) 许可证。
-
-## 联系方式
-
-如有问题或建议，请联系项目维护团队。
-
----
-
-<p align="center">Made with ❤️ for Education</p>
+MIT License
