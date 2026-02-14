@@ -25,14 +25,14 @@ INSERT INTO sys_department (dept_code, dept_name, campus_id, parent_id, leader_n
 -- 3. 用户数据 (密码都是 123456，使用BCrypt加密)
 -- ----------------------------
 INSERT INTO sys_user (username, password, real_name, role, phone, email, status) VALUES
-('admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
-('teacher001', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '张三', 'TEACHER', '13800000011', 'zhangsan@example.com', 1),
-('teacher002', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '李四', 'TEACHER', '13800000012', 'lisi@example.com', 1),
-('teacher003', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '王五', 'TEACHER', '13800000013', 'wangwu@example.com', 1),
-('teacher004', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '赵六', 'TEACHER', '13800000014', 'zhaoliu@example.com', 1),
-('teacher005', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '钱七', 'TEACHER', '13800000015', 'qianqi@example.com', 1),
-('student001', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '学生甲', 'STUDENT', '13800000021', 'student001@example.com', 1),
-('student002', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '学生乙', 'STUDENT', '13800000022', 'student002@example.com', 1);
+('admin', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
+('teacher001', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '张三', 'TEACHER', '13800000011', 'zhangsan@example.com', 1),
+('teacher002', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '李四', 'TEACHER', '13800000012', 'lisi@example.com', 1),
+('teacher003', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '王五', 'TEACHER', '13800000013', 'wangwu@example.com', 1),
+('teacher004', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '赵六', 'TEACHER', '13800000014', 'zhaoliu@example.com', 1),
+('teacher005', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '钱七', 'TEACHER', '13800000015', 'qianqi@example.com', 1),
+('student001', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '学生甲', 'STUDENT', '13800000021', 'student001@example.com', 1),
+('student002', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '学生乙', 'STUDENT', '13800000022', 'student002@example.com', 1);
 
 -- ----------------------------
 -- 4. 教师数据

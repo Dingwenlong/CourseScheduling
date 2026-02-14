@@ -1,58 +1,62 @@
 <template>
-  <div class="page page-with-tabbar">
-    <van-nav-bar title="课表管理">
+  <div class="page page-with-tabbar timetable-page">
+    <van-nav-bar title="课表管理" class="custom-nav">
       <template #right>
-        <van-icon name="plus" size="20" @click="showGenerate = true" />
+        <van-button icon="plus" size="small" type="primary" @click="showGenerate = true" class="add-btn">新建</van-button>
       </template>
     </van-nav-bar>
 
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh" class="pull-refresh">
       <van-list
         v-model:loading="loading"
         :finished="finished"
         finished-text="没有更多了"
         @load="onLoad"
+        class="timetable-list"
       >
-        <div v-for="item in list" :key="item.id" class="card" @click="goDetail(item.id)">
+        <div v-for="item in list" :key="item.id" class="card timetable-item" @click="goDetail(item.id)">
           <div class="flex-between">
             <div class="flex-1">
               <div class="timetable-title">{{ item.name }}</div>
               <div class="text-muted mt-8">{{ item.semester }}</div>
             </div>
-            <van-tag :type="getStatusType(item.status)">
+            <van-tag :type="getStatusType(item.status)" class="status-tag">
               {{ getStatusText(item.status) }}
             </van-tag>
           </div>
-          <van-grid :column-num="4" :border="false" class="mt-16">
-            <van-grid-item>
+          <van-grid :column-num="4" :border="false" class="mt-16 stat-grid">
+            <van-grid-item class="stat-item">
               <div class="stat-value">{{ item.taskCount }}</div>
               <div class="stat-label">任务数</div>
             </van-grid-item>
-            <van-grid-item>
+            <van-grid-item class="stat-item">
               <div class="stat-value text-success">{{ item.scheduledCount }}</div>
               <div class="stat-label">已排课</div>
             </van-grid-item>
-            <van-grid-item>
+            <van-grid-item class="stat-item">
               <div class="stat-value text-danger">{{ item.conflictCount }}</div>
               <div class="stat-label">冲突</div>
             </van-grid-item>
-            <van-grid-item>
-              <div class="stat-value">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
+            <van-grid-item class="stat-item">
+              <div class="stat-value text-primary">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
               <div class="stat-label">利用率</div>
             </van-grid-item>
           </van-grid>
           <div class="text-muted mt-8" style="font-size: 12px;">
-            生成时间：{{ formatTime(item.generateTime) }}
+            <van-icon name="clock-o" /> 生成时间：{{ formatTime(item.generateTime) }}
           </div>
         </div>
       </van-list>
     </van-pull-refresh>
 
-    <van-popup v-model:show="showGenerate" position="bottom" round style="height: 60%;">
-      <div class="generate-popup">
-        <div class="page-title">生成新课表</div>
+    <van-popup v-model:show="showGenerate" position="bottom" round style="height: 70%;" class="generate-popup">
+      <div class="popup-header">
+        <div class="popup-title">生成新课表</div>
+        <van-icon name="cross" size="20" @click="showGenerate = false" class="close-icon" />
+      </div>
+      <div class="popup-content">
         <van-form @submit="handleGenerate">
-          <van-cell-group inset>
+          <van-cell-group inset class="form-group">
             <van-field
               v-model="generateForm.semester"
               is-link
@@ -61,6 +65,7 @@
               label="学期"
               placeholder="请选择学期"
               @click="showSemesterPicker = true"
+              class="form-field"
             />
             <van-field
               v-model="algorithmName"
@@ -70,10 +75,11 @@
               label="算法类型"
               placeholder="请选择算法"
               @click="showAlgorithmPicker = true"
+              class="form-field"
             />
-            <van-field name="switch" label="高级选项">
+            <van-field name="switch" label="高级选项" class="form-field">
               <template #input>
-                <van-switch v-model="showAdvanced" />
+                <van-switch v-model="showAdvanced" size="20" />
               </template>
             </van-field>
             <template v-if="showAdvanced">
@@ -83,6 +89,7 @@
                 name="maxGenerations"
                 label="最大迭代"
                 placeholder="默认500"
+                class="form-field"
               />
               <van-field
                 v-model="generateForm.targetFitness"
@@ -90,11 +97,12 @@
                 name="targetFitness"
                 label="目标适应度"
                 placeholder="默认0.95"
+                class="form-field"
               />
             </template>
           </van-cell-group>
           <div class="generate-btn">
-            <van-button round block type="primary" native-type="submit" :loading="generating">
+            <van-button round block type="primary" native-type="submit" :loading="generating" class="submit-btn">
               开始生成
             </van-button>
           </div>
@@ -102,19 +110,29 @@
       </div>
     </van-popup>
 
-    <van-popup v-model:show="showSemesterPicker" position="bottom" round>
+    <van-popup v-model:show="showSemesterPicker" position="bottom" round class="picker-popup">
+      <div class="picker-header">
+        <span class="picker-cancel" @click="showSemesterPicker = false">取消</span>
+        <span class="picker-title">选择学期</span>
+        <span class="picker-confirm" @click="confirmSemester">确定</span>
+      </div>
       <van-picker
         :columns="semesterColumns"
+        v-model="selectedSemester"
         @confirm="onSemesterConfirm"
-        @cancel="showSemesterPicker = false"
       />
     </van-popup>
 
-    <van-popup v-model:show="showAlgorithmPicker" position="bottom" round>
+    <van-popup v-model:show="showAlgorithmPicker" position="bottom" round class="picker-popup">
+      <div class="picker-header">
+        <span class="picker-cancel" @click="showAlgorithmPicker = false">取消</span>
+        <span class="picker-title">选择算法</span>
+        <span class="picker-confirm" @click="confirmAlgorithm">确定</span>
+      </div>
       <van-picker
         :columns="algorithmColumns"
+        v-model="selectedAlgorithm"
         @confirm="onAlgorithmConfirm"
-        @cancel="showAlgorithmPicker = false"
       />
     </van-popup>
   </div>
@@ -141,6 +159,8 @@ const generating = ref(false)
 const showAdvanced = ref(false)
 const showSemesterPicker = ref(false)
 const showAlgorithmPicker = ref(false)
+const selectedSemester = ref([])
+const selectedAlgorithm = ref([])
 
 const generateForm = ref({
   semester: '',
@@ -207,9 +227,23 @@ const onRefresh = async () => {
   refreshing.value = false
 }
 
+const confirmSemester = () => {
+  if (selectedSemester.value.length > 0) {
+    generateForm.value.semester = selectedSemester.value[0].value
+  }
+  showSemesterPicker.value = false
+}
+
 const onSemesterConfirm = ({ selectedOptions }) => {
   generateForm.value.semester = selectedOptions[0].value
   showSemesterPicker.value = false
+}
+
+const confirmAlgorithm = () => {
+  if (selectedAlgorithm.value.length > 0) {
+    generateForm.value.algorithmType = selectedAlgorithm.value[0].value
+  }
+  showAlgorithmPicker.value = false
 }
 
 const onAlgorithmConfirm = ({ selectedOptions }) => {
@@ -249,30 +283,184 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.timetable-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.custom-nav {
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.add-btn {
+  border: none;
+  background: var(--primary-gradient);
+  padding: 0 16px;
+}
+
+.pull-refresh {
+  min-height: calc(100vh - 100px);
+}
+
+.timetable-list {
+  padding: 4px 0;
+}
+
+.timetable-item {
+  cursor: pointer;
+  animation: slideUp 0.3s ease-out backwards;
+}
+
+.timetable-item:nth-child(1) { animation-delay: 0.05s; }
+.timetable-item:nth-child(2) { animation-delay: 0.1s; }
+.timetable-item:nth-child(3) { animation-delay: 0.15s; }
+.timetable-item:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .timetable-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #323233;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.status-tag {
+  flex-shrink: 0;
+}
+
+.stat-grid {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) 0;
+}
+
+.stat-item {
+  padding: var(--spacing-sm) 0;
 }
 
 .stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #323233;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #969799;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 .generate-popup {
-  padding: 20px 16px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-icon {
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.popup-content {
+  padding: var(--spacing-lg) 0 var(--spacing-xl);
+  height: calc(100% - 60px);
+  overflow-y: auto;
+}
+
+.form-group {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.form-field {
+  background: var(--bg-primary);
 }
 
 .generate-btn {
-  margin-top: 24px;
-  padding: 0 8px;
+  margin-top: var(--spacing-xl);
+  padding: 0 var(--spacing-lg);
+}
+
+.submit-btn {
+  height: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--primary-gradient);
+  border: none;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.picker-popup {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.picker-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.picker-cancel,
+.picker-confirm {
+  font-size: 15px;
+  color: var(--primary-color);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.picker-cancel {
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .timetable-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .generate-popup {
+    max-width: 500px;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    border-radius: var(--radius-xl) !important;
+    margin-bottom: 20px;
+  }
 }
 </style>
