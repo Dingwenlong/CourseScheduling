@@ -31,7 +31,7 @@
       <van-cell-group inset class="menu-group">
         <van-cell title="修改密码" is-link @click="showPassword = true" class="menu-item">
           <template #icon>
-            <van-icon name="lock" color="#4f46e5" />
+            <van-icon name="lock" color="#51caba" />
           </template>
         </van-cell>
         <van-cell title="关于系统" is-link @click="showAbout = true" class="menu-item">
@@ -101,7 +101,7 @@
       <div class="popup-content">
         <div class="about-content">
           <div class="about-logo">
-            <van-icon name="calendar-o" size="56" color="#4f46e5" />
+            <van-icon name="calendar-o" size="56" color="#51caba" />
           </div>
           <h3 class="about-title">智能排课系统</h3>
           <p class="about-version">版本：1.0.0</p>
@@ -345,7 +345,7 @@ const handleChangePassword = () => {
   font-weight: 600;
   background: var(--primary-gradient);
   border: none;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
 }
 
 .about-content {

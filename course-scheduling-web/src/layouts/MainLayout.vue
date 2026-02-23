@@ -51,6 +51,8 @@ watch(() => route.path, (path) => {
 
 :deep(.van-tabbar-item) {
   transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 :deep(.van-tabbar-item--active) {
@@ -60,5 +62,16 @@ watch(() => route.path, (path) => {
 
 :deep(.van-tabbar-item__icon) {
   margin-bottom: 2px;
+  font-size: 22px;
+}
+
+:deep(.van-tabbar-item__text) {
+  font-size: 11px;
+}
+
+@media (min-width: 1024px) {
+  .main-layout {
+    display: none;
+  }
 }
 </style>

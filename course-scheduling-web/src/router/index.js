@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import ResponsiveLayout from '@/layouts/ResponsiveLayout.vue'
 
 const routes = [
   {
@@ -10,8 +11,7 @@ const routes = [
   },
   {
     path: '/',
-    component: () => import('@/layouts/MainLayout.vue'),
-    redirect: '/home',
+    component: ResponsiveLayout,
     children: [
       {
         path: 'home',
@@ -62,6 +62,10 @@ const routes = [
         meta: { title: '个人中心' }
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/home'
   }
 ]
 
@@ -76,7 +80,13 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const token = userStore.token || localStorage.getItem('token')
   
-  if (to.path !== '/login' && !token) {
+  if (to.path === '/login') {
+    if (token) {
+      localStorage.removeItem('token')
+      userStore.token = ''
+    }
+    next()
+  } else if (!token) {
     next('/login')
   } else {
     next()

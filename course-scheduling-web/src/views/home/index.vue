@@ -2,7 +2,7 @@
   <div class="page page-with-tabbar home-page">
     <van-nav-bar title="首页" class="custom-nav" />
 
-    <div class="stat-card">
+    <div class="stat-card animate-slide-up">
       <div class="stat-card-content">
         <div class="stat-card-title">本学期已排课程</div>
         <div class="stat-card-value">{{ stats.totalCourses }}</div>
@@ -12,19 +12,19 @@
 
     <div class="quick-actions-wrapper">
       <div class="section-title">快捷操作</div>
-      <div class="quick-actions">
+      <div class="quick-actions animate-slide-up" style="animation-delay: 0.1s;">
         <van-grid :column-num="3" :border="false" class="action-grid">
-          <van-grid-item icon="calendar-o" text="生成课表" to="/timetable" class="action-item" />
-          <van-grid-item icon="todo-list-o" text="教学任务" to="/task" class="action-item" />
-          <van-grid-item icon="search" text="课表查询" to="/schedule" class="action-item" />
-          <van-grid-item icon="exchange" text="调课申请" to="/adjustment" class="action-item" />
-          <van-grid-item icon="chart-trending-o" text="统计分析" to="/statistics" class="action-item" />
-          <van-grid-item icon="setting-o" text="系统设置" to="/profile" class="action-item" />
+          <van-grid-item icon="calendar-o" text="生成课表" to="/timetable" class="action-item touch-target" />
+          <van-grid-item icon="todo-list-o" text="教学任务" to="/task" class="action-item touch-target" />
+          <van-grid-item icon="search" text="课表查询" to="/schedule" class="action-item touch-target" />
+          <van-grid-item icon="exchange" text="调课申请" to="/adjustment" class="action-item touch-target" />
+          <van-grid-item icon="chart-trending-o" text="统计分析" to="/statistics" class="action-item touch-target" />
+          <van-grid-item icon="setting-o" text="系统设置" to="/profile" class="action-item touch-target" />
         </van-grid>
       </div>
     </div>
 
-    <div class="card timetable-card">
+    <div class="card timetable-card animate-slide-up" style="animation-delay: 0.2s;">
       <div class="page-title">最新课表</div>
       <van-loading v-if="loading" class="loading-container" />
       <div v-else-if="latestTimetable" class="timetable-info">
@@ -49,7 +49,7 @@
           round
           block
           type="primary"
-          class="mt-16 view-btn"
+          class="mt-16 view-btn touch-target"
           @click="viewDetail"
         >
           查看详情
@@ -134,6 +134,13 @@ onMounted(async () => {
 .custom-nav {
   background: var(--bg-primary);
   box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+:deep(.van-nav-bar) {
+  background: var(--bg-primary);
 }
 
 .quick-actions-wrapper {
@@ -167,6 +174,10 @@ onMounted(async () => {
   transform: scale(0.95);
 }
 
+:deep(.van-grid-item) {
+  min-height: 80px;
+}
+
 :deep(.van-grid-item__icon) {
   color: var(--primary-color);
   margin-bottom: 8px;
@@ -179,7 +190,7 @@ onMounted(async () => {
 }
 
 .timetable-card {
-  animation: slideUp 0.4s ease-out;
+  animation: slideUp 0.4s ease-out backwards;
 }
 
 @keyframes slideUp {
@@ -219,13 +230,13 @@ onMounted(async () => {
   font-weight: 600;
   background: var(--primary-gradient);
   border: none;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .view-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(81, 202, 186, 0.4);
 }
 
 .view-btn:active {
@@ -238,8 +249,35 @@ onMounted(async () => {
     margin: 0 auto;
   }
   
+  .quick-actions-wrapper {
+    margin: var(--spacing-lg);
+  }
+  
   .action-grid {
     padding: var(--spacing-lg) 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    margin: var(--spacing-sm);
+  }
+  
+  .quick-actions-wrapper {
+    margin: var(--spacing-sm);
+  }
+  
+  .timetable-card {
+    margin: var(--spacing-sm);
+  }
+  
+  .timetable-name {
+    font-size: 16px;
+  }
+  
+  .view-btn {
+    height: 44px;
+    font-size: 15px;
   }
 }
 </style>

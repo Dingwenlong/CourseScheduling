@@ -101,7 +101,7 @@ const handleLogin = async () => {
   padding: 24px;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #66fff3 0%, #51caba 100%);
 }
 
 .login-background {
@@ -254,15 +254,15 @@ const handleLogin = async () => {
   height: 52px;
   font-size: 17px;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #66fff3 0%, #51caba 100%);
   border: none;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(81, 202, 186, 0.4);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 20px rgba(81, 202, 186, 0.5);
 }
 
 .login-btn:active {
