@@ -16,7 +16,15 @@ if %errorlevel% neq 0 (
 )
 
 echo [2/2] 启动服务...
-cd course-scheduling-admin\target
-java -jar course-scheduling-admin-1.0.0-SNAPSHOT.jar
+cd "%~dp0..\course-scheduling-admin\target"
+if exist "course-scheduling-admin-1.0.0-SNAPSHOT.jar" (
+    java -jar course-scheduling-admin-1.0.0-SNAPSHOT.jar
+) else (
+    echo [ERROR] Jar file not found!
+    echo Looking for jar files in current directory:
+    dir "*.jar"
+    pause
+    exit /b 1
+)
 
 pause

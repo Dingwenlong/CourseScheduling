@@ -57,13 +57,20 @@ if %errorlevel% neq 0 (
 )
 echo       Backend build completed
 
-echo.
+echo.  
 echo [5/6] Starting backend service...
-cd course-scheduling-admin\target
-start "CourseScheduling-Backend" /min java -jar course-scheduling-admin-1.0.0-SNAPSHOT.jar
-cd ..\..
+cd "%~dp0..\course-scheduling-admin\target"
+if exist "course-scheduling-admin-1.0.0-SNAPSHOT.jar" (
+    start "CourseScheduling-Backend" /min cmd /c "echo Starting backend service... & java -jar course-scheduling-admin-1.0.0-SNAPSHOT.jar"
+) else (
+    echo [ERROR] Backend jar file not found!
+    pause
+    exit /b 1
+)
+cd "%~dp0.."
 echo       Backend service starting...
-ping 127.0.0.1 -n 6 >nul
+echo       Waiting for backend to initialize...
+ping 127.0.0.1 -n 10 >nul
 
 echo.
 echo [6/6] Starting frontend service...
