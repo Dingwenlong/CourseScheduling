@@ -42,7 +42,7 @@
         </router-link>
       </nav>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer" :class="{ 'footer-with-user': !isCollapsed }">
         <div v-show="!isCollapsed" class="user-info">
           <van-icon name="user-o" size="20" />
           <span class="user-name">管理员</span>
@@ -293,14 +293,20 @@ onUnmounted(() => {
   position: relative;
 }
 
+.nav-item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .nav-item:hover {
   background: var(--bg-secondary);
   color: var(--primary-color);
 }
 
 .nav-item.active {
-  background: var(--primary-color);
-  color: white;
+  background: rgba(81, 202, 186, 0.14);
+  color: var(--text-primary);
+  border: 1px solid rgba(81, 202, 186, 0.25);
 }
 
 .nav-item.active::before {
@@ -311,7 +317,7 @@ onUnmounted(() => {
   transform: translateY(-50%);
   width: 4px;
   height: 24px;
-  background: white;
+  background: var(--primary-color);
   border-radius: 0 4px 4px 0;
 }
 
@@ -348,7 +354,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.sidebar-footer:has(.user-info) {
+.sidebar-footer.footer-with-user {
   justify-content: flex-start;
 }
 

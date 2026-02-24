@@ -26,36 +26,40 @@
 
     <div class="card timetable-card animate-slide-up" style="animation-delay: 0.2s;">
       <div class="page-title">最新课表</div>
-      <van-loading v-if="loading" class="loading-container" />
-      <div v-else-if="latestTimetable" class="timetable-info">
-        <div class="flex-between">
-          <div class="flex-1">
-            <div class="timetable-name">{{ latestTimetable.name }}</div>
-            <div class="text-muted mt-8">
-              {{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版
+      <StateView
+        :loading="loading"
+        :empty="!loading && !latestTimetable"
+        empty-text="暂无课表数据"
+      >
+        <div class="timetable-info">
+          <div class="flex-between">
+            <div class="flex-1">
+              <div class="timetable-name">{{ latestTimetable.name }}</div>
+              <div class="text-muted mt-8">
+                {{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版
+              </div>
             </div>
+            <van-tag :type="getStatusType(latestTimetable.status)" class="status-tag-custom">
+              {{ getStatusText(latestTimetable.status) }}
+            </van-tag>
           </div>
-          <van-tag :type="getStatusType(latestTimetable.status)" class="status-tag-custom">
-            {{ getStatusText(latestTimetable.status) }}
-          </van-tag>
+          <van-cell-group inset class="mt-16 info-group">
+            <van-cell title="排课任务" :value="latestTimetable.taskCount + ' 个'" />
+            <van-cell title="已排课程" :value="latestTimetable.scheduledCount + ' 个'" />
+            <van-cell title="冲突数量" :value="latestTimetable.conflictCount + ' 个'" />
+            <van-cell title="生成时间" :value="formatTime(latestTimetable.generateTime)" />
+          </van-cell-group>
+          <van-button
+            round
+            block
+            type="primary"
+            class="mt-16 view-btn touch-target"
+            @click="viewDetail"
+          >
+            查看详情
+          </van-button>
         </div>
-        <van-cell-group inset class="mt-16 info-group">
-          <van-cell title="排课任务" :value="latestTimetable.taskCount + ' 个'" />
-          <van-cell title="已排课程" :value="latestTimetable.scheduledCount + ' 个'" />
-          <van-cell title="冲突数量" :value="latestTimetable.conflictCount + ' 个'" />
-          <van-cell title="生成时间" :value="formatTime(latestTimetable.generateTime)" />
-        </van-cell-group>
-        <van-button
-          round
-          block
-          type="primary"
-          class="mt-16 view-btn touch-target"
-          @click="viewDetail"
-        >
-          查看详情
-        </van-button>
-      </div>
-      <van-empty v-else description="暂无课表数据" />
+      </StateView>
     </div>
   </div>
 </template>
@@ -65,6 +69,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
+import StateView from '@/components/ui/StateView.vue'
 
 const router = useRouter()
 const loading = ref(false)

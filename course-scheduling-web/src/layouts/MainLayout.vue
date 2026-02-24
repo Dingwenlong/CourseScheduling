@@ -69,6 +69,12 @@ watch(() => route.path, (path) => {
   font-size: 11px;
 }
 
+:deep(.van-tabbar-item):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
 @media (min-width: 1024px) {
   .main-layout {
     display: none;

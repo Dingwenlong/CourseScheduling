@@ -46,6 +46,18 @@
             <van-icon name="clock-o" /> 生成时间：{{ formatTime(item.generateTime) }}
           </div>
         </div>
+        <StateView
+          v-if="loadError"
+          :error="true"
+          error-text="加载失败，请重试"
+          @retry="onRefresh"
+        />
+        <StateView
+          v-else-if="!loading && finished && list.length === 0"
+          :empty="true"
+          empty-text="暂无课表数据"
+          :retryable="false"
+        />
       </van-list>
     </van-pull-refresh>
 
@@ -144,6 +156,7 @@ import { useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import dayjs from 'dayjs'
 import { getTimetableList, generateTimetable } from '@/api/timetable'
+import StateView from '@/components/ui/StateView.vue'
 
 const router = useRouter()
 
@@ -151,6 +164,7 @@ const loading = ref(false)
 const refreshing = ref(false)
 const finished = ref(false)
 const list = ref([])
+const loadError = ref(false)
 const page = ref(1)
 const pageSize = 10
 
@@ -204,6 +218,7 @@ const getStatusText = (status) => {
 const formatTime = (time) => time ? dayjs(time).format('MM-DD HH:mm') : '-'
 
 const onLoad = async () => {
+  loadError.value = false
   try {
     const res = await getTimetableList({ current: page.value, size: pageSize })
     list.value.push(...res.data.records)
@@ -213,6 +228,7 @@ const onLoad = async () => {
       page.value++
     }
   } catch (e) {
+    loadError.value = true
     finished.value = true
   } finally {
     loading.value = false
@@ -223,6 +239,7 @@ const onRefresh = async () => {
   page.value = 1
   list.value = []
   finished.value = false
+  loadError.value = false
   await onLoad()
   refreshing.value = false
 }

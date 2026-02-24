@@ -54,42 +54,46 @@
             <h3 class="card-title">最新课表</h3>
             <van-button type="primary" size="small" class="touch-target" @click="goToTimetable">查看全部</van-button>
           </div>
-          <van-loading v-if="loading" class="loading-container" />
-          <div v-else-if="latestTimetable" class="timetable-detail">
-            <div class="timetable-header">
-              <div>
-                <div class="timetable-name">{{ latestTimetable.name }}</div>
-                <div class="timetable-meta">{{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版</div>
+          <StateView
+            :loading="loading"
+            :empty="!loading && !latestTimetable"
+            empty-text="暂无课表数据"
+          >
+            <div class="timetable-detail">
+              <div class="timetable-header">
+                <div>
+                  <div class="timetable-name">{{ latestTimetable.name }}</div>
+                  <div class="timetable-meta">{{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版</div>
+                </div>
+                <van-tag :type="getStatusType(latestTimetable.status)" size="large">
+                  {{ getStatusText(latestTimetable.status) }}
+                </van-tag>
               </div>
-              <van-tag :type="getStatusType(latestTimetable.status)" size="large">
-                {{ getStatusText(latestTimetable.status) }}
-              </van-tag>
+              <div class="timetable-stats">
+                <div class="stat-item">
+                  <span class="stat-num">{{ latestTimetable.taskCount }}</span>
+                  <span class="stat-text">任务数</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-num text-success">{{ latestTimetable.scheduledCount }}</span>
+                  <span class="stat-text">已排课</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-num text-danger">{{ latestTimetable.conflictCount }}</span>
+                  <span class="stat-text">冲突</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-num text-primary">{{ latestTimetable.utilizationRate ? latestTimetable.utilizationRate.toFixed(1) : 0 }}%</span>
+                  <span class="stat-text">利用率</span>
+                </div>
+              </div>
+              <div class="timetable-footer">
+                <span class="generate-time">
+                  <van-icon name="clock-o" /> 生成时间：{{ formatTime(latestTimetable.generateTime) }}
+                </span>
+              </div>
             </div>
-            <div class="timetable-stats">
-              <div class="stat-item">
-                <span class="stat-num">{{ latestTimetable.taskCount }}</span>
-                <span class="stat-text">任务数</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-num text-success">{{ latestTimetable.scheduledCount }}</span>
-                <span class="stat-text">已排课</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-num text-danger">{{ latestTimetable.conflictCount }}</span>
-                <span class="stat-text">冲突</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-num text-primary">{{ latestTimetable.utilizationRate ? latestTimetable.utilizationRate.toFixed(1) : 0 }}%</span>
-                <span class="stat-text">利用率</span>
-              </div>
-            </div>
-            <div class="timetable-footer">
-              <span class="generate-time">
-                <van-icon name="clock-o" /> 生成时间：{{ formatTime(latestTimetable.generateTime) }}
-              </span>
-            </div>
-          </div>
-          <van-empty v-else description="暂无课表数据" />
+          </StateView>
         </div>
 
         <div class="card desktop-card">
@@ -190,6 +194,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
+import StateView from '@/components/ui/StateView.vue'
 
 const router = useRouter()
 const loading = ref(false)
