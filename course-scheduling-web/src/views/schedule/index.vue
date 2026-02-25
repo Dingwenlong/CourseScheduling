@@ -1,16 +1,16 @@
 <template>
   <div class="page page-with-tabbar">
-    <van-nav-bar title="课表查询" />
+    <van-nav-bar title="课表查询" class="custom-nav" />
 
-    <van-dropdown-menu>
-      <van-dropdown-item v-model="queryType" :options="typeOptions" />
-    </van-dropdown-menu>
-
-    <div class="card">
+    <div class="search-wrapper mt-16">
+      <van-dropdown-menu>
+        <van-dropdown-item v-model="queryType" :options="typeOptions" />
+      </van-dropdown-menu>
       <van-search
         v-model="searchKeyword"
         :placeholder="getPlaceholder"
         @search="handleSearch"
+        class="flex-1"
       />
     </div>
 
@@ -167,6 +167,95 @@ onMounted(async () => {
 
 <style scoped>
 .course-popup {
-  padding: 20px 16px;
+  padding: var(--spacing-xl);
+}
+
+.custom-nav {
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .custom-nav {
+    display: none;
+  }
+}
+
+.timetable-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+  }
+  
+  .timetable-grid {
+    grid-template-columns: 80px repeat(5, 1fr);
+  }
+  
+  .timetable-header {
+    padding: var(--spacing-md);
+    font-size: 14px;
+  }
+  
+  .timetable-cell {
+    min-height: 100px;
+    padding: var(--spacing-sm);
+  }
+  
+  .course-block {
+    padding: var(--spacing-sm);
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .page {
+    max-width: var(--content-max-width-wide);
+  }
+  
+  .timetable-grid {
+    grid-template-columns: 100px repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1920px) {
+  .page {
+    max-width: var(--content-max-width-ultra);
+  }
+  
+  .timetable-cell {
+    min-height: 120px;
+  }
+  
+  .course-block-name {
+    font-size: 14px;
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .course-block-info {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .page {
+    max-width: var(--content-max-width-super);
+  }
+
+  .timetable-cell {
+    min-height: 150px;
+  }
+
+  .course-block-name {
+    font-size: 16px;
+  }
+
+  .course-block-info {
+    font-size: 13px;
+  }
 }
 </style>

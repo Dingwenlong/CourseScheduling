@@ -10,9 +10,9 @@
       <van-list
         v-model:loading="loading"
         :finished="finished"
-        finished-text="没有更多了"
+        :finished-text="list.length > 0 ? '没有更多了' : ''"
         @load="onLoad"
-        class="timetable-list"
+        class="timetable-list grid-layout"
       >
         <div v-for="item in list" :key="item.id" class="card timetable-item" @click="goDetail(item.id)">
           <div class="flex-between">
@@ -20,7 +20,7 @@
               <div class="timetable-title">{{ item.name }}</div>
               <div class="text-muted mt-8">{{ item.semester }}</div>
             </div>
-            <van-tag :type="getStatusType(item.status)" class="status-tag">
+            <van-tag :class="['status-tag', `status-${item.status.toLowerCase()}`]">
               {{ getStatusText(item.status) }}
             </van-tag>
           </div>
@@ -52,16 +52,17 @@
           error-text="加载失败，请重试"
           @retry="onRefresh"
         />
-        <StateView
-          v-else-if="!loading && finished && list.length === 0"
-          :empty="true"
-          empty-text="暂无课表数据"
-          :retryable="false"
-        />
+        <div class="empty-state-wrapper" v-else-if="!loading && finished && list.length === 0">
+          <StateView
+            :empty="true"
+            empty-text="暂无课表数据"
+            :retryable="false"
+          />
+        </div>
       </van-list>
     </van-pull-refresh>
 
-    <van-popup v-model:show="showGenerate" position="bottom" round style="height: 70%;" class="generate-popup">
+    <van-popup v-model:show="showGenerate" v-bind="popupProps" class="generate-popup">
       <div class="popup-header">
         <div class="popup-title">生成新课表</div>
         <van-icon name="cross" size="20" @click="showGenerate = false" class="close-icon" />
@@ -151,14 +152,37 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import dayjs from 'dayjs'
 import { getTimetableList, generateTimetable } from '@/api/timetable'
 import StateView from '@/components/ui/StateView.vue'
+import { useLayoutStore } from '@/stores/layout'
 
 const router = useRouter()
+const layoutStore = useLayoutStore()
+
+const isMobile = ref(window.innerWidth < 768)
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+const popupProps = computed(() => {
+  if (isMobile.value) {
+    return {
+      position: 'bottom',
+      round: true,
+      style: { height: '70%' }
+    }
+  } else {
+    return {
+      position: 'center',
+      round: true,
+      style: { width: '500px', maxWidth: '90%', borderRadius: '16px' }
+    }
+  }
+})
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -204,11 +228,6 @@ const semesterColumns = computed(() => {
   }
   return columns
 })
-
-const getStatusType = (status) => {
-  const map = { 'DRAFT': 'warning', 'PUBLISHED': 'success', 'ARCHIVED': 'default' }
-  return map[status] || 'default'
-}
 
 const getStatusText = (status) => {
   const map = { 'DRAFT': '草稿', 'PUBLISHED': '已发布', 'ARCHIVED': '已归档' }
@@ -296,6 +315,19 @@ onMounted(() => {
   const year = dayjs().year()
   const semester = dayjs().month() < 7 ? `${year - 1}-2` : `${year}-1`
   generateForm.value.semester = semester
+
+  layoutStore.setHeaderAction({
+    icon: 'plus',
+    text: '新建',
+    onClick: () => { showGenerate.value = true }
+  })
+
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  layoutStore.clearHeaderAction()
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -327,7 +359,7 @@ onMounted(() => {
 }
 
 .timetable-list {
-  padding: 4px 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .timetable-item {
@@ -382,11 +414,21 @@ onMounted(() => {
 .stat-label {
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
 }
 
-.generate-popup {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+.empty-state-wrapper {
+  display: flex;
+  justify-content: center;
+  padding-top: 20%;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .generate-popup {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+  }
 }
 
 .popup-header {
@@ -406,7 +448,7 @@ onMounted(() => {
 .close-icon {
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--spacing-xs);
   min-width: 44px;
   min-height: 44px;
   display: inline-flex;
@@ -475,7 +517,7 @@ onMounted(() => {
   color: var(--primary-color);
   font-weight: 500;
   cursor: pointer;
-  padding: 8px 16px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -510,22 +552,49 @@ onMounted(() => {
 
 @media (min-width: 768px) {
   .timetable-page {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
   }
   
-  .generate-popup {
-    max-width: 500px;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    border-radius: var(--radius-xl) !important;
-    margin-bottom: 20px;
+  .custom-nav {
+    display: none;
+  }
+  
+  .timetable-list.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--page-px-mobile);
+  }
+  
+  .timetable-item {
+    margin: 0;
   }
 }
 
 @media (min-width: 1024px) {
+  .timetable-list.grid-layout {
+    padding: var(--spacing-lg) var(--page-px-desktop);
+  }
+}
+
+@media (min-width: 1440px) {
   .timetable-page {
-    display: none;
+    max-width: 1560px;
+  }
+  
+  .timetable-list.grid-layout {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl) var(--page-px-wide);
+  }
+  
+  .timetable-item {
+    padding: var(--spacing-xl);
+  }
+  
+  .timetable-title {
+    font-size: 18px;
   }
 }
 </style>

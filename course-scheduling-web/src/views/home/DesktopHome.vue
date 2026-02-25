@@ -1,14 +1,14 @@
 <template>
-  <div class="desktop-home-page">
-    <div class="page-header">
+  <div class="desktop-home-page" role="main" aria-label="仪表盘">
+    <div class="page-header animate-fade-in-up">
       <h2 class="page-title">仪表盘</h2>
       <p class="page-subtitle">欢迎回来，管理员</p>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card-desktop">
+    <div class="stats-grid grid-adaptive stagger-animation" role="region" aria-label="统计数据">
+      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="已排课程统计">
         <div class="stat-icon" style="background: #eff6ff;">
-          <van-icon name="calendar-o" size="32" color="#51caba" />
+          <van-icon name="calendar-o" size="32" color="#51caba" aria-hidden="true" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalCourses }}</div>
@@ -16,9 +16,9 @@
         </div>
       </div>
 
-      <div class="stat-card-desktop">
+      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="总学时统计">
         <div class="stat-icon" style="background: #ecfdf5;">
-          <van-icon name="clock-o" size="32" color="#10b981" />
+          <van-icon name="clock-o" size="32" color="#10b981" aria-hidden="true" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalHours }}</div>
@@ -26,9 +26,9 @@
         </div>
       </div>
 
-      <div class="stat-card-desktop">
+      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="教学任务统计">
         <div class="stat-icon" style="background: #fef3c7;">
-          <van-icon name="todo-list-o" size="32" color="#f59e0b" />
+          <van-icon name="todo-list-o" size="32" color="#f59e0b" aria-hidden="true" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalTasks }}</div>
@@ -36,9 +36,9 @@
         </div>
       </div>
 
-      <div class="stat-card-desktop">
+      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="冲突数量统计">
         <div class="stat-icon" style="background: #fef2f2;">
-          <van-icon name="warning-o" size="32" color="#ef4444" />
+          <van-icon name="warning-o" size="32" color="#ef4444" aria-hidden="true" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.conflicts }}</div>
@@ -49,10 +49,12 @@
 
     <div class="content-grid">
       <div class="main-section">
-        <div class="card desktop-card">
+        <div class="card desktop-card animate-slide-in-left" role="region" aria-label="最新课表">
           <div class="card-header">
             <h3 class="card-title">最新课表</h3>
-            <van-button type="primary" size="small" class="touch-target" @click="goToTimetable">查看全部</van-button>
+            <van-button type="primary" size="small" class="touch-target" @click="goToTimetable" aria-label="查看全部课表">
+              查看全部
+            </van-button>
           </div>
           <StateView
             :loading="loading"
@@ -89,40 +91,40 @@
               </div>
               <div class="timetable-footer">
                 <span class="generate-time">
-                  <van-icon name="clock-o" /> 生成时间：{{ formatTime(latestTimetable.generateTime) }}
+                  <van-icon name="clock-o" aria-hidden="true" /> 生成时间：{{ formatTime(latestTimetable.generateTime) }}
                 </span>
               </div>
             </div>
           </StateView>
         </div>
 
-        <div class="card desktop-card">
+        <div class="card desktop-card animate-slide-in-left" style="animation-delay: 0.1s;" role="region" aria-label="快捷操作">
           <div class="card-header">
             <h3 class="card-title">快捷操作</h3>
           </div>
-          <div class="quick-actions-desktop">
-            <router-link to="/timetable" class="quick-action touch-target">
-              <van-icon name="calendar-o" size="28" color="#51caba" />
+          <div class="quick-actions-desktop grid-adaptive">
+            <router-link to="/timetable" class="quick-action touch-target" aria-label="生成课表">
+              <van-icon name="calendar-o" size="28" color="#51caba" aria-hidden="true" />
               <span>生成课表</span>
             </router-link>
-            <router-link to="/task" class="quick-action touch-target">
-              <van-icon name="todo-list-o" size="28" color="#10b981" />
+            <router-link to="/task" class="quick-action touch-target" aria-label="教学任务">
+              <van-icon name="todo-list-o" size="28" color="#10b981" aria-hidden="true" />
               <span>教学任务</span>
             </router-link>
-            <router-link to="/schedule" class="quick-action touch-target">
-              <van-icon name="search" size="28" color="#f59e0b" />
+            <router-link to="/schedule" class="quick-action touch-target" aria-label="课表查询">
+              <van-icon name="search" size="28" color="#f59e0b" aria-hidden="true" />
               <span>课表查询</span>
             </router-link>
-            <router-link to="/adjustment" class="quick-action touch-target">
-              <van-icon name="exchange" size="28" color="#ef4444" />
+            <router-link to="/adjustment" class="quick-action touch-target" aria-label="调课申请">
+              <van-icon name="exchange" size="28" color="#ef4444" aria-hidden="true" />
               <span>调课申请</span>
             </router-link>
-            <router-link to="/statistics" class="quick-action touch-target">
-              <van-icon name="chart-trending-o" size="28" color="#8b5cf6" />
+            <router-link to="/statistics" class="quick-action touch-target" aria-label="统计分析">
+              <van-icon name="chart-trending-o" size="28" color="#8b5cf6" aria-hidden="true" />
               <span>统计分析</span>
             </router-link>
-            <router-link to="/profile" class="quick-action touch-target">
-              <van-icon name="setting-o" size="28" color="#6b7280" />
+            <router-link to="/profile" class="quick-action touch-target" aria-label="系统设置">
+              <van-icon name="setting-o" size="28" color="#6b7280" aria-hidden="true" />
               <span>系统设置</span>
             </router-link>
           </div>
@@ -130,34 +132,34 @@
       </div>
 
       <div class="side-section">
-        <div class="card desktop-card">
+        <div class="card desktop-card animate-slide-in-right" role="region" aria-label="系统状态">
           <div class="card-header">
             <h3 class="card-title">系统状态</h3>
           </div>
           <div class="system-status">
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" />
+              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
               <span>数据库连接正常</span>
             </div>
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" />
+              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
               <span>算法服务运行中</span>
             </div>
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" />
+              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
               <span>缓存服务正常</span>
             </div>
           </div>
         </div>
 
-        <div class="card desktop-card">
+        <div class="card desktop-card animate-slide-in-right" style="animation-delay: 0.1s;" role="region" aria-label="最近活动">
           <div class="card-header">
             <h3 class="card-title">最近活动</h3>
           </div>
           <div class="activity-list">
             <div class="activity-item">
               <div class="activity-icon" style="background: #eff6ff;">
-                <van-icon name="plus" size="16" color="#51caba" />
+                <van-icon name="plus" size="16" color="#51caba" aria-hidden="true" />
               </div>
               <div class="activity-content">
                 <div class="activity-text">新增教学任务</div>
@@ -166,7 +168,7 @@
             </div>
             <div class="activity-item">
               <div class="activity-icon" style="background: #ecfdf5;">
-                <van-icon name="success" size="16" color="#10b981" />
+                <van-icon name="success" size="16" color="#10b981" aria-hidden="true" />
               </div>
               <div class="activity-content">
                 <div class="activity-text">课表生成成功</div>
@@ -175,7 +177,7 @@
             </div>
             <div class="activity-item">
               <div class="activity-icon" style="background: #fef3c7;">
-                <van-icon name="edit" size="16" color="#f59e0b" />
+                <van-icon name="edit" size="16" color="#f59e0b" aria-hidden="true" />
               </div>
               <div class="activity-content">
                 <div class="activity-text">更新课程信息</div>
@@ -255,7 +257,32 @@ onMounted(async () => {
 
 <style scoped>
 .desktop-home-page {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.4s ease-out;
+  padding: 0; /* Let cards handle horizontal margin */
+}
+
+.home-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  padding: 0 var(--page-px-mobile);
+}
+
+@media (min-width: 1024px) {
+  .section-header {
+    padding: 0 var(--page-px-desktop);
+  }
+}
+
+@media (min-width: 1440px) {
+  .section-header {
+    padding: 0 var(--page-px-wide);
+  }
 }
 
 @keyframes fadeIn {
@@ -281,10 +308,8 @@ onMounted(async () => {
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
+  --grid-min-width: 260px;
 }
 
 .stat-card-desktop {
@@ -423,9 +448,7 @@ onMounted(async () => {
 }
 
 .quick-actions-desktop {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-md);
+  --grid-min-width: 140px;
 }
 
 .quick-action {
@@ -503,11 +526,60 @@ onMounted(async () => {
   color: var(--text-muted);
 }
 
-@media (max-width: 1400px) {
+@media (min-width: 1440px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
   }
   
+  .quick-actions-desktop {
+    gap: var(--spacing-lg);
+  }
+
+  .stat-card-desktop {
+    padding: var(--spacing-xl);
+  }
+}
+
+@media (min-width: 1920px) {
+  .stats-grid {
+    gap: var(--spacing-2xl);
+    --grid-min-width: 320px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+  }
+
+  .stat-label {
+    font-size: 15px;
+  }
+
+  .content-grid {
+    grid-template-columns: 3fr 1fr;
+    gap: var(--spacing-2xl);
+  }
+}
+
+@media (min-width: 2560px) {
+  .stats-grid {
+    gap: var(--spacing-3xl);
+    --grid-min-width: 400px;
+  }
+
+  .stat-value {
+    font-size: 40px;
+  }
+
+  .quick-action span {
+    font-size: 16px;
+  }
+
+  .quick-action van-icon {
+    font-size: 36px !important;
+  }
+}
+
+@media (max-width: 1439px) {
   .content-grid {
     grid-template-columns: 1fr;
   }
@@ -515,13 +587,9 @@ onMounted(async () => {
   .timetable-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
-  .quick-actions-desktop {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .desktop-home-page {
     display: none;
   }

@@ -9,7 +9,7 @@ echo.
 
 cd /d "%~dp0.."
 
-echo [1/6] Checking Docker...
+echo [1/8] Checking Docker...
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Docker is not running, please start Docker Desktop first
@@ -19,7 +19,7 @@ if %errorlevel% neq 0 (
 echo       Docker is ready
 
 echo.
-echo [2/6] Starting MySQL and Redis containers...
+echo [2/8] Starting MySQL and Redis containers...
 docker-compose up -d
 if %errorlevel% neq 0 (
     echo [ERROR] Docker containers failed to start
@@ -28,7 +28,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/6] Waiting for MySQL to be ready...
+echo [3/8] Waiting for MySQL to be ready...
 set MAX_WAIT=60
 set WAITED=0
 :wait_mysql
@@ -48,8 +48,8 @@ goto wait_mysql
 :mysql_ready
 
 echo.
-echo [4/6] Building backend project...
-call mvn clean package -DskipTests -q
+echo [4/8] Building backend project...
+call mvn clean compile -DskipTests -q
 if %errorlevel% neq 0 (
     echo [ERROR] Backend build failed
     pause
@@ -58,27 +58,77 @@ if %errorlevel% neq 0 (
 echo       Backend build completed
 
 echo.  
-echo [5/6] Starting backend service...
-cd "%~dp0..\course-scheduling-admin\target"
-if exist "course-scheduling-admin-1.0.0-SNAPSHOT.jar" (
-    start "CourseScheduling-Backend" /min cmd /c "echo Starting backend service... & java -jar course-scheduling-admin-1.0.0-SNAPSHOT.jar"
-) else (
-    echo [ERROR] Backend jar file not found!
+echo [5/8] Starting backend service...
+start "CourseScheduling-Backend" /min cmd /c "cd /d "%~dp0..\course-scheduling-admin" && mvn spring-boot:run -q"
+echo       Backend service starting...
+echo       Waiting for backend to initialize (up to 60s)...
+set MAX_WAIT=60
+set WAITED=0
+:wait_backend
+netstat -ano | findstr ":8080.*LISTENING" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo       Backend is ready on port 8080
+    goto backend_ready
+)
+set /a WAITED+=2
+if %WAITED% geq %MAX_WAIT% (
+    echo [ERROR] Backend startup timeout - check logs for details
     pause
     exit /b 1
 )
-cd "%~dp0.."
-echo       Backend service starting...
-echo       Waiting for backend to initialize...
-ping 127.0.0.1 -n 10 >nul
+ping 127.0.0.1 -n 3 >nul
+goto wait_backend
+:backend_ready
 
 echo.
-echo [6/6] Starting frontend service...
+echo [6/8] Checking frontend dependencies...
 cd course-scheduling-web
+if not exist "node_modules" (
+    echo       Installing frontend dependencies...
+    call npm install --silent
+    if %errorlevel% neq 0 (
+        echo [ERROR] Frontend dependency installation failed
+        cd ..
+        pause
+        exit /b 1
+    )
+    echo       Frontend dependencies installed
+) else (
+    echo       Frontend dependencies already installed
+)
+
+echo.
+echo [7/8] Starting frontend service...
 start "CourseScheduling-Frontend" /min cmd /c "npm run dev"
 cd ..
 echo       Frontend service starting...
-ping 127.0.0.1 -n 4 >nul
+echo       Waiting for frontend to initialize (up to 30s)...
+set MAX_WAIT=30
+set WAITED=0
+:wait_frontend
+netstat -ano | findstr ":3000.*LISTENING" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo       Frontend is ready on port 3000
+    goto frontend_ready
+)
+set /a WAITED+=2
+if %WAITED% geq %MAX_WAIT% (
+    echo [ERROR] Frontend startup timeout - check logs for details
+    pause
+    exit /b 1
+)
+ping 127.0.0.1 -n 3 >nul
+goto wait_frontend
+:frontend_ready
+
+echo.
+echo [8/8] Verifying services...
+curl -s http://localhost:8080/doc.html >nul 2>&1
+if %errorlevel% equ 0 (
+    echo       Backend API is responding
+) else (
+    echo [WARNING] Backend API may not be fully ready yet
+)
 
 echo.
 echo ========================================================

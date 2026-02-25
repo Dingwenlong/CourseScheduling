@@ -8,38 +8,40 @@
         <van-image round width="90" height="90" :src="avatar" class="profile-avatar" />
         <div class="profile-name">{{ userStore.userInfo?.realName || '用户' }}</div>
         <div class="profile-role">
-          <van-tag type="primary" plain size="small">{{ getRoleName(userStore.userInfo?.role) }}</van-tag>
+          <van-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" plain size="small">{{ getRoleName(userStore.userInfo?.role) }}</van-tag>
         </div>
       </div>
     </div>
 
-    <div class="card info-card">
-      <div class="section-title">基本信息</div>
-      <van-cell-group inset class="info-group">
-        <van-cell title="用户名" :value="userStore.userInfo?.username" />
-        <van-cell title="角色">
-          <template #value>
-            <van-tag :type="getRoleTagType(userStore.userInfo?.role)" size="small">
-              {{ getRoleName(userStore.userInfo?.role) }}
-            </van-tag>
-          </template>
-        </van-cell>
-      </van-cell-group>
-    </div>
+    <div class="profile-content-grid">
+      <div class="card info-card">
+        <div class="section-title">基本信息</div>
+        <van-cell-group inset class="info-group">
+          <van-cell title="用户名" :value="userStore.userInfo?.username" />
+          <van-cell title="角色">
+            <template #value>
+              <van-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" size="small">
+                {{ getRoleName(userStore.userInfo?.role) }}
+              </van-tag>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
 
-    <div class="card menu-card">
-      <van-cell-group inset class="menu-group">
-        <van-cell title="修改密码" is-link @click="showPassword = true" class="menu-item">
-          <template #icon>
-            <van-icon name="lock" color="#51caba" />
-          </template>
-        </van-cell>
-        <van-cell title="关于系统" is-link @click="showAbout = true" class="menu-item">
-          <template #icon>
-            <van-icon name="info-o" color="#10b981" />
-          </template>
-        </van-cell>
-      </van-cell-group>
+      <div class="card menu-card">
+        <van-cell-group inset class="menu-group">
+          <van-cell title="修改密码" is-link @click="showPassword = true" class="menu-item">
+            <template #icon>
+              <van-icon name="lock" color="#51caba" />
+            </template>
+          </van-cell>
+          <van-cell title="关于系统" is-link @click="showAbout = true" class="menu-item">
+            <template #icon>
+              <van-icon name="info-o" color="#10b981" />
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
     </div>
 
     <div class="logout-wrapper">
@@ -153,9 +155,9 @@ const getRoleName = (role) => {
   return map[role] || role || '未知'
 }
 
-const getRoleTagType = (role) => {
-  const map = { 'ADMIN': 'danger', 'TEACHER': 'primary', 'STUDENT': 'success' }
-  return map[role] || 'default'
+const getRoleClass = (role) => {
+  const map = { 'ADMIN': 'tag-danger', 'TEACHER': 'tag-primary', 'STUDENT': 'tag-success' }
+  return map[role] || 'tag-default'
 }
 
 const handleLogout = async () => {
@@ -318,8 +320,20 @@ onMounted(() => {
 }
 
 .logout-wrapper {
-  margin: var(--spacing-xl) var(--spacing-md);
+  margin: var(--spacing-xl) var(--page-px-mobile);
   animation: slideUp 0.4s ease-out 0.2s backwards;
+}
+
+@media (min-width: 1024px) {
+  .logout-wrapper {
+    margin: var(--spacing-2xl) var(--page-px-desktop);
+  }
+}
+
+@media (min-width: 1440px) {
+  .logout-wrapper {
+    margin: var(--spacing-3xl) var(--page-px-wide);
+  }
 }
 
 .logout-btn {
@@ -352,7 +366,7 @@ onMounted(() => {
 .close-icon {
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--spacing-xs);
 }
 
 .popup-content {
@@ -421,10 +435,14 @@ onMounted(() => {
 
 @media (min-width: 768px) {
   .profile-page {
-    max-width: 600px;
+    max-width: 1000px;
     margin: 0 auto;
   }
   
+  .profile-header {
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  }
+
   .password-popup,
   .about-popup {
     max-width: 480px;
@@ -432,6 +450,44 @@ onMounted(() => {
     transform: translateX(-50%) !important;
     border-radius: var(--radius-xl) !important;
     margin-bottom: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-content-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) var(--page-px-desktop) 0;
+  }
+  
+  .info-card, .menu-card {
+    margin: 0;
+  }
+}
+
+@media (min-width: 1440px) {
+  .profile-page {
+    max-width: 1400px;
+  }
+  
+  .profile-header {
+    padding-top: 80px;
+    padding-bottom: 60px;
+  }
+  
+  .profile-avatar {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  
+  .profile-name {
+    font-size: 28px;
+  }
+
+  .profile-content-grid {
+    margin: var(--spacing-2xl) var(--page-px-wide) 0;
+    gap: var(--spacing-lg);
   }
 }
 </style>

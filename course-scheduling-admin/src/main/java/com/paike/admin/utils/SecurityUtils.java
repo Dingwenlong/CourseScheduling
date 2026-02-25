@@ -1,7 +1,7 @@
 package com.paike.admin.utils;
 
 import com.paike.admin.entity.User;
-import com.paike.admin.service.UserService;
+import com.paike.admin.mapper.UserMapper;
 import com.paike.common.utils.JwtUtils;
 import com.paike.common.utils.ServletUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,7 @@ public class SecurityUtils {
     private JwtUtils jwtUtils;
 
     @Autowired
-    private UserService userService;
+    private UserMapper userMapper;
 
     public Long getCurrentUserId() {
         String token = ServletUtils.getRequest().getHeader("Authorization");
@@ -37,7 +37,7 @@ public class SecurityUtils {
     public User getCurrentUser() {
         Long userId = getCurrentUserId();
         if (userId != null) {
-            return userService.getById(userId);
+            return userMapper.selectById(userId);
         }
         return null;
     }

@@ -11,12 +11,12 @@
     <div class="table-container">
       <div class="table-header">
         <div class="table-title">任务列表</div>
-        <div class="table-filters">
+        <div class="table-filters search-wrapper">
           <van-search
             v-model="searchText"
             placeholder="搜索课程名称"
             @search="onSearch"
-            style="width: 200px;"
+            class="desktop-search"
           />
           <van-dropdown-menu>
             <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
@@ -335,6 +335,11 @@ onMounted(() => {
   gap: var(--spacing-md);
   align-items: center;
   flex-wrap: wrap;
+  margin-bottom: 0; /* Override search-wrapper default if needed */
+}
+
+.desktop-search {
+  width: 240px;
 }
 
 .table-wrapper {
@@ -413,7 +418,55 @@ onMounted(() => {
   color: var(--text-secondary);
 }
 
-@media (max-width: 1400px) {
+@media (min-width: 1440px) {
+  .page-title {
+    font-size: 28px;
+  }
+
+  .table-title {
+    font-size: 18px;
+  }
+
+  .data-table {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .page-header {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .table-header {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+@media (min-width: 2560px) {
+  .page-title {
+    font-size: 32px;
+  }
+
+  .table-title {
+    font-size: 20px;
+  }
+
+  .data-table {
+    font-size: 16px;
+  }
+
+  .van-button {
+    height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 1439px) {
   .data-table {
     min-width: 900px;
   }
@@ -424,7 +477,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1199px) {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -445,7 +498,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .desktop-task-page {
     display: none;
   }

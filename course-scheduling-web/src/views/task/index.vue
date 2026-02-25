@@ -6,28 +6,29 @@
       </template>
     </van-nav-bar>
 
-    <div class="search-wrapper">
+    <div class="search-wrapper mt-16">
       <van-search
         v-model="searchText"
         placeholder="搜索课程名称"
         @search="onSearch"
-        shape="round"
         class="search-input"
       />
     </div>
 
-    <van-dropdown-menu class="dropdown-menu">
-      <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
-      <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
-    </van-dropdown-menu>
+    <div class="dropdown-wrapper">
+      <van-dropdown-menu class="dropdown-menu-full">
+        <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
+        <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
+      </van-dropdown-menu>
+    </div>
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh" class="pull-refresh">
       <van-list
         v-model:loading="loading"
         :finished="finished"
-        finished-text="没有更多了"
+        :finished-text="list.length > 0 ? '没有更多了' : ''"
         @load="onLoad"
-        class="task-list"
+        class="task-list grid-layout"
       >
         <van-swipe-cell v-for="(item, index) in list" :key="item.id" class="swipe-cell">
           <div class="card task-card" @click="showTaskDetail(item)">
@@ -40,7 +41,7 @@
                   <span class="info-item"><van-icon name="flag-o" /> 优先级: {{ item.priorityLevel || '-' }}</span>
                 </div>
               </div>
-              <van-tag :type="getStatusType(item.status)" class="status-tag">
+              <van-tag :class="['status-tag', getStatusClass(item.status)]">
                 {{ getStatusText(item.status) }}
               </van-tag>
             </div>
@@ -53,7 +54,7 @@
       </van-list>
     </van-pull-refresh>
 
-    <van-popup v-model:show="showAdd" position="bottom" round style="height: 85%;" class="task-popup">
+    <van-popup v-model:show="showAdd" v-bind="popupProps" class="task-popup">
       <div class="popup-header">
         <div class="popup-title">{{ editingTask ? '编辑任务' : '新增任务' }}</div>
         <van-icon name="cross" size="20" @click="showAdd = false" class="close-icon" />
@@ -146,7 +147,7 @@
       />
     </van-popup>
 
-    <van-popup v-model:show="showDetail" position="bottom" round style="height: 55%;" class="detail-popup">
+    <van-popup v-model:show="showDetail" v-bind="detailPopupProps" class="detail-popup">
       <div class="popup-header">
         <div class="popup-title">{{ currentTask?.courseName || '任务详情' }}</div>
         <van-icon name="cross" size="20" @click="showDetail = false" class="close-icon" />
@@ -172,10 +173,50 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import dayjs from 'dayjs'
 import { getTaskList, createTask, updateTask, deleteTask } from '@/api/task'
+import { useLayoutStore } from '@/stores/layout'
+
+const layoutStore = useLayoutStore()
+
+const isMobile = ref(window.innerWidth < 768)
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+const popupProps = computed(() => {
+  if (isMobile.value) {
+    return {
+      position: 'bottom',
+      round: true,
+      style: { height: '85%' }
+    }
+  } else {
+    return {
+      position: 'center',
+      round: true,
+      style: { width: '500px', maxWidth: '90%', borderRadius: '16px' }
+    }
+  }
+})
+
+const detailPopupProps = computed(() => {
+  if (isMobile.value) {
+    return {
+      position: 'bottom',
+      round: true,
+      style: { height: '55%' }
+    }
+  } else {
+    return {
+      position: 'center',
+      round: true,
+      style: { width: '500px', maxWidth: '90%', borderRadius: '16px' }
+    }
+  }
+})
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -218,9 +259,14 @@ const statusOptions = [
   { text: '已完成', value: 'COMPLETED' }
 ]
 
-const getStatusType = (status) => {
-  const map = { 'PENDING': 'warning', 'SCHEDULED': 'success', 'ADJUSTING': 'primary', 'COMPLETED': 'default' }
-  return map[status] || 'default'
+const getStatusClass = (status) => {
+  const map = { 
+    'PENDING': 'tag-warning', 
+    'SCHEDULED': 'tag-success', 
+    'ADJUSTING': 'tag-primary', 
+    'COMPLETED': 'tag-default' 
+  }
+  return map[status] || 'tag-default'
 }
 
 const getStatusText = (status) => {
@@ -325,6 +371,19 @@ onMounted(() => {
     semesterOptions.value.push({ text: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
     semesterOptions.value.push({ text: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
   }
+
+  layoutStore.setHeaderAction({
+    icon: 'plus',
+    text: '新增',
+    onClick: () => { showAdd.value = true }
+  })
+  
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  layoutStore.clearHeaderAction()
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -352,21 +411,15 @@ onMounted(() => {
 }
 
 .search-wrapper {
-  padding: var(--spacing-md);
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .search-input {
-  border-radius: var(--radius-lg);
+  width: 100%;
 }
 
-:deep(.van-search__content) {
-  border-radius: var(--radius-lg);
-}
-
-.dropdown-menu {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+.dropdown-menu-full {
+  width: 100%;
 }
 
 .pull-refresh {
@@ -374,7 +427,7 @@ onMounted(() => {
 }
 
 .task-list {
-  padding: 4px 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .swipe-cell {
@@ -420,7 +473,7 @@ onMounted(() => {
 .info-item {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--spacing-xs);
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -442,9 +495,11 @@ onMounted(() => {
   background: var(--danger-color);
 }
 
-.task-popup,
-.detail-popup {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+@media (max-width: 767px) {
+  .task-popup,
+  .detail-popup {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+  }
 }
 
 .popup-header {
@@ -464,7 +519,7 @@ onMounted(() => {
 .close-icon {
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--spacing-xs);
   min-width: 44px;
   min-height: 44px;
   display: inline-flex;
@@ -534,7 +589,7 @@ onMounted(() => {
   color: var(--primary-color);
   font-weight: 500;
   cursor: pointer;
-  padding: 8px 16px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -565,23 +620,44 @@ onMounted(() => {
 
 @media (min-width: 768px) {
   .task-page {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
   }
+
+  .custom-nav {
+    display: none;
+  }
   
-  .task-popup,
-  .detail-popup {
-    max-width: 500px;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    border-radius: var(--radius-xl) !important;
-    margin-bottom: 20px;
+  .task-list.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+  
+  .swipe-cell {
+    margin: 0;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1600px) {
   .task-page {
-    display: none;
+    max-width: 1560px;
+  }
+  
+  .task-list.grid-layout {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
+  }
+  
+  .task-card {
+    padding: var(--spacing-xl);
+  }
+  
+  .task-title {
+    font-size: 18px;
   }
 }
+
 </style>

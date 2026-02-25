@@ -248,15 +248,87 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@media (min-width: 1024px) {
+  .page {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+  }
+  
+  .timetable-grid {
+    grid-template-columns: 80px repeat(5, 1fr);
+  }
+  
+  .timetable-header {
+    padding: var(--spacing-md);
+    font-size: 14px;
+  }
+  
+  .timetable-cell {
+    min-height: 100px;
+    padding: var(--spacing-sm);
+  }
+  
+  .course-block {
+    padding: var(--spacing-sm);
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .page {
+    max-width: var(--content-max-width-wide);
+  }
+
+  .timetable-grid {
+    grid-template-columns: 100px repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1920px) {
+  .page {
+    max-width: var(--content-max-width-ultra);
+  }
+
+  .timetable-cell {
+    min-height: 120px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .page {
+    max-width: var(--content-max-width-super);
+  }
+
+  .timetable-cell {
+    min-height: 150px;
+  }
+
+  .course-block-name {
+    font-size: 16px;
+  }
+
+  .course-block-info {
+    font-size: 13px;
+  }
+}
+
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: #323233;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 12px;
-  color: #969799;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 

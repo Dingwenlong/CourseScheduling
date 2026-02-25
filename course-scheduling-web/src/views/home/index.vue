@@ -13,12 +13,13 @@
     <div class="quick-actions-wrapper">
       <div class="section-title">快捷操作</div>
       <div class="quick-actions animate-slide-up" style="animation-delay: 0.1s;">
-        <van-grid :column-num="3" :border="false" class="action-grid">
+        <van-grid :column-num="gridColumns" :border="false" class="action-grid">
           <van-grid-item icon="calendar-o" text="生成课表" to="/timetable" class="action-item touch-target" />
           <van-grid-item icon="todo-list-o" text="教学任务" to="/task" class="action-item touch-target" />
           <van-grid-item icon="search" text="课表查询" to="/schedule" class="action-item touch-target" />
           <van-grid-item icon="exchange" text="调课申请" to="/adjustment" class="action-item touch-target" />
           <van-grid-item icon="chart-trending-o" text="统计分析" to="/statistics" class="action-item touch-target" />
+          <van-grid-item v-if="isAdmin" icon="friends-o" text="用户管理" to="/users" class="action-item touch-target" />
           <van-grid-item icon="setting-o" text="系统设置" to="/profile" class="action-item touch-target" />
         </van-grid>
       </div>
@@ -65,15 +66,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
 import StateView from '@/components/ui/StateView.vue'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const latestTimetable = ref(null)
+const screenWidth = ref(window.innerWidth)
+
+const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
+
+const gridColumns = computed(() => {
+  if (screenWidth.value >= 1600) return 6
+  if (screenWidth.value >= 1024) return 3
+  return 3
+})
+
+const updateScreenWidth = () => {
+  screenWidth.value = window.innerWidth
+}
 
 const stats = ref({
   totalCourses: 0,
@@ -109,6 +125,7 @@ const viewDetail = () => {
 }
 
 onMounted(async () => {
+  window.addEventListener('resize', updateScreenWidth)
   loading.value = true
   try {
     const semester = dayjs().format('YYYY') + (dayjs().month() < 7 ? '-1' : '-2')
@@ -123,6 +140,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateScreenWidth)
 })
 </script>
 
@@ -157,7 +178,7 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
-  padding-left: 4px;
+  padding-left: var(--spacing-xs);
 }
 
 .quick-actions {
@@ -185,7 +206,7 @@ onMounted(async () => {
 
 :deep(.van-grid-item__icon) {
   color: var(--primary-color);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 :deep(.van-grid-item__text) {
@@ -210,7 +231,7 @@ onMounted(async () => {
 }
 
 .timetable-info {
-  padding: 0 4px;
+  padding: 0 var(--spacing-xs);
 }
 
 .timetable-name {
@@ -250,7 +271,7 @@ onMounted(async () => {
 
 @media (min-width: 768px) {
   .home-page {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
   }
   
@@ -260,6 +281,28 @@ onMounted(async () => {
   
   .action-grid {
     padding: var(--spacing-lg) 0;
+  }
+}
+
+@media (min-width: 1600px) {
+  .home-page {
+    max-width: 1400px;
+  }
+  
+  .stat-card {
+    padding: var(--spacing-3xl);
+  }
+  
+  .stat-card-value {
+    font-size: 48px;
+  }
+  
+  .quick-actions-wrapper {
+    margin: var(--spacing-2xl) 0;
+  }
+  
+  .timetable-card {
+    padding: var(--spacing-2xl);
   }
 }
 

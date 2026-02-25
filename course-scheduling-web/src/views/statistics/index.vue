@@ -1,10 +1,12 @@
 <template>
   <div class="page page-with-tabbar">
-    <van-nav-bar title="统计分析" />
+    <van-nav-bar title="统计分析" class="custom-nav" />
 
-    <van-dropdown-menu>
-      <van-dropdown-item v-model="selectedTimetable" :options="timetableOptions" @change="loadStatistics" />
-    </van-dropdown-menu>
+    <div class="search-wrapper mt-16">
+      <van-dropdown-menu class="flex-1">
+        <van-dropdown-item v-model="selectedTimetable" :options="timetableOptions" @change="loadStatistics" />
+      </van-dropdown-menu>
+    </div>
 
     <van-loading v-if="loading" class="loading-container" />
 
@@ -19,11 +21,12 @@
         <van-tab title="教室利用率">
           <div class="card">
             <div class="page-title">教室利用率排行</div>
-            <van-cell-group inset>
+            <van-cell-group inset class="stat-grid-layout grid-adaptive-lg">
               <van-cell
                 v-for="item in classroomUtilization"
                 :key="item.classroomId"
                 :title="item.classroomName"
+                class="stat-grid-item"
               >
                 <template #value>
                   <div class="flex-column" style="align-items: flex-end;">
@@ -39,11 +42,12 @@
         <van-tab title="教师工作量">
           <div class="card">
             <div class="page-title">教师工作量统计</div>
-            <van-cell-group inset>
+            <van-cell-group inset class="stat-grid-layout grid-adaptive-lg">
               <van-cell
                 v-for="item in teacherWorkload"
                 :key="item.teacherId"
                 :title="item.teacherName"
+                class="stat-grid-item"
               >
                 <template #value>
                   <div class="flex-column" style="align-items: flex-end;">
@@ -89,7 +93,7 @@
                 :label="`周${item.dayOfWeek} 第${item.slotNo}节`"
               >
                 <template #value>
-                  <van-tag type="danger">{{ item.conflictType || '冲突' }}</van-tag>
+                  <van-tag :class="['status-tag', 'tag-danger']">{{ item.conflictType || '冲突' }}</van-tag>
                 </template>
               </van-cell>
             </van-cell-group>
@@ -167,15 +171,81 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.custom-nav {
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .custom-nav {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+  }
+  
+  .stat-grid-item {
+    border-bottom: 1px solid var(--border-light);
+  }
+}
+
+@media (min-width: 1440px) {
+  .page {
+    max-width: var(--content-max-width-wide);
+  }
+  
+  .stat-grid-layout {
+    padding: var(--spacing-lg);
+  }
+  
+  .stat-grid-item {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (min-width: 1920px) {
+  .page {
+    max-width: var(--content-max-width-ultra);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-2xl);
+    margin: var(--spacing-xl);
+  }
+  
+  .stat-card-value {
+    font-size: 48px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .page {
+    max-width: var(--content-max-width-super);
+  }
+
+  .stat-card-value {
+    font-size: 56px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+}
+
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: #323233;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 12px;
-  color: #969799;
-  margin-top: 4px;
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
 }
 </style>

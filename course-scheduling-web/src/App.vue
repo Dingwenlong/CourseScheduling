@@ -10,7 +10,8 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  background-color: #f7f8fa;
+  height: 100%;
+  width: 100%;
+  background-color: var(--bg-secondary);
 }
 </style>
