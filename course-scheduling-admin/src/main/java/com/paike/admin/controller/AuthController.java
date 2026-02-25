@@ -1,10 +1,12 @@
 package com.paike.admin.controller;
 
+import com.paike.admin.dto.ChangePasswordRequest;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
 import com.paike.admin.entity.User;
 import com.paike.admin.mapper.UserMapper;
 import com.paike.admin.service.UserService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.common.result.Result;
 import com.paike.common.utils.PasswordUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +26,9 @@ public class AuthController {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
     @Operation(summary = "用户登录")
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -33,8 +38,12 @@ public class AuthController {
 
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/info")
-    public Result<?> info() {
-        return Result.success("功能开发中");
+    public Result<User> info() {
+        User user = securityUtils.getCurrentUser();
+        if (user != null) {
+            user.setPassword(null);
+        }
+        return Result.success(user);
     }
 
     @Operation(summary = "退出登录")
@@ -53,5 +62,12 @@ public class AuthController {
         user.setPassword(PasswordUtils.encode("123456"));
         userMapper.updateById(user);
         return Result.success("密码已重置为: 123456");
+    }
+
+    @Operation(summary = "修改密码")
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return Result.success();
     }
 }

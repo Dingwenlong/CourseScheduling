@@ -2,11 +2,13 @@ package com.paike.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.paike.admin.dto.ChangePasswordRequest;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
 import com.paike.admin.entity.User;
 import com.paike.admin.mapper.UserMapper;
 import com.paike.admin.service.UserService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.common.exception.BusinessException;
 import com.paike.common.result.ResultCode;
 import com.paike.common.utils.JwtUtils;
@@ -26,6 +28,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private SecurityUtils securityUtils;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -61,5 +66,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ip);
         updateById(user);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        User currentUser = securityUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new BusinessException(ResultCode.USER_NOT_LOGIN);
+        }
+
+        if (!PasswordUtils.matches(request.getOldPassword(), currentUser.getPassword())) {
+            throw new BusinessException(ResultCode.USER_PASSWORD_ERROR);
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException(1002, "两次密码输入不一致");
+        }
+
+        currentUser.setPassword(PasswordUtils.encode(request.getNewPassword()));
+        updateById(currentUser);
     }
 }

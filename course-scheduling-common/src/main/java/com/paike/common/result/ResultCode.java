@@ -16,6 +16,7 @@ public enum ResultCode {
     USER_PASSWORD_ERROR(1002, "密码错误"),
     USER_DISABLED(1003, "用户已被禁用"),
     USER_ALREADY_EXISTS(1004, "用户已存在"),
+    USER_NOT_LOGIN(1007, "用户未登录"),
     TOKEN_EXPIRED(1005, "Token已过期"),
     TOKEN_INVALID(1006, "Token无效"),
 

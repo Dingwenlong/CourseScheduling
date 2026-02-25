@@ -118,10 +118,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast, showConfirmDialog } from 'vant'
+import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import { useUserStore } from '@/stores/user'
+import { getUserInfo, changePassword } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -135,6 +136,17 @@ const passwordForm = ref({
   newPassword: '',
   confirmPassword: ''
 })
+
+const loadUserInfo = async () => {
+  try {
+    const res = await getUserInfo()
+    if (res.data) {
+      userStore.setUserInfo(res.data)
+    }
+  } catch (e) {
+    console.error('加载用户信息失败', e)
+  }
+}
 
 const getRoleName = (role) => {
   const map = { 'ADMIN': '管理员', 'TEACHER': '教师', 'STUDENT': '学生' }
@@ -153,15 +165,35 @@ const handleLogout = async () => {
   router.push('/login')
 }
 
-const handleChangePassword = () => {
+const handleChangePassword = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
     showToast('两次密码输入不一致')
     return
   }
-  showToast('密码修改成功')
-  showPassword.value = false
-  passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+
+  showLoadingToast({
+    message: '修改中...',
+    forbidClick: true,
+    duration: 0
+  })
+
+  try {
+    await changePassword(passwordForm.value)
+    showToast('密码修改成功')
+    showPassword.value = false
+    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+  } catch (e) {
+    showToast(e.message || '密码修改失败')
+  } finally {
+    closeToast()
+  }
 }
+
+onMounted(() => {
+  if (!userStore.userInfo) {
+    loadUserInfo()
+  }
+})
 </script>
 
 <style scoped>
@@ -278,7 +310,11 @@ const handleChangePassword = () => {
 }
 
 .menu-item :deep(.van-cell__icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: var(--spacing-md);
+  min-width: 24px;
 }
 
 .logout-wrapper {

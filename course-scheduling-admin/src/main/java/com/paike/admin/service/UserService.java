@@ -1,5 +1,6 @@
 package com.paike.admin.service;
 
+import com.paike.admin.dto.ChangePasswordRequest;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
 import com.paike.admin.entity.User;
@@ -12,4 +13,6 @@ public interface UserService extends IService<User> {
     User getByUsername(String username);
 
     void updateLoginInfo(Long userId, String ip);
+
+    void changePassword(ChangePasswordRequest request);
 }
