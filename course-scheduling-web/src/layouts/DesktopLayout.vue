@@ -485,7 +485,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  width: 100%;
+  width: 86%;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
@@ -620,6 +620,28 @@ onUnmounted(() => {
   padding: var(--spacing-xl);
   background: var(--bg-secondary);
   height: 100%;
+}
+
+.content-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-wrapper::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.content-wrapper:hover::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+}
+
+.content-wrapper:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .fade-slide-enter-active,

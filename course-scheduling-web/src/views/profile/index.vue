@@ -31,7 +31,7 @@
       <div class="card menu-card">
         <van-cell-group inset class="menu-group">
           <van-cell title="修改密码" is-link @click="showPassword = true" class="menu-item">
-            <template #icon>
+            <template #icon style="margin: 6px 5px 0 5px;">
               <van-icon name="lock" color="#51caba" />
             </template>
           </van-cell>
@@ -50,72 +50,55 @@
       </van-button>
     </div>
 
-    <van-popup v-model:show="showPassword" position="bottom" round style="height: 50%;" class="password-popup">
-      <div class="popup-header">
-        <div class="popup-title">修改密码</div>
-        <van-icon name="cross" size="20" @click="showPassword = false" class="close-icon" />
-      </div>
-      <div class="popup-content">
-        <van-form @submit="handleChangePassword">
-          <van-cell-group inset class="form-group">
-            <van-field
-              v-model="passwordForm.oldPassword"
-              type="password"
-              name="oldPassword"
-              label="原密码"
-              placeholder="请输入原密码"
-              required
-              class="form-field"
-            />
-            <van-field
-              v-model="passwordForm.newPassword"
-              type="password"
-              name="newPassword"
-              label="新密码"
-              placeholder="请输入新密码"
-              required
-              class="form-field"
-            />
-            <van-field
-              v-model="passwordForm.confirmPassword"
-              type="password"
-              name="confirmPassword"
-              label="确认密码"
-              placeholder="请再次输入新密码"
-              required
-              class="form-field"
-            />
-          </van-cell-group>
-          <div class="form-btn">
-            <van-button round block type="primary" native-type="submit" class="submit-btn">
-              确认修改
-            </van-button>
-          </div>
-        </van-form>
-      </div>
-    </van-popup>
+    <van-dialog v-model:show="showPassword" title="修改密码" show-cancel-button @confirm="handleChangePassword" class="password-dialog">
+      <van-form @submit.prevent="handleChangePassword">
+        <van-cell-group inset class="form-group">
+          <van-field
+            v-model="passwordForm.oldPassword"
+            type="password"
+            name="oldPassword"
+            label="原密码"
+            placeholder="请输入原密码"
+            required
+            class="form-field"
+          />
+          <van-field
+            v-model="passwordForm.newPassword"
+            type="password"
+            name="newPassword"
+            label="新密码"
+            placeholder="请输入新密码"
+            required
+            class="form-field"
+          />
+          <van-field
+            v-model="passwordForm.confirmPassword"
+            type="password"
+            name="confirmPassword"
+            label="确认密码"
+            placeholder="请再次输入新密码"
+            required
+            class="form-field"
+          />
+        </van-cell-group>
+      </van-form>
+    </van-dialog>
 
-    <van-popup v-model:show="showAbout" position="bottom" round style="height: 60%;" class="about-popup">
-      <div class="popup-header">
-        <div class="popup-title">关于系统</div>
-        <van-icon name="cross" size="20" @click="showAbout = false" class="close-icon" />
-      </div>
-      <div class="popup-content">
-        <div class="about-content">
-          <div class="about-logo">
-            <van-icon name="calendar-o" size="56" color="#51caba" />
-          </div>
-          <h3 class="about-title">智能排课系统</h3>
-          <p class="about-version">版本：1.0.0</p>
-          <p class="about-desc mt-16">基于遗传算法和贪心算法的智能排课解决方案，支持多校区、多约束条件下的课程调度优化。</p>
-          <van-cell-group inset class="mt-16 about-details">
-            <van-cell title="技术栈" value="Vue 3 + Spring Boot" />
-            <van-cell title="算法支持" value="贪心算法 / 遗传算法" />
-            <van-cell title="开发团队" value="Paike Team" />
-          </van-cell-group>
+    <van-dialog v-model:show="showAbout" title="关于系统" class="about-dialog">
+      <div class="about-content">
+        <div class="about-logo">
+          <van-icon name="calendar-o" size="56" color="#51caba" />
         </div>
+        <h3 class="about-title">智能排课系统</h3>
+        <p class="about-version">版本：1.0.0</p>
+        <p class="about-desc mt-16">基于遗传算法和贪心算法的智能排课解决方案，支持多校区、多约束条件下的课程调度优化。</p>
+        <van-cell-group inset class="mt-16 about-details">
+          <van-cell title="技术栈" value="Vue 3 + Spring Boot" />
+          <van-cell title="算法支持" value="贪心算法 / 遗传算法" />
+          <van-cell title="开发团队" value="Paike Team" />
+        </van-cell-group>
       </div>
-    </van-popup>
+    </van-dialog>
   </div>
 </template>
 
@@ -293,6 +276,9 @@ onMounted(() => {
 
 .menu-card {
   animation-delay: 0.15s;
+  :deep(.van-icon) {
+    margin: 6px 5px 0 5px;
+  }
 }
 
 .section-title {
@@ -344,63 +330,22 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-.password-popup,
-.about-popup {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-}
-
-.popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.close-icon {
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--spacing-xs);
-}
-
-.popup-content {
-  padding: var(--spacing-lg) 0 var(--spacing-xl);
-  height: calc(100% - 60px);
-  overflow-y: auto;
-}
-
-.form-group {
+.password-dialog .form-group,
+.about-dialog .about-details {
+  margin: var(--spacing-md);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.form-field {
+.password-dialog .form-field {
   background: var(--bg-primary);
-}
-
-.form-btn {
-  margin-top: var(--spacing-xl);
-  padding: 0 var(--spacing-lg);
-}
-
-.submit-btn {
-  height: 50px;
-  font-size: 16px;
-  font-weight: 600;
-  background: var(--primary-gradient);
-  border: none;
-  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
 }
 
 .about-content {
   text-align: center;
-  padding: 0 var(--spacing-lg);
+  padding: var(--spacing-md);
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .about-logo {
@@ -441,15 +386,6 @@ onMounted(() => {
   
   .profile-header {
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-  }
-
-  .password-popup,
-  .about-popup {
-    max-width: 480px;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    border-radius: var(--radius-xl) !important;
-    margin-bottom: 20px;
   }
 }
 

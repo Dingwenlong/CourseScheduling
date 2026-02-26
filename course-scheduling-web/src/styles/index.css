@@ -117,10 +117,11 @@
   --van-search-padding: 0;
   --van-search-background: transparent;
   --van-search-content-background: var(--bg-secondary);
-  --van-dropdown-menu-background: transparent;
-  --van-dropdown-menu-box-shadow: none;
   --van-dropdown-menu-height: 40px;
   --van-dropdown-menu-title-font-size: 14px;
+  --van-dropdown-menu-title-text-color: var(--text-primary);
+  --van-dropdown-menu-title-active-text-color: var(--primary-color);
+  --van-dropdown-menu-option-active-color: var(--primary-color);
 }
 
 /* Unify Search and Dropdown visual style */
@@ -146,6 +147,26 @@
 
 .van-dropdown-menu__bar--opened {
   border-color: var(--primary-color);
+}
+
+.van-dropdown-item__content {
+  background: var(--bg-primary) !important;
+}
+
+.van-dropdown-item__option {
+  color: var(--text-primary) !important;
+}
+
+.van-dropdown-item__option--active {
+  color: var(--primary-color) !important;
+}
+
+.van-dropdown-menu__title {
+  color: var(--text-primary) !important;
+}
+
+.van-dropdown-menu__title--active {
+  color: var(--primary-color) !important;
 }
 
 .px-page {

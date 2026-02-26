@@ -1,6 +1,8 @@
 -- 智能排课系统数据库初始化脚本
 -- Database: course_scheduling
 
+SET NAMES utf8mb4;
+
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS course_scheduling DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

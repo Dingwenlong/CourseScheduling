@@ -15,7 +15,7 @@
       />
     </div>
 
-    <div class="dropdown-wrapper">
+    <div class="dropdown-wrapper mt-16">
       <van-dropdown-menu class="dropdown-menu-full">
         <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
         <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
@@ -267,6 +267,16 @@ const getStatusClass = (status) => {
     'COMPLETED': 'tag-default' 
   }
   return map[status] || 'tag-default'
+}
+
+const getStatusType = (status) => {
+  const map = { 
+    'PENDING': 'warning', 
+    'SCHEDULED': 'success', 
+    'ADJUSTING': 'primary', 
+    'COMPLETED': 'default' 
+  }
+  return map[status] || 'default'
 }
 
 const getStatusText = (status) => {

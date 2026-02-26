@@ -178,7 +178,7 @@ const algorithmName = computed(() => {
 const semesterColumns = computed(() => {
   const year = dayjs().year()
   const columns = []
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     columns.push({ text: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
     columns.push({ text: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
   }

@@ -1,64 +1,71 @@
 <template>
-  <div class="page page-with-tabbar">
+  <div class="page page-with-tabbar schedule-page">
     <van-nav-bar title="课表查询" class="custom-nav" />
 
-    <div class="search-wrapper mt-16">
-      <van-dropdown-menu>
-        <van-dropdown-item v-model="queryType" :options="typeOptions" />
-      </van-dropdown-menu>
-      <van-search
-        v-model="searchKeyword"
-        :placeholder="getPlaceholder"
-        @search="handleSearch"
-        class="flex-1"
-      />
-    </div>
-
-    <van-loading v-if="loading" class="loading-container" />
-
-    <template v-else-if="timetableId">
-      <div class="card">
-        <div class="timetable-grid">
-          <div class="timetable-header"></div>
-          <div v-for="day in 5" :key="'h'+day" class="timetable-header">
-            周{{ ['一', '二', '三', '四', '五'][day - 1] }}
-          </div>
-          <template v-for="slot in 10" :key="'s'+slot">
-            <div class="timetable-header">{{ slot }}</div>
-            <div
-              v-for="day in 5"
-              :key="'c'+day+'-'+slot"
-              class="timetable-cell"
-              :class="{ 'has-course': getCourse(day, slot) }"
-              @click="showCourseInfo(day, slot)"
-            >
-              <div v-if="getCourse(day, slot)" class="course-block">
-                <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
-                <div class="course-block-info">{{ getCourse(day, slot).classroomName }}</div>
-              </div>
-            </div>
-          </template>
+    <div class="table-container animate-fade-in">
+      <div class="table-header">
+        <div class="table-title desktop-only">查询条件</div>
+        <div class="table-filters search-wrapper">
+          <van-dropdown-menu class="type-dropdown">
+            <van-dropdown-item v-model="queryType" :options="typeOptions" />
+          </van-dropdown-menu>
+          <van-search
+            v-model="searchKeyword"
+            :placeholder="getPlaceholder"
+            @search="handleSearch"
+            class="search-input"
+          />
         </div>
       </div>
 
-      <div class="card">
-        <div class="page-title">课程列表</div>
-        <van-cell-group inset>
-          <van-cell
-            v-for="course in courses"
-            :key="course.id"
-            :title="course.courseName"
-            :label="`周${course.dayOfWeek} 第${course.slotNo}节`"
-          >
-            <template #value>
-              <div class="text-muted" style="font-size: 12px;">{{ course.classroomName }}</div>
-            </template>
-          </van-cell>
-        </van-cell-group>
-      </div>
-    </template>
+      <div class="content-body">
+        <van-loading v-if="loading" class="loading-container" />
 
-    <van-empty v-else description="请先选择课表" />
+        <template v-else-if="timetableId">
+          <div class="timetable-card">
+            <div class="timetable-grid">
+              <div class="timetable-header"></div>
+              <div v-for="day in 5" :key="'h'+day" class="timetable-header">
+                周{{ ['一', '二', '三', '四', '五'][day - 1] }}
+              </div>
+              <template v-for="slot in 10" :key="'s'+slot">
+                <div class="timetable-header">{{ slot }}</div>
+                <div
+                  v-for="day in 5"
+                  :key="'c'+day+'-'+slot"
+                  class="timetable-cell"
+                  :class="{ 'has-course': getCourse(day, slot) }"
+                  @click="showCourseInfo(day, slot)"
+                >
+                  <div v-if="getCourse(day, slot)" class="course-block">
+                    <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
+                    <div class="course-block-info">{{ getCourse(day, slot).classroomName }}</div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="card mt-16 mobile-only">
+            <div class="page-title">课程列表</div>
+            <van-cell-group inset>
+              <van-cell
+                v-for="course in courses"
+                :key="course.id"
+                :title="course.courseName"
+                :label="`周${course.dayOfWeek} 第${course.slotNo}节`"
+              >
+                <template #value>
+                  <div class="text-muted" style="font-size: 12px;">{{ course.classroomName }}</div>
+                </template>
+              </van-cell>
+            </van-cell-group>
+          </div>
+        </template>
+
+        <van-empty v-else description="请先选择课表" />
+      </div>
+    </div>
 
     <van-popup v-model:show="showCoursePopup" position="bottom" round style="height: 40%;">
       <div class="course-popup" v-if="currentCourse">
@@ -166,6 +173,67 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.schedule-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.table-container {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-top: var(--spacing-md);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.table-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table-filters {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.type-dropdown {
+  width: 150px;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 300px;
+}
+
+.content-body {
+  padding: var(--spacing-xl);
+}
+
+.timetable-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
 .course-popup {
   padding: var(--spacing-xl);
 }
@@ -175,23 +243,94 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
 }
 
+.desktop-only {
+  display: none;
+}
+
+.mobile-only {
+  display: block;
+}
+
 @media (min-width: 768px) {
   .custom-nav {
     display: none;
   }
+  
+  .desktop-only {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: none;
+  }
+  
+  .table-container {
+    margin-top: 0;
+  }
 }
 
-.timetable-container {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 50px repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border-light);
+  min-width: 600px;
+}
+
+.timetable-header {
+  background: var(--bg-secondary);
+  padding: var(--spacing-sm);
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.timetable-cell {
+  background: var(--bg-primary);
+  min-height: 80px;
+  padding: var(--spacing-xs);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.timetable-cell:hover {
+  background: var(--bg-secondary);
+}
+
+.timetable-cell.has-course {
+  background: rgba(81, 202, 186, 0.05);
+}
+
+.course-block {
+  background: var(--primary-gradient);
+  color: white;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.course-block-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.course-block-info {
+  opacity: 0.9;
+  font-size: 9px;
 }
 
 @media (min-width: 1024px) {
-  .page {
-    max-width: var(--content-max-width);
-    margin: 0 auto;
-  }
-  
   .timetable-grid {
     grid-template-columns: 80px repeat(5, 1fr);
   }
@@ -213,20 +352,12 @@ onMounted(async () => {
 }
 
 @media (min-width: 1440px) {
-  .page {
-    max-width: var(--content-max-width-wide);
-  }
-  
   .timetable-grid {
     grid-template-columns: 100px repeat(5, 1fr);
   }
 }
 
 @media (min-width: 1920px) {
-  .page {
-    max-width: var(--content-max-width-ultra);
-  }
-  
   .timetable-cell {
     min-height: 120px;
   }
@@ -242,10 +373,6 @@ onMounted(async () => {
 }
 
 @media (min-width: 2560px) {
-  .page {
-    max-width: var(--content-max-width-super);
-  }
-
   .timetable-cell {
     min-height: 150px;
   }

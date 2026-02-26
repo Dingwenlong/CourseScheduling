@@ -2,192 +2,185 @@
   <div class="page page-with-tabbar user-page">
     <van-nav-bar title="用户管理" class="custom-nav" />
 
-    <div class="search-bar animate-slide-up">
-      <van-field
-        v-model="searchForm.username"
-        placeholder="搜索用户名"
-        clearable
-        class="search-field"
-      >
-        <template #left-icon>
-          <van-icon name="search" />
-        </template>
-      </van-field>
-      <van-field
-        v-model="searchForm.realName"
-        placeholder="搜索真实姓名"
-        clearable
-        class="search-field"
-      />
-      <van-button type="primary" size="small" @click="handleSearch" class="search-btn">
-        搜索
-      </van-button>
-    </div>
-
-    <div class="filter-bar animate-slide-up" style="animation-delay: 0.05s;">
-      <van-dropdown-menu class="filter-menu">
-        <van-dropdown-item v-model="searchForm.role" :options="roleOptions" @change="handleSearch" />
-        <van-dropdown-item v-model="searchForm.status" :options="statusOptions" @change="handleSearch" />
-      </van-dropdown-menu>
-      <van-button type="success" size="small" @click="handleAdd" class="add-btn">
-        <van-icon name="plus" /> 新增
-      </van-button>
-    </div>
-
-    <div class="user-list animate-slide-up" style="animation-delay: 0.1s;">
-      <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-        <van-list
-          v-model:loading="loading"
-          :finished="finished"
-          finished-text="没有更多了"
-          @load="onLoad"
-        >
-          <van-swipe-cell v-for="user in userList" :key="user.id" class="user-item">
-            <van-cell class="user-cell">
-              <template #icon>
-                <van-image round width="48" height="48" :src="user.avatar || defaultAvatar" class="user-avatar" />
-              </template>
-              <template #title>
-                <div class="user-title">
-                  <span class="user-name">{{ user.realName || user.username }}</span>
-                  <van-tag :type="getRoleTagType(user.role)" size="small" class="role-tag">
-                    {{ getRoleName(user.role) }}
-                  </van-tag>
-                  <van-tag :type="user.status === 1 ? 'success' : 'danger'" size="small">
-                    {{ user.status === 1 ? '启用' : '禁用' }}
-                  </van-tag>
-                </div>
-              </template>
-              <template #label>
-                <div class="user-info">
-                  <div class="info-line">
-                    <van-icon name="user-o" size="12" />
-                    <span>{{ user.username }}</span>
-                  </div>
-                  <div v-if="user.phone" class="info-line">
-                    <van-icon name="phone-o" size="12" />
-                    <span>{{ user.phone }}</span>
-                  </div>
-                  <div v-if="user.email" class="info-line">
-                    <van-icon name="envelop-o" size="12" />
-                    <span>{{ user.email }}</span>
-                  </div>
-                </div>
-              </template>
-              <template #value>
-                <div class="user-actions">
-                  <van-button type="primary" size="mini" @click="handleEdit(user)">编辑</van-button>
-                </div>
-              </template>
-            </van-cell>
-            <template #right>
-              <van-button
-                square
-                :type="user.status === 1 ? 'danger' : 'success'"
-                text="user.status === 1 ? '禁用' : '启用'"
-                class="swipe-btn"
-                @click="handleToggleStatus(user)"
-              />
-              <van-button
-                square
-                type="warning"
-                text="重置密码"
-                class="swipe-btn"
-                @click="handleResetPassword(user)"
-              />
-              <van-button
-                square
-                type="danger"
-                text="删除"
-                class="swipe-btn"
-                @click="handleDelete(user)"
-              />
-            </template>
-          </van-swipe-cell>
-        </van-list>
-      </van-pull-refresh>
-    </div>
-
-    <van-popup v-model:show="showForm" position="bottom" round style="height: 75%;" class="form-popup">
-      <div class="popup-header">
-        <div class="popup-title">{{ isEdit ? '编辑用户' : '新增用户' }}</div>
-        <van-icon name="cross" size="20" @click="showForm = false" class="close-icon" />
-      </div>
-      <div class="popup-content">
-        <van-form @submit="handleSubmit">
-          <van-cell-group inset class="form-group">
-            <van-field
-              v-model="form.username"
-              name="username"
-              label="用户名"
-              placeholder="请输入用户名"
-              :rules="[{ required: true, message: '用户名不能为空' }]"
-              :disabled="isEdit"
-              required
-              class="form-field"
+    <div class="table-container animate-fade-in">
+      <div class="table-header">
+        <div class="table-title desktop-only">用户列表</div>
+        <div class="table-filters search-wrapper">
+          <div class="search-inputs">
+            <van-search
+              v-model="searchForm.username"
+              placeholder="用户名"
+              class="search-input"
+              @search="handleSearch"
             />
-            <van-field
-              v-if="!isEdit"
-              v-model="form.password"
-              type="password"
-              name="password"
-              label="密码"
-              placeholder="请输入密码"
-              :rules="[{ required: !isEdit, message: '密码不能为空' }]"
-              required
-              class="form-field"
+            <van-search
+              v-model="searchForm.realName"
+              placeholder="真实姓名"
+              class="search-input"
+              @search="handleSearch"
             />
-            <van-field
-              v-model="form.realName"
-              name="realName"
-              label="真实姓名"
-              placeholder="请输入真实姓名"
-              :rules="[{ required: true, message: '真实姓名不能为空' }]"
-              required
-              class="form-field"
-            />
-            <van-field
-              v-model="form.role"
-              name="role"
-              label="角色"
-              placeholder="请选择角色"
-              :rules="[{ required: true, message: '请选择角色' }]"
-              required
-              class="form-field"
-              readonly
-              @click="showRolePicker = true"
-            />
-            <van-field
-              v-model="form.phone"
-              name="phone"
-              label="手机号"
-              placeholder="请输入手机号"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.email"
-              name="email"
-              label="邮箱"
-              placeholder="请输入邮箱"
-              class="form-field"
-            />
-            <van-field name="status" label="状态" class="form-field">
-              <template #input>
-                <van-radio-group v-model="form.status" direction="horizontal">
-                  <van-radio :name="1">启用</van-radio>
-                  <van-radio :name="0">禁用</van-radio>
-                </van-radio-group>
-              </template>
-            </van-field>
-          </van-cell-group>
-          <div class="form-btn">
-            <van-button round block type="primary" native-type="submit" class="submit-btn" :loading="submitting">
-              {{ isEdit ? '保存修改' : '确认创建' }}
-            </van-button>
           </div>
-        </van-form>
+          <van-dropdown-menu class="filter-dropdowns">
+            <van-dropdown-item v-model="searchForm.role" :options="roleOptions" @change="handleSearch" />
+            <van-dropdown-item v-model="searchForm.status" :options="statusOptions" @change="handleSearch" />
+          </van-dropdown-menu>
+          <van-button type="success" icon="plus" size="small" @click="handleAdd" class="add-btn-desktop desktop-only">
+            新增用户
+          </van-button>
+        </div>
       </div>
-    </van-popup>
+
+      <div class="mobile-actions mobile-only">
+        <van-button type="success" icon="plus" block @click="handleAdd" class="add-btn-mobile">
+          新增用户
+        </van-button>
+      </div>
+
+      <div class="user-list-wrapper">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+          <van-list
+            v-model:loading="loading"
+            :finished="finished"
+            finished-text="没有更多了"
+            @load="onLoad"
+            class="user-list"
+          >
+            <van-swipe-cell v-for="user in userList" :key="user.id" class="user-item">
+              <van-cell class="user-cell">
+                <template #icon>
+                  <van-image round width="48" height="48" :src="user.avatar || defaultAvatar" class="user-avatar" />
+                </template>
+                <template #title>
+                  <div class="user-title">
+                    <span class="user-name">{{ user.realName || user.username }}</span>
+                    <van-tag :type="getRoleTagType(user.role)" size="small" class="role-tag">
+                      {{ getRoleName(user.role) }}
+                    </van-tag>
+                    <van-tag :type="user.status === 1 ? 'success' : 'danger'" size="small">
+                      {{ user.status === 1 ? '启用' : '禁用' }}
+                    </van-tag>
+                  </div>
+                </template>
+                <template #label>
+                  <div class="user-info">
+                    <div class="info-line">
+                      <van-icon name="user-o" size="12" />
+                      <span>{{ user.username }}</span>
+                    </div>
+                    <div v-if="user.phone" class="info-line">
+                      <van-icon name="phone-o" size="12" />
+                      <span>{{ user.phone }}</span>
+                    </div>
+                    <div v-if="user.email" class="info-line">
+                      <van-icon name="envelop-o" size="12" />
+                      <span>{{ user.email }}</span>
+                    </div>
+                  </div>
+                </template>
+                <template #value>
+                  <div class="user-actions">
+                    <van-button type="primary" size="mini" @click="handleEdit(user)">编辑</van-button>
+                  </div>
+                </template>
+              </van-cell>
+              <template #right>
+                <van-button
+                  square
+                  :type="user.status === 1 ? 'danger' : 'success'"
+                  :text="user.status === 1 ? '禁用' : '启用'"
+                  class="swipe-btn"
+                  @click="handleToggleStatus(user)"
+                />
+                <van-button
+                  square
+                  type="warning"
+                  text="重置密码"
+                  class="swipe-btn"
+                  @click="handleResetPassword(user)"
+                />
+                <van-button
+                  square
+                  type="danger"
+                  text="删除"
+                  class="swipe-btn"
+                  @click="handleDelete(user)"
+                />
+              </template>
+            </van-swipe-cell>
+          </van-list>
+        </van-pull-refresh>
+      </div>
+    </div>
+
+    <van-dialog v-model:show="showForm" :title="isEdit ? '编辑用户' : '新增用户'" show-cancel-button @confirm="handleSubmit" class="user-dialog">
+      <van-form @submit.prevent="handleSubmit">
+        <van-cell-group inset class="form-group">
+          <van-field
+            v-model="form.username"
+            name="username"
+            label="用户名"
+            placeholder="请输入用户名"
+            :rules="[{ required: true, message: '用户名不能为空' }]"
+            :disabled="isEdit"
+            required
+            class="form-field"
+          />
+          <van-field
+            v-if="!isEdit"
+            v-model="form.password"
+            type="password"
+            name="password"
+            label="密码"
+            placeholder="请输入密码"
+            :rules="[{ required: !isEdit, message: '密码不能为空' }]"
+            required
+            class="form-field"
+          />
+          <van-field
+            v-model="form.realName"
+            name="realName"
+            label="真实姓名"
+            placeholder="请输入真实姓名"
+            :rules="[{ required: true, message: '真实姓名不能为空' }]"
+            required
+            class="form-field"
+          />
+          <van-field
+            v-model="form.role"
+            name="role"
+            label="角色"
+            placeholder="请选择角色"
+            :rules="[{ required: true, message: '请选择角色' }]"
+            required
+            class="form-field"
+            readonly
+            @click="showRolePicker = true"
+          />
+          <van-field
+            v-model="form.phone"
+            name="phone"
+            label="手机号"
+            placeholder="请输入手机号"
+            class="form-field"
+          />
+          <van-field
+            v-model="form.email"
+            name="email"
+            label="邮箱"
+            placeholder="请输入邮箱"
+            class="form-field"
+          />
+          <van-field name="status" label="状态" class="form-field">
+            <template #input>
+              <van-radio-group v-model="form.status" direction="horizontal">
+                <van-radio :name="1">启用</van-radio>
+                <van-radio :name="0">禁用</van-radio>
+              </van-radio-group>
+            </template>
+          </van-field>
+        </van-cell-group>
+      </van-form>
+    </van-dialog>
 
     <van-popup v-model:show="showRolePicker" position="bottom" round>
       <van-picker
@@ -458,71 +451,133 @@ onMounted(() => {
   to { opacity: 1; }
 }
 
-.custom-nav {
+.table-container {
   background: var(--bg-primary);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  overflow: hidden;
+  margin-top: var(--spacing-md);
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
-.search-bar {
+.table-header {
   display: flex;
-  gap: 8px;
-  padding: var(--spacing-md);
-  background: var(--bg-primary);
-  animation: slideUp 0.4s ease-out;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
 
-.search-field {
+.table-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table-filters {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
   flex: 1;
-  margin: 0;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.search-inputs {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex: 1;
+  max-width: 500px;
+}
+
+.search-input {
+  flex: 1;
   padding: 0;
-  background: var(--bg-secondary);
+}
+
+.filter-dropdowns {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.filter-dropdowns :deep(.van-dropdown-menu__bar) {
+  box-shadow: none;
+  height: 36px;
+  background: transparent;
+}
+
+.add-btn-desktop {
+  height: 36px;
+}
+
+.mobile-actions {
+  padding: var(--spacing-md);
+}
+
+.add-btn-mobile {
+  height: 44px;
   border-radius: var(--radius-md);
 }
 
-.search-field :deep(.van-field__control) {
-  height: 36px;
+.user-list-wrapper {
+  padding: var(--spacing-md);
 }
 
-.search-btn {
-  height: 36px;
-  padding: 0 16px;
-}
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  padding: 0 var(--spacing-md) var(--spacing-sm);
+.custom-nav {
   background: var(--bg-primary);
-  gap: 8px;
-  animation: slideUp 0.4s ease-out 0.05s backwards;
+  box-shadow: var(--shadow-sm);
 }
 
-.filter-menu {
-  flex: 1;
+.desktop-only {
+  display: none;
 }
 
-.filter-menu :deep(.van-dropdown-menu__bar) {
-  background: transparent;
-  box-shadow: none;
+.mobile-only {
+  display: block;
 }
 
-.add-btn {
-  height: 32px;
-  padding: 0 12px;
-}
-
-.user-list {
-  padding: 0 var(--spacing-md);
-  animation: slideUp 0.4s ease-out 0.1s backwards;
+@media (min-width: 768px) {
+  .custom-nav {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: none;
+  }
+  
+  .table-container {
+    margin-top: 0;
+  }
+  
+  .user-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-md);
+  }
+  
+  .user-item {
+    margin-bottom: 0;
+  }
 }
 
 .user-item {
   margin-bottom: var(--spacing-sm);
   border-radius: var(--radius-md);
   overflow: hidden;
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
+.user-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
 }
 
 .user-cell {
@@ -565,10 +620,6 @@ onMounted(() => {
   margin-bottom: 4px;
 }
 
-.info-line:last-child {
-  margin-bottom: 0;
-}
-
 .user-actions {
   display: flex;
   flex-direction: column;
@@ -580,82 +631,22 @@ onMounted(() => {
   min-width: 60px;
 }
 
-.form-popup {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-}
-
-.popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.close-icon {
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-}
-
-.popup-content {
-  padding: var(--spacing-lg) 0 var(--spacing-xl);
-  height: calc(100% - 60px);
+.user-dialog .form-group {
+  margin: var(--spacing-md);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-height: 60vh;
   overflow-y: auto;
 }
 
-.form-group {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.form-field {
+.user-dialog .form-field {
   background: var(--bg-primary);
 }
 
-.form-btn {
-  margin-top: var(--spacing-xl);
-  padding: 0 var(--spacing-lg);
-}
-
-.submit-btn {
-  height: 50px;
-  font-size: 16px;
-  font-weight: 600;
-  background: var(--primary-gradient);
-  border: none;
-  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (min-width: 768px) {
-  .user-page {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  .form-popup {
-    max-width: 480px;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    border-radius: var(--radius-xl) !important;
-    margin-bottom: 20px;
+@media (min-width: 1440px) {
+  .user-list {
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: var(--spacing-lg);
   }
 }
 </style>

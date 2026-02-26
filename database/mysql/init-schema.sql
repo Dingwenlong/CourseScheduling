@@ -422,6 +422,14 @@ CREATE TABLE sync_log (
 INSERT INTO sys_user (username, password, real_name, role, status) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EO', '系统管理员', 'ADMIN', 1);
 
+-- 初始化教师账号(密码: 123456)
+INSERT INTO sys_user (username, password, real_name, role, phone, status) VALUES
+('teacher001', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '张三', 'TEACHER', '13800138001', 1);
+
+-- 初始化学生账号(密码: 123456)
+INSERT INTO sys_user (username, password, real_name, role, phone, status) VALUES
+('student001', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', '李四', 'STUDENT', '13900139001', 1);
+
 -- 初始化校区数据
 INSERT INTO sys_campus (campus_code, campus_name, address, commute_time, sort_order) VALUES
 ('MAIN', '主校区', 'XX市XX区XX路1号', 0, 1),
@@ -441,3 +449,15 @@ INSERT INTO edu_classroom (room_no, room_name, campus_id, building, floor, capac
 ('A102', 'A102普通教室', 1, 'A教学楼', 1, 80, 'GENERAL', 0, 1),
 ('B201', 'B201计算机实验室', 1, 'B实验楼', 2, 60, 'COMPUTER', 1, 1),
 ('C301', 'C301阶梯教室', 1, 'C教学楼', 3, 200, 'LECTURE_HALL', 1, 1);
+
+-- 初始化班级数据
+INSERT INTO edu_class (class_code, class_name, dept_id, grade, student_count, counselor_name, counselor_phone, status) VALUES
+('CS2024001', '计算机科学与技术2024级1班', 1, '2024', 40, '王辅导员', '13700137001', 1);
+
+-- 初始化教师关联数据(关联user_id=2, 即teacher001)
+INSERT INTO edu_teacher (user_id, teacher_no, dept_id, title, research_area, office_location, max_hours_per_week, campus_id, status) VALUES
+(2, 'T2024001', 1, 'LECTURER', '人工智能、机器学习', 'A教学楼301室', 16, 1, 1);
+
+-- 初始化学生关联数据(关联user_id=3, 即student001)
+INSERT INTO edu_student (user_id, student_no, dept_id, class_id, grade, status) VALUES
+(3, 'S2024001', 1, 1, '2024', 1);

@@ -71,6 +71,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private List<TaskData> loadTasks(SchedulingRequest request) {
         LambdaQueryWrapper<TeachingTask> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TeachingTask::getSemester, request.getSemester());
+        wrapper.eq(TeachingTask::getStatus, "PENDING");
         
         if (request.getTaskIds() != null && !request.getTaskIds().isEmpty()) {
             wrapper.in(TeachingTask::getId, request.getTaskIds());

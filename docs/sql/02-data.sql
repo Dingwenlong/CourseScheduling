@@ -1,6 +1,8 @@
 -- 智能排课系统测试数据
 -- Database: course_scheduling
 
+SET NAMES utf8mb4;
+
 USE course_scheduling;
 
 -- ----------------------------
