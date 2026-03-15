@@ -8,7 +8,9 @@
     <div class="stats-grid grid-adaptive stagger-animation" role="region" aria-label="统计数据">
       <div class="stat-card-desktop" tabindex="0" role="article" aria-label="已排课程统计">
         <div class="stat-icon" style="background: #eff6ff;">
-          <van-icon name="calendar-o" size="32" color="#51caba" aria-hidden="true" />
+          <n-icon size="32" color="#51caba">
+            <CalendarOutline />
+          </n-icon>
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalCourses }}</div>
@@ -18,7 +20,9 @@
 
       <div class="stat-card-desktop" tabindex="0" role="article" aria-label="总学时统计">
         <div class="stat-icon" style="background: #ecfdf5;">
-          <van-icon name="clock-o" size="32" color="#10b981" aria-hidden="true" />
+          <n-icon size="32" color="#10b981">
+            <TimeOutline />
+          </n-icon>
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalHours }}</div>
@@ -28,7 +32,9 @@
 
       <div class="stat-card-desktop" tabindex="0" role="article" aria-label="教学任务统计">
         <div class="stat-icon" style="background: #fef3c7;">
-          <van-icon name="todo-list-o" size="32" color="#f59e0b" aria-hidden="true" />
+          <n-icon size="32" color="#f59e0b">
+            <ClipboardOutline />
+          </n-icon>
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.totalTasks }}</div>
@@ -38,7 +44,9 @@
 
       <div class="stat-card-desktop" tabindex="0" role="article" aria-label="冲突数量统计">
         <div class="stat-icon" style="background: #fef2f2;">
-          <van-icon name="warning-o" size="32" color="#ef4444" aria-hidden="true" />
+          <n-icon size="32" color="#ef4444">
+            <WarningOutline />
+          </n-icon>
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.conflicts }}</div>
@@ -52,9 +60,9 @@
         <div class="card desktop-card animate-slide-in-left" role="region" aria-label="最新课表">
           <div class="card-header">
             <h3 class="card-title">最新课表</h3>
-            <van-button type="primary" size="small" class="touch-target" @click="goToTimetable" aria-label="查看全部课表">
+            <n-button type="primary" size="small" class="touch-target" @click="goToTimetable" aria-label="查看全部课表">
               查看全部
-            </van-button>
+            </n-button>
           </div>
           <StateView
             :loading="loading"
@@ -67,9 +75,9 @@
                   <div class="timetable-name">{{ latestTimetable.name }}</div>
                   <div class="timetable-meta">{{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版</div>
                 </div>
-                <van-tag :type="getStatusType(latestTimetable.status)" size="large">
+                <n-tag :type="getStatusType(latestTimetable.status)" size="large">
                   {{ getStatusText(latestTimetable.status) }}
-                </van-tag>
+                </n-tag>
               </div>
               <div class="timetable-stats">
                 <div class="stat-item">
@@ -91,7 +99,10 @@
               </div>
               <div class="timetable-footer">
                 <span class="generate-time">
-                  <van-icon name="clock-o" aria-hidden="true" /> 生成时间：{{ formatTime(latestTimetable.generateTime) }}
+                  <n-icon size="16">
+                    <TimeOutline />
+                  </n-icon>
+                  生成时间：{{ formatTime(latestTimetable.generateTime) }}
                 </span>
               </div>
             </div>
@@ -104,27 +115,39 @@
           </div>
           <div class="quick-actions-desktop grid-adaptive">
             <router-link to="/timetable" class="quick-action touch-target" aria-label="生成课表">
-              <van-icon name="calendar-o" size="28" color="#51caba" aria-hidden="true" />
+              <n-icon size="28" color="#51caba">
+                <CalendarOutline />
+              </n-icon>
               <span>生成课表</span>
             </router-link>
             <router-link to="/task" class="quick-action touch-target" aria-label="教学任务">
-              <van-icon name="todo-list-o" size="28" color="#10b981" aria-hidden="true" />
+              <n-icon size="28" color="#10b981">
+                <ClipboardOutline />
+              </n-icon>
               <span>教学任务</span>
             </router-link>
             <router-link to="/schedule" class="quick-action touch-target" aria-label="课表查询">
-              <van-icon name="search" size="28" color="#f59e0b" aria-hidden="true" />
+              <n-icon size="28" color="#f59e0b">
+                <SearchOutline />
+              </n-icon>
               <span>课表查询</span>
             </router-link>
             <router-link to="/adjustment" class="quick-action touch-target" aria-label="调课申请">
-              <van-icon name="exchange" size="28" color="#ef4444" aria-hidden="true" />
+              <n-icon size="28" color="#ef4444">
+                <SwapHorizontalOutline />
+              </n-icon>
               <span>调课申请</span>
             </router-link>
             <router-link to="/statistics" class="quick-action touch-target" aria-label="统计分析">
-              <van-icon name="chart-trending-o" size="28" color="#8b5cf6" aria-hidden="true" />
+              <n-icon size="28" color="#8b5cf6">
+                <BarChartOutline />
+              </n-icon>
               <span>统计分析</span>
             </router-link>
             <router-link to="/profile" class="quick-action touch-target" aria-label="系统设置">
-              <van-icon name="setting-o" size="28" color="#6b7280" aria-hidden="true" />
+              <n-icon size="28" color="#6b7280">
+                <SettingsOutline />
+              </n-icon>
               <span>系统设置</span>
             </router-link>
           </div>
@@ -138,15 +161,21 @@
           </div>
           <div class="system-status">
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
+              <n-icon size="20" color="#10b981">
+                <CheckmarkCircleOutline />
+              </n-icon>
               <span>数据库连接正常</span>
             </div>
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
+              <n-icon size="20" color="#10b981">
+                <CheckmarkCircleOutline />
+              </n-icon>
               <span>算法服务运行中</span>
             </div>
             <div class="status-item">
-              <van-icon name="checked" color="#10b981" size="20" aria-hidden="true" />
+              <n-icon size="20" color="#10b981">
+                <CheckmarkCircleOutline />
+              </n-icon>
               <span>缓存服务正常</span>
             </div>
           </div>
@@ -159,7 +188,9 @@
           <div class="activity-list">
             <div class="activity-item">
               <div class="activity-icon" style="background: #eff6ff;">
-                <van-icon name="plus" size="16" color="#51caba" aria-hidden="true" />
+                <n-icon size="16" color="#51caba">
+                  <AddOutline />
+                </n-icon>
               </div>
               <div class="activity-content">
                 <div class="activity-text">新增教学任务</div>
@@ -168,7 +199,9 @@
             </div>
             <div class="activity-item">
               <div class="activity-icon" style="background: #ecfdf5;">
-                <van-icon name="success" size="16" color="#10b981" aria-hidden="true" />
+                <n-icon size="16" color="#10b981">
+                  <CheckmarkCircleOutline />
+                </n-icon>
               </div>
               <div class="activity-content">
                 <div class="activity-text">课表生成成功</div>
@@ -177,7 +210,9 @@
             </div>
             <div class="activity-item">
               <div class="activity-icon" style="background: #fef3c7;">
-                <van-icon name="edit" size="16" color="#f59e0b" aria-hidden="true" />
+                <n-icon size="16" color="#f59e0b">
+                  <CreateOutline />
+                </n-icon>
               </div>
               <div class="activity-content">
                 <div class="activity-text">更新课程信息</div>
@@ -197,6 +232,20 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
 import StateView from '@/components/ui/StateView.vue'
+import { NButton, NTag, NIcon } from 'naive-ui'
+import {
+  CalendarOutline,
+  TimeOutline,
+  ClipboardOutline,
+  WarningOutline,
+  SearchOutline,
+  SwapHorizontalOutline,
+  BarChartOutline,
+  SettingsOutline,
+  CheckmarkCircleOutline,
+  AddOutline,
+  CreateOutline
+} from '@vicons/ionicons5'
 
 const router = useRouter()
 const loading = ref(false)
@@ -258,7 +307,7 @@ onMounted(async () => {
 <style scoped>
 .desktop-home-page {
   animation: fadeIn 0.4s ease-out;
-  padding: 0; /* Let cards handle horizontal margin */
+  padding: 0;
 }
 
 .home-section {
@@ -572,10 +621,6 @@ onMounted(async () => {
 
   .quick-action span {
     font-size: 16px;
-  }
-
-  .quick-action van-icon {
-    font-size: 36px !important;
   }
 }
 

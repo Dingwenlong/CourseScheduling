@@ -7,6 +7,7 @@ import com.paike.admin.dto.UserQueryRequest;
 import com.paike.admin.dto.UserUpdateRequest;
 import com.paike.admin.entity.User;
 import com.paike.admin.service.UserService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.common.result.PageResult;
 import com.paike.common.result.Result;
 import com.paike.common.result.ResultCode;
@@ -23,13 +24,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/admin/users")
 public class UserController {
 
+    private static final String DEFAULT_PASSWORD = "123456";
+
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private SecurityUtils securityUtils;
 
     @Operation(summary = "分页查询用户列表")
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<PageResult<User>> list(UserQueryRequest request) {
+    public Result<PageResult<User>> list(@Valid UserQueryRequest request) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 
         if (request.getUsername() != null && !request.getUsername().isEmpty()) {
@@ -47,7 +53,7 @@ public class UserController {
 
         wrapper.orderByDesc(User::getCreateTime);
 
-        Page<User> page = new Page<>(request.getPageNum(), request.getPageSize());
+        Page<User> page = new Page<>(request.getCurrent(), request.getSize());
         Page<User> result = userService.page(page, wrapper);
 
         result.getRecords().forEach(user -> user.setPassword(null));
@@ -126,6 +132,11 @@ public class UserController {
             return Result.fail(ResultCode.USER_NOT_FOUND);
         }
 
+        Long currentUserId = securityUtils.getCurrentUserId();
+        if (currentUserId != null && currentUserId.equals(id)) {
+            return Result.fail(ResultCode.PARAM_ERROR.getCode(), "不能删除当前登录用户");
+        }
+
         userService.removeById(id);
         return Result.success();
     }
@@ -139,11 +150,10 @@ public class UserController {
             return Result.fail(ResultCode.USER_NOT_FOUND);
         }
 
-        String defaultPassword = "123456";
-        user.setPassword(PasswordUtils.encode(defaultPassword));
+        user.setPassword(PasswordUtils.encode(DEFAULT_PASSWORD));
         userService.updateById(user);
 
-        return Result.success("密码已重置为: " + defaultPassword);
+        return Result.success("密码已重置为: " + DEFAULT_PASSWORD + "，请提醒用户尽快修改密码");
     }
 
     @Operation(summary = "启用/禁用用户")

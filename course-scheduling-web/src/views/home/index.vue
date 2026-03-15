@@ -1,6 +1,6 @@
 <template>
-  <div class="page page-with-tabbar home-page">
-    <van-nav-bar title="首页" class="custom-nav" />
+  <PageContainer with-tabbar class="home-page">
+    <PageHeader title="首页" />
 
     <div class="stat-card animate-slide-up">
       <div class="stat-card-content">
@@ -10,23 +10,24 @@
       </div>
     </div>
 
-    <div class="quick-actions-wrapper">
+    <div class="quick-actions-section">
       <div class="section-title">快捷操作</div>
       <div class="quick-actions animate-slide-up" style="animation-delay: 0.1s;">
-        <van-grid :column-num="gridColumns" :border="false" class="action-grid">
-          <van-grid-item icon="calendar-o" text="生成课表" to="/timetable" class="action-item touch-target" />
-          <van-grid-item icon="todo-list-o" text="教学任务" to="/task" class="action-item touch-target" />
-          <van-grid-item icon="search" text="课表查询" to="/schedule" class="action-item touch-target" />
-          <van-grid-item icon="exchange" text="调课申请" to="/adjustment" class="action-item touch-target" />
-          <van-grid-item icon="chart-trending-o" text="统计分析" to="/statistics" class="action-item touch-target" />
-          <van-grid-item v-if="isAdmin" icon="friends-o" text="用户管理" to="/users" class="action-item touch-target" />
-          <van-grid-item icon="setting-o" text="系统设置" to="/profile" class="action-item touch-target" />
-        </van-grid>
+        <n-grid :x-gap="12" :y-gap="12" :cols="gridColumns" class="action-grid">
+          <n-grid-item v-for="action in quickActions" :key="action.to">
+            <router-link :to="action.to" class="action-item touch-target">
+              <n-icon size="28" :color="action.color">
+                <component :is="action.icon" />
+              </n-icon>
+              <span class="action-text">{{ action.text }}</span>
+            </router-link>
+          </n-grid-item>
+        </n-grid>
       </div>
     </div>
 
     <div class="card timetable-card animate-slide-up" style="animation-delay: 0.2s;">
-      <div class="page-title">最新课表</div>
+      <div class="section-title">最新课表</div>
       <StateView
         :loading="loading"
         :empty="!loading && !latestTimetable"
@@ -40,17 +41,19 @@
                 {{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版
               </div>
             </div>
-            <van-tag :type="getStatusType(latestTimetable.status)" class="status-tag-custom">
+            <n-tag :type="getStatusType(latestTimetable.status)" class="status-tag-custom">
               {{ getStatusText(latestTimetable.status) }}
-            </van-tag>
+            </n-tag>
           </div>
-          <van-cell-group inset class="mt-16 info-group">
-            <van-cell title="排课任务" :value="latestTimetable.taskCount + ' 个'" />
-            <van-cell title="已排课程" :value="latestTimetable.scheduledCount + ' 个'" />
-            <van-cell title="冲突数量" :value="latestTimetable.conflictCount + ' 个'" />
-            <van-cell title="生成时间" :value="formatTime(latestTimetable.generateTime)" />
-          </van-cell-group>
-          <van-button
+          <div class="mt-16 info-group">
+            <n-descriptions :column="1" :bordered="false" size="medium">
+              <n-descriptions-item label="排课任务">{{ latestTimetable.taskCount }} 个</n-descriptions-item>
+              <n-descriptions-item label="已排课程">{{ latestTimetable.scheduledCount }} 个</n-descriptions-item>
+              <n-descriptions-item label="冲突数量">{{ latestTimetable.conflictCount }} 个</n-descriptions-item>
+              <n-descriptions-item label="生成时间">{{ formatTime(latestTimetable.generateTime) }}</n-descriptions-item>
+            </n-descriptions>
+          </div>
+          <n-button
             round
             block
             type="primary"
@@ -58,11 +61,11 @@
             @click="viewDetail"
           >
             查看详情
-          </van-button>
+          </n-button>
         </div>
       </StateView>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup>
@@ -71,7 +74,19 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
 import StateView from '@/components/ui/StateView.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import { useUserStore } from '@/stores/user'
+import { NGrid, NGridItem, NTag, NButton, NDescriptions, NDescriptionsItem, NIcon } from 'naive-ui'
+import {
+  CalendarOutline,
+  ClipboardOutline,
+  SearchOutline,
+  SwapHorizontalOutline,
+  BarChartOutline,
+  PeopleOutline,
+  SettingsOutline
+} from '@vicons/ionicons5'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -85,6 +100,23 @@ const gridColumns = computed(() => {
   if (screenWidth.value >= 1600) return 6
   if (screenWidth.value >= 1024) return 3
   return 3
+})
+
+const quickActions = computed(() => {
+  const actions = [
+    { to: '/timetable', text: '生成课表', icon: CalendarOutline, color: '#51caba' },
+    { to: '/task', text: '教学任务', icon: ClipboardOutline, color: '#10b981' },
+    { to: '/schedule', text: '课表查询', icon: SearchOutline, color: '#f59e0b' },
+    { to: '/adjustment', text: '调课申请', icon: SwapHorizontalOutline, color: '#ef4444' },
+    { to: '/statistics', text: '统计分析', icon: BarChartOutline, color: '#8b5cf6' },
+    { to: '/profile', text: '系统设置', icon: SettingsOutline, color: '#6b7280' }
+  ]
+  
+  if (isAdmin.value) {
+    actions.splice(5, 0, { to: '/users', text: '用户管理', icon: PeopleOutline, color: '#f97316' })
+  }
+  
+  return actions
 })
 
 const updateScreenWidth = () => {
@@ -152,33 +184,18 @@ onUnmounted(() => {
   animation: fadeIn 0.3s ease-out;
 }
 
+.home-page > * {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-.custom-nav {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-:deep(.van-nav-bar) {
-  background: var(--bg-primary);
-}
-
-.quick-actions-wrapper {
-  margin: var(--spacing-md);
-}
-
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
-  padding-left: var(--spacing-xs);
+.quick-actions-section {
+  margin-bottom: var(--spacing-lg);
 }
 
 .quick-actions {
@@ -186,30 +203,32 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
 }
 
 .action-grid {
-  padding: var(--spacing-md) 0;
+  padding: 0;
 }
 
 .action-item {
-  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  gap: var(--spacing-sm);
+  min-height: 80px;
 }
 
 .action-item:active {
   transform: scale(0.95);
 }
 
-:deep(.van-grid-item) {
-  min-height: 80px;
-}
-
-:deep(.van-grid-item__icon) {
-  color: var(--primary-color);
-  margin-bottom: var(--spacing-sm);
-}
-
-:deep(.van-grid-item__text) {
+.action-text {
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
@@ -231,7 +250,7 @@ onUnmounted(() => {
 }
 
 .timetable-info {
-  padding: 0 var(--spacing-xs);
+  padding: 0;
 }
 
 .timetable-name {
@@ -269,56 +288,7 @@ onUnmounted(() => {
   transform: translateY(0);
 }
 
-@media (min-width: 768px) {
-  .home-page {
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  
-  .quick-actions-wrapper {
-    margin: var(--spacing-lg);
-  }
-  
-  .action-grid {
-    padding: var(--spacing-lg) 0;
-  }
-}
-
-@media (min-width: 1600px) {
-  .home-page {
-    max-width: 1400px;
-  }
-  
-  .stat-card {
-    padding: var(--spacing-3xl);
-  }
-  
-  .stat-card-value {
-    font-size: 48px;
-  }
-  
-  .quick-actions-wrapper {
-    margin: var(--spacing-2xl) 0;
-  }
-  
-  .timetable-card {
-    padding: var(--spacing-2xl);
-  }
-}
-
 @media (max-width: 480px) {
-  .stat-card {
-    margin: var(--spacing-sm);
-  }
-  
-  .quick-actions-wrapper {
-    margin: var(--spacing-sm);
-  }
-  
-  .timetable-card {
-    margin: var(--spacing-sm);
-  }
-  
   .timetable-name {
     font-size: 16px;
   }

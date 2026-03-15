@@ -3,8 +3,18 @@
     <div class="page-header">
       <h2 class="page-title">课表管理</h2>
       <div class="header-actions">
-        <van-button icon="replay" @click="onRefresh">刷新</van-button>
-        <van-button type="primary" icon="plus" @click="showGenerate = true">新建课表</van-button>
+        <n-button @click="onRefresh">
+          <template #icon>
+            <n-icon :component="RefreshOutline" />
+          </template>
+          刷新
+        </n-button>
+        <n-button type="primary" @click="showGenerate = true">
+          <template #icon>
+            <n-icon :component="AddOutline" />
+          </template>
+          新建
+        </n-button>
       </div>
     </div>
 
@@ -12,149 +22,100 @@
       <div class="table-header">
         <div class="table-title">课表列表</div>
         <div class="table-filters search-wrapper">
-          <van-dropdown-menu>
-            <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
-            <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
-          </van-dropdown-menu>
+          <n-select v-model:value="filterSemester" :options="semesterOptions" placeholder="选择学期" @update:value="onFilterChange" style="width: 200px;" />
+          <n-select v-model:value="filterStatus" :options="statusOptions" placeholder="选择状态" @update:value="onFilterChange" style="width: 150px;" />
         </div>
       </div>
 
-      <van-loading v-if="loading" class="loading-container" />
+      <n-spin v-if="loading" class="loading-container" />
       <div v-else class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>课表名称</th>
-              <th>学期</th>
-              <th>任务数</th>
-              <th>已排课</th>
-              <th>冲突</th>
-              <th>利用率</th>
-              <th>状态</th>
-              <th>生成时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in list" :key="item.id">
-              <td class="name-cell">{{ item.name }}</td>
-              <td>{{ item.semester }}</td>
-              <td>{{ item.taskCount }}</td>
-              <td class="text-success">{{ item.scheduledCount }}</td>
-              <td class="text-danger">{{ item.conflictCount }}</td>
-              <td>{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</td>
-              <td>
-                <van-tag :type="getStatusType(item.status)" size="small">
-                  {{ getStatusText(item.status) }}
-                </van-tag>
-              </td>
-              <td>{{ formatTime(item.generateTime) }}</td>
-              <td>
-                <div class="action-buttons">
-                  <van-button size="small" type="primary" @click="goDetail(item.id)">查看</van-button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <van-empty v-if="list.length === 0" description="暂无数据" />
+        <n-data-table
+          :columns="columns"
+          :data="list"
+          :pagination="false"
+          :bordered="false"
+          :single-line="false"
+          size="medium"
+        />
+        <n-empty v-if="list.length === 0" description="暂无数据" class="empty-container" />
       </div>
     </div>
 
-    <van-dialog v-model:show="showGenerate" title="生成新课表" show-cancel-button @confirm="handleGenerate">
-      <van-form @submit.prevent="handleGenerate">
-        <van-cell-group inset class="form-group">
-          <van-field
-            v-model="generateForm.semester"
-            is-link
-            readonly
-            name="semester"
-            label="学期"
-            placeholder="请选择学期"
-            @click="showSemesterPicker = true"
-          />
-          <van-field
-            v-model="algorithmName"
-            is-link
-            readonly
-            name="algorithm"
-            label="算法类型"
-            placeholder="请选择算法"
-            @click="showAlgorithmPicker = true"
-          />
-          <van-field name="switch" label="高级选项">
-            <template #input>
-              <van-switch v-model="showAdvanced" size="20" />
-            </template>
-          </van-field>
-          <template v-if="showAdvanced">
-            <van-field
-              v-model="generateForm.maxGenerations"
-              type="number"
-              name="maxGenerations"
-              label="最大迭代"
-              placeholder="默认500"
-            />
-            <van-field
-              v-model="generateForm.targetFitness"
-              type="number"
-              name="targetFitness"
-              label="目标适应度"
-              placeholder="默认0.95"
-            />
-          </template>
-        </van-cell-group>
-      </van-form>
-    </van-dialog>
+    <n-modal v-model:show="showGenerate" preset="card" title="生成新课表" style="width: 500px;">
+      <n-form :model="generateForm" label-placement="left" label-width="100px">
+        <n-form-item label="学期" path="semester">
+          <n-input v-model:value="generateForm.semester" readonly placeholder="请选择学期" @click="showSemesterPicker = true" style="cursor: pointer;" />
+        </n-form-item>
+        <n-form-item label="算法类型" path="algorithmType">
+          <n-input v-model:value="algorithmName" readonly placeholder="请选择算法" @click="showAlgorithmPicker = true" style="cursor: pointer;" />
+        </n-form-item>
+        <n-form-item label="高级选项" path="showAdvanced">
+          <n-switch v-model:value="showAdvanced" />
+        </n-form-item>
+        <template v-if="showAdvanced">
+          <n-form-item label="最大迭代" path="maxGenerations">
+            <n-input-number v-model:value="generateForm.maxGenerations" placeholder="默认500" style="width: 100%;" />
+          </n-form-item>
+          <n-form-item label="目标适应度" path="targetFitness">
+            <n-input-number v-model:value="generateForm.targetFitness" :step="0.01" placeholder="默认0.95" style="width: 100%;" />
+          </n-form-item>
+        </template>
+      </n-form>
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <n-button @click="showGenerate = false">取消</n-button>
+          <n-button type="primary" :loading="generating" @click="handleGenerate">
+            开始生成
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
 
-    <van-popup v-model:show="showSemesterPicker" position="bottom" round>
-      <div class="picker-header">
-        <span class="picker-cancel" @click="showSemesterPicker = false">取消</span>
-        <span class="picker-title">选择学期</span>
-        <span class="picker-confirm" @click="confirmSemester">确定</span>
-      </div>
-      <van-picker
-        :columns="semesterColumns"
-        v-model="selectedSemester"
-        @confirm="onSemesterConfirm"
-      />
-    </van-popup>
+    <n-modal v-model:show="showSemesterPicker" preset="card" title="选择学期" style="width: 400px;">
+      <n-select v-model:value="selectedSemester" :options="semesterColumns" placeholder="请选择学期" style="width: 100%;" />
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <n-button @click="showSemesterPicker = false">取消</n-button>
+          <n-button type="primary" @click="confirmSemester">确定</n-button>
+        </div>
+      </template>
+    </n-modal>
 
-    <van-popup v-model:show="showAlgorithmPicker" position="bottom" round>
-      <div class="picker-header">
-        <span class="picker-cancel" @click="showAlgorithmPicker = false">取消</span>
-        <span class="picker-title">选择算法</span>
-        <span class="picker-confirm" @click="confirmAlgorithm">确定</span>
-      </div>
-      <van-picker
-        :columns="algorithmColumns"
-        v-model="selectedAlgorithm"
-        @confirm="onAlgorithmConfirm"
-      />
-    </van-popup>
+    <n-modal v-model:show="showAlgorithmPicker" preset="card" title="选择算法" style="width: 400px;">
+      <n-select v-model:value="selectedAlgorithm" :options="algorithmColumns" placeholder="请选择算法" style="width: 100%;" />
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <n-button @click="showAlgorithmPicker = false">取消</n-button>
+          <n-button type="primary" @click="confirmAlgorithm">确定</n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { useMessage } from 'naive-ui'
 import dayjs from 'dayjs'
-import { getTimetableList, generateTimetable } from '@/api/timetable'
+import { getTimetableList, generateTimetable, getAlgorithms } from '@/api/timetable'
+import { AddOutline, RefreshOutline } from '@vicons/ionicons5'
 
 const router = useRouter()
+const message = useMessage()
 
 const loading = ref(false)
 const list = ref([])
 const filterSemester = ref('')
 const filterStatus = ref('')
-const selectedSemester = ref([])
-const selectedAlgorithm = ref([])
+const selectedSemester = ref('')
+const selectedAlgorithm = ref('')
 
 const showGenerate = ref(false)
 const showAdvanced = ref(false)
 const showSemesterPicker = ref(false)
 const showAlgorithmPicker = ref(false)
+const generating = ref(false)
 
 const generateForm = ref({
   semester: '',
@@ -165,38 +126,111 @@ const generateForm = ref({
   targetFitness: null
 })
 
-const algorithmColumns = [
-  { text: '贪心算法', value: 'GREEDY' },
-  { text: '遗传算法', value: 'GENETIC' }
+const algorithmColumns = ref([])
+
+const columns = [
+  {
+    title: '课表名称',
+    key: 'name',
+    width: 200,
+    render: (row) => h('span', { style: { color: 'var(--primary-color)', fontWeight: '500' } }, row.name)
+  },
+  {
+    title: '学期',
+    key: 'semester',
+    width: 200
+  },
+  {
+    title: '任务数',
+    key: 'taskCount',
+    width: 100
+  },
+  {
+    title: '已排课',
+    key: 'scheduledCount',
+    width: 100,
+    render: (row) => h('span', { style: { color: 'var(--text-success)' } }, row.scheduledCount)
+  },
+  {
+    title: '冲突',
+    key: 'conflictCount',
+    width: 100,
+    render: (row) => h('span', { style: { color: 'var(--text-danger)' } }, row.conflictCount)
+  },
+  {
+    title: '利用率',
+    key: 'utilizationRate',
+    width: 120,
+    render: (row) => (row.utilizationRate ? row.utilizationRate.toFixed(1) : 0) + '%'
+  },
+  {
+    title: '状态',
+    key: 'status',
+    width: 120,
+    render: (row) => h('n-tag', { type: getStatusType(row.status), size: 'small' }, getStatusText(row.status))
+  },
+  {
+    title: '生成时间',
+    key: 'generateTime',
+    width: 180,
+    render: (row) => formatTime(row.generateTime)
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 120,
+    fixed: 'right',
+    render: (row) => h('n-button', { 
+      size: 'small', 
+      type: 'primary', 
+      onClick: () => goDetail(row.id) 
+    }, { default: () => '查看' })
+  }
 ]
 
 const algorithmName = computed(() => {
-  const item = algorithmColumns.find(a => a.value === generateForm.value.algorithmType)
-  return item ? item.text : ''
+  const item = algorithmColumns.value.find(a => a.value === generateForm.value.algorithmType)
+  return item ? item.label : ''
 })
+
+const loadAlgorithms = async () => {
+  try {
+    const res = await getAlgorithms()
+    algorithmColumns.value = res.data.map(alg => ({
+      label: alg.name,
+      value: alg.code
+    }))
+  } catch (e) {
+    console.error('加载算法列表失败', e)
+    algorithmColumns.value = [
+      { label: '贪心算法', value: 'GREEDY' },
+      { label: '遗传算法', value: 'GENETIC' }
+    ]
+  }
+}
 
 const semesterColumns = computed(() => {
   const year = dayjs().year()
   const columns = []
   for (let i = 0; i < 5; i++) {
-    columns.push({ text: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
-    columns.push({ text: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
+    columns.push({ label: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
+    columns.push({ label: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
   }
   return columns
 })
 
 const semesterOptions = computed(() => {
   return [
-    { text: '全部学期', value: '' },
+    { label: '全部学期', value: '' },
     ...semesterColumns.value
   ]
 })
 
 const statusOptions = [
-  { text: '全部状态', value: '' },
-  { text: '草稿', value: 'DRAFT' },
-  { text: '已发布', value: 'PUBLISHED' },
-  { text: '已归档', value: 'ARCHIVED' }
+  { label: '全部状态', value: '' },
+  { label: '草稿', value: 'DRAFT' },
+  { label: '已发布', value: 'PUBLISHED' },
+  { label: '已归档', value: 'ARCHIVED' }
 ]
 
 const getStatusType = (status) => {
@@ -237,43 +271,36 @@ const onFilterChange = () => {
 }
 
 const confirmSemester = () => {
-  if (selectedSemester.value.length > 0) {
-    generateForm.value.semester = selectedSemester.value[0].value
+  if (selectedSemester.value) {
+    generateForm.value.semester = selectedSemester.value
   }
-  showSemesterPicker.value = false
-}
-
-const onSemesterConfirm = ({ selectedOptions }) => {
-  generateForm.value.semester = selectedOptions[0].value
   showSemesterPicker.value = false
 }
 
 const confirmAlgorithm = () => {
-  if (selectedAlgorithm.value.length > 0) {
-    generateForm.value.algorithmType = selectedAlgorithm.value[0].value
+  if (selectedAlgorithm.value) {
+    generateForm.value.algorithmType = selectedAlgorithm.value
   }
-  showAlgorithmPicker.value = false
-}
-
-const onAlgorithmConfirm = ({ selectedOptions }) => {
-  generateForm.value.algorithmType = selectedOptions[0].value
   showAlgorithmPicker.value = false
 }
 
 const handleGenerate = async () => {
   if (!generateForm.value.semester) {
-    showToast('请选择学期')
+    message.error('请选择学期')
     return
   }
-  
+
+  generating.value = true
   try {
     const res = await generateTimetable(generateForm.value)
-    showToast('课表生成成功')
+    message.success('课表生成成功')
     showGenerate.value = false
     loadData()
     router.push(`/timetable/detail/${res.data.id}`)
   } catch (e) {
-    showToast('生成失败')
+    message.error('生成失败')
+  } finally {
+    generating.value = false
   }
 }
 
@@ -285,6 +312,8 @@ onMounted(() => {
   const year = dayjs().year()
   const semester = dayjs().month() < 7 ? `${year - 1}-2` : `${year}-1`
   generateForm.value.semester = semester
+
+  loadAlgorithms()
   loadData()
 })
 </script>
@@ -351,80 +380,12 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  min-width: 900px;
-}
-
-.data-table:thead {
-  background: var(--bg-secondary);
-}
-
-.data-table th {
-  padding: var(--spacing-md) var(--spacing-lg);
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-light);
-  color: var(--text-primary);
-}
-
-.data-table tbody tr:hover {
-  background: var(--bg-secondary);
-}
-
-.name-cell {
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-.action-buttons {
+.loading-container,
+.empty-container {
   display: flex;
-  gap: var(--spacing-sm);
-}
-
-.form-group {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin: var(--spacing-lg);
-}
-
-.picker-header {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.picker-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.picker-cancel,
-.picker-confirm {
-  font-size: 15px;
-  color: var(--primary-color);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.picker-cancel {
-  color: var(--text-secondary);
+  padding: var(--spacing-3xl) 0;
 }
 
 @media (min-width: 1440px) {
@@ -434,10 +395,6 @@ onMounted(() => {
 
   .table-title {
     font-size: 18px;
-  }
-
-  .data-table {
-    font-size: 15px;
   }
 }
 
@@ -449,11 +406,6 @@ onMounted(() => {
   .table-header {
     padding: var(--spacing-xl) var(--spacing-2xl);
   }
-
-  .data-table th,
-  .data-table td {
-    padding: var(--spacing-lg) var(--spacing-xl);
-  }
 }
 
 @media (min-width: 2560px) {
@@ -464,26 +416,9 @@ onMounted(() => {
   .table-title {
     font-size: 20px;
   }
-
-  .data-table {
-    font-size: 16px;
-  }
-
-  .van-button {
-    height: 44px;
-    font-size: 16px;
-  }
 }
 
 @media (max-width: 1439px) {
-  .data-table {
-    min-width: 800px;
-  }
-  
-  .data-table th,
-  .data-table td {
-    padding: var(--spacing-sm) var(--spacing-md);
-  }
 }
 
 @media (max-width: 1199px) {
@@ -491,17 +426,17 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .header-actions {
     width: 100%;
     justify-content: flex-start;
   }
-  
+
   .table-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .table-filters {
     width: 100%;
   }

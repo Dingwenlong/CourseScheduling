@@ -9,7 +9,9 @@
     <main class="login-shell">
       <section class="brand-panel" aria-label="品牌信息">
         <div class="brand-logo" aria-hidden="true">
-          <van-icon name="calendar-o" size="40" color="#fff" />
+          <n-icon size="40" color="#fff">
+            <CalendarOutline />
+          </n-icon>
         </div>
         <h1 class="brand-title">智能排课系统</h1>
         <p class="brand-subtitle">高效便捷的课程调度平台</p>
@@ -27,72 +29,89 @@
             <p class="card-subtitle">请输入账号与密码继续</p>
           </header>
 
-          <div
+          <n-alert
             v-if="errorMessage"
             ref="errorAlertRef"
+            type="error"
+            :bordered="false"
+            closable
+            @close="errorMessage = ''"
             class="alert alert-error"
             role="alert"
             aria-live="polite"
             tabindex="-1"
           >
-            <van-icon name="warning-o" class="alert-icon" />
-            <div class="alert-content">{{ errorMessage }}</div>
-          </div>
+            {{ errorMessage }}
+          </n-alert>
 
-          <van-form @submit="handleLogin" class="form">
-            <div class="field-wrap">
+          <n-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            class="form"
+            @submit="handleLogin"
+          >
+            <n-form-item path="username" class="field-wrap">
               <label class="field-label" for="login-username">用户名</label>
-              <van-field
-                v-model="username"
+              <n-input
+                v-model:value="form.username"
                 id="login-username"
                 name="username"
                 autocomplete="username"
                 placeholder="请输入用户名"
                 :disabled="loading"
-                :rules="[{ required: true, message: '请输入用户名' }]"
+                size="large"
                 class="form-field"
-                @update:model-value="errorMessage = ''"
+                @update:value="errorMessage = ''"
               >
-                <template #left-icon>
-                  <van-icon name="user-o" class="field-icon" />
+                <template #prefix>
+                  <n-icon class="field-icon">
+                    <PersonOutline />
+                  </n-icon>
                 </template>
-              </van-field>
-            </div>
+              </n-input>
+            </n-form-item>
 
-            <div class="field-wrap">
+            <n-form-item path="password" class="field-wrap">
               <label class="field-label" for="login-password">密码</label>
-              <van-field
-                v-model="password"
+              <n-input
+                v-model:value="form.password"
                 type="password"
                 id="login-password"
                 name="password"
                 autocomplete="current-password"
                 placeholder="请输入密码"
                 :disabled="loading"
-                :rules="[{ required: true, message: '请输入密码' }]"
+                show-password-on="click"
+                size="large"
                 class="form-field"
-                @update:model-value="errorMessage = ''"
+                @update:value="errorMessage = ''"
               >
-                <template #left-icon>
-                  <van-icon name="lock" class="field-icon" />
+                <template #prefix>
+                  <n-icon class="field-icon">
+                    <LockClosedOutline />
+                  </n-icon>
                 </template>
-              </van-field>
-            </div>
+              </n-input>
+            </n-form-item>
 
             <div class="actions">
-              <van-button
+              <n-button
                 block
                 type="primary"
                 native-type="submit"
                 :loading="loading"
-                loading-text="登录中..."
                 :disabled="loading"
+                size="large"
                 class="primary-btn"
               >
+                <template #loading>
+                  登录中...
+                </template>
                 登录
-              </van-button>
+              </n-button>
             </div>
-          </van-form>
+          </n-form>
 
           <footer class="card-footer">
             <div class="test-account">测试账号：admin / 123456</div>
@@ -104,26 +123,52 @@
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue'
+import { nextTick, ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { useMessage } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
+import { NIcon, NAlert, NForm, NFormItem, NInput, NButton } from 'naive-ui'
+import { CalendarOutline, PersonOutline, LockClosedOutline } from '@vicons/ionicons5'
 
 const router = useRouter()
 const userStore = useUserStore()
+const message = useMessage()
+const formRef = ref(null)
 
-const username = ref('')
-const password = ref('')
+const form = reactive({
+  username: '',
+  password: ''
+})
+
+const rules = {
+  username: {
+    required: true,
+    message: '请输入用户名',
+    trigger: 'blur'
+  },
+  password: {
+    required: true,
+    message: '请输入密码',
+    trigger: 'blur'
+  }
+}
+
 const loading = ref(false)
 const errorMessage = ref('')
 const errorAlertRef = ref(null)
 
 const handleLogin = async () => {
+  try {
+    await formRef.value?.validate()
+  } catch (e) {
+    return
+  }
+
   errorMessage.value = ''
   loading.value = true
   try {
-    await userStore.login(username.value, password.value)
-    showToast('登录成功')
+    await userStore.login(form.username, form.password)
+    message.success('登录成功')
     router.push('/home')
   } catch (error) {
     errorMessage.value = '登录失败，请检查用户名和密码'
@@ -131,7 +176,7 @@ const handleLogin = async () => {
     if (errorAlertRef.value && typeof errorAlertRef.value.focus === 'function') {
       errorAlertRef.value.focus()
     }
-    showToast('登录失败，请检查用户名和密码')
+    message.error('登录失败，请检查用户名和密码')
   } finally {
     loading.value = false
   }
@@ -317,29 +362,7 @@ const handleLogin = async () => {
 }
 
 .alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  border-radius: 14px;
-  padding: 12px 12px;
   margin: 12px 0 14px;
-  outline: none;
-}
-
-.alert-error {
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.22);
-  color: #991b1b;
-}
-
-.alert-icon {
-  margin-top: 2px;
-  font-size: 16px;
-}
-
-.alert-content {
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .form {
@@ -358,20 +381,11 @@ const handleLogin = async () => {
   font-weight: 600;
 }
 
-.field-wrap :deep(.van-cell) {
-  padding: 0;
-  background: transparent;
-}
-
-.field-wrap :deep(.van-field__left-icon) {
-  margin-right: 10px;
-}
-
 .field-icon {
   color: rgba(15, 23, 42, 0.45);
 }
 
-.field-wrap :deep(.van-field__body) {
+.field-wrap :deep(.n-input) {
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -381,28 +395,14 @@ const handleLogin = async () => {
 }
 
 @media (hover: hover) {
-  .field-wrap :deep(.van-field__body):hover {
+  .field-wrap :deep(.n-input:hover) {
     border-color: rgba(15, 23, 42, 0.18);
   }
 }
 
-.field-wrap:focus-within :deep(.van-field__body) {
+.field-wrap:focus-within :deep(.n-input) {
   border-color: rgba(37, 99, 235, 0.55);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
-}
-
-.field-wrap :deep(.van-field__control) {
-  font-size: 15px;
-  color: var(--text);
-}
-
-.field-wrap :deep(.van-field__error-message) {
-  margin-top: 8px;
-  font-size: 12px;
-}
-
-.field-wrap :deep(.van-field--disabled .van-field__body) {
-  background: rgba(15, 23, 42, 0.03);
 }
 
 .actions {

@@ -1,222 +1,257 @@
 <template>
-  <div class="page page-with-tabbar task-page">
-    <van-nav-bar title="教学任务" class="custom-nav">
-      <template #right>
-        <van-button icon="plus" size="small" type="primary" @click="showAdd = true" class="add-btn">新增</van-button>
-      </template>
-    </van-nav-bar>
+  <PageContainer with-tabbar>
+    <div class="task-page-content">
+      <PageHeader title="教学任务">
+        <template #actions>
+          <n-button quaternary @click="onRefresh">
+            <template #icon>
+              <n-icon>
+                <RefreshOutline />
+              </n-icon>
+            </template>
+            刷新
+          </n-button>
+          <n-button type="primary" @click="showAdd = true">
+            <template #icon>
+              <n-icon>
+                <AddOutline />
+              </n-icon>
+            </template>
+            新增
+          </n-button>
+        </template>
+      </PageHeader>
 
-    <div class="search-wrapper mt-16">
-      <van-search
-        v-model="searchText"
-        placeholder="搜索课程名称"
-        @search="onSearch"
-        class="search-input"
-      />
-    </div>
-
-    <div class="dropdown-wrapper mt-16">
-      <van-dropdown-menu class="dropdown-menu-full">
-        <van-dropdown-item v-model="filterSemester" :options="semesterOptions" @change="onFilterChange" />
-        <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
-      </van-dropdown-menu>
-    </div>
-
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh" class="pull-refresh">
-      <van-list
-        v-model:loading="loading"
-        :finished="finished"
-        :finished-text="list.length > 0 ? '没有更多了' : ''"
-        @load="onLoad"
-        class="task-list grid-layout"
-      >
-        <van-swipe-cell v-for="(item, index) in list" :key="item.id" class="swipe-cell">
-          <div class="card task-card" @click="showTaskDetail(item)">
-            <div class="flex-between">
-              <div class="flex-1">
-                <div class="task-title">{{ item.courseName }}</div>
-                <div class="task-info mt-8">
-                  <span class="info-item"><van-icon name="clock-o" /> 周学时: {{ item.weeklyHours || '-' }}</span>
-                  <span class="info-item"><van-icon name="friends-o" /> 学生: {{ item.studentCount || '-' }}</span>
-                  <span class="info-item"><van-icon name="flag-o" /> 优先级: {{ item.priorityLevel || '-' }}</span>
-                </div>
-              </div>
-              <van-tag :class="['status-tag', getStatusClass(item.status)]">
-                {{ getStatusText(item.status) }}
-              </van-tag>
+      <div class="table-container animate-fade-in">
+        <div class="table-header">
+          <div class="table-title desktop-only">任务列表</div>
+          <div class="table-filters search-wrapper">
+            <n-input
+              v-model:value="searchText"
+              placeholder="搜索课程名称"
+              class="search-input desktop-search"
+              @keyup.enter="onSearch"
+            >
+              <template #prefix>
+                <n-icon>
+                  <SearchOutline />
+                </n-icon>
+              </template>
+            </n-input>
+            <div class="filter-dropdowns">
+              <n-select
+                v-model:value="filterSemester"
+                :options="semesterOptions"
+                placeholder="全部学期"
+                style="width: 140px"
+                @update:value="onFilterChange"
+              />
+              <n-select
+                v-model:value="filterStatus"
+                :options="statusOptions"
+                placeholder="全部状态"
+                style="width: 140px"
+                @update:value="onFilterChange"
+              />
             </div>
           </div>
-          <template #right>
-            <van-button square type="primary" text="编辑" class="swipe-btn edit-btn" @click="editTask(item)" />
-            <van-button square type="danger" text="删除" class="swipe-btn delete-btn" @click="deleteTaskConfirm(item)" />
-          </template>
-        </van-swipe-cell>
-      </van-list>
-    </van-pull-refresh>
+        </div>
 
-    <van-popup v-model:show="showAdd" v-bind="popupProps" class="task-popup">
-      <div class="popup-header">
-        <div class="popup-title">{{ editingTask ? '编辑任务' : '新增任务' }}</div>
-        <van-icon name="cross" size="20" @click="showAdd = false" class="close-icon" />
-      </div>
-      <div class="popup-content">
-        <van-form @submit="handleSubmit">
-          <van-cell-group inset class="form-group">
-            <van-field
-              v-model="form.semester"
-              is-link
-              readonly
-              name="semester"
-              label="学期"
-              placeholder="请选择学期"
-              required
-              @click="showSemesterPicker = true"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.courseId"
-              name="courseId"
-              label="课程ID"
-              placeholder="请输入课程ID"
-              required
-              type="number"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.teacherId"
-              name="teacherId"
-              label="教师ID"
-              placeholder="请输入教师ID"
-              required
-              type="number"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.classId"
-              name="classId"
-              label="班级ID"
-              placeholder="请输入班级ID"
-              required
-              type="number"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.studentCount"
-              name="studentCount"
-              label="学生人数"
-              placeholder="请输入学生人数"
-              type="number"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.weeklyHours"
-              name="weeklyHours"
-              label="周学时"
-              placeholder="请输入周学时"
-              type="number"
-              class="form-field"
-            />
-            <van-field
-              v-model="form.priorityLevel"
-              name="priorityLevel"
-              label="优先级"
-              placeholder="1-10，数字越小优先级越高"
-              type="number"
-              class="form-field"
-            />
-          </van-cell-group>
-          <div class="form-btn">
-            <van-button round block type="primary" native-type="submit" :loading="submitting" class="submit-btn">
-              {{ editingTask ? '保存' : '创建' }}
-            </van-button>
-          </div>
-        </van-form>
-      </div>
-    </van-popup>
-
-    <van-popup v-model:show="showSemesterPicker" position="bottom" round class="picker-popup">
-      <div class="picker-header">
-        <span class="picker-cancel" @click="showSemesterPicker = false">取消</span>
-        <span class="picker-title">选择学期</span>
-        <span class="picker-confirm" @click="confirmSemester">确定</span>
-      </div>
-      <van-picker
-        :columns="semesterOptions.slice(1)"
-        v-model="selectedSemester"
-        @confirm="onSemesterConfirm"
-      />
-    </van-popup>
-
-    <van-popup v-model:show="showDetail" v-bind="detailPopupProps" class="detail-popup">
-      <div class="popup-header">
-        <div class="popup-title">{{ currentTask?.courseName || '任务详情' }}</div>
-        <van-icon name="cross" size="20" @click="showDetail = false" class="close-icon" />
-      </div>
-      <div class="popup-content" v-if="currentTask">
-        <van-cell-group inset class="detail-group">
-          <van-cell title="学期" :value="currentTask.semester" />
-          <van-cell title="课程ID" :value="currentTask.courseId" />
-          <van-cell title="教师ID" :value="currentTask.teacherId" />
-          <van-cell title="班级ID" :value="currentTask.classId" />
-          <van-cell title="学生人数" :value="currentTask.studentCount" />
-          <van-cell title="周学时" :value="currentTask.weeklyHours" />
-          <van-cell title="优先级" :value="currentTask.priorityLevel" />
-          <van-cell title="状态">
-            <template #value>
-              <van-tag :type="getStatusType(currentTask.status)">{{ getStatusText(currentTask.status) }}</van-tag>
+        <div class="mobile-actions mobile-only">
+          <n-button type="primary" block @click="showAdd = true" class="add-btn-mobile">
+            <template #icon>
+              <n-icon>
+                <AddOutline />
+              </n-icon>
             </template>
-          </van-cell>
-        </van-cell-group>
+            新增任务
+          </n-button>
+        </div>
+
+        <div class="desktop-content">
+          <n-spin :show="loading" class="loading-container">
+            <div v-if="!loading" class="task-list grid-layout">
+              <div v-for="(item, index) in list" :key="item.id" class="card task-card" @click="showTaskDetail(item)">
+                <div class="flex-between">
+                  <div class="flex-1">
+                    <div class="task-title">{{ item.courseName }}</div>
+                    <div class="task-info mt-8">
+                      <span class="info-item">
+                        <n-icon size="12">
+                          <TimeOutline />
+                        </n-icon>
+                        周学时: {{ item.weeklyHours || '-' }}
+                      </span>
+                      <span class="info-item">
+                        <n-icon size="12">
+                          <PeopleOutline />
+                        </n-icon>
+                        学生: {{ item.studentCount || '-' }}
+                      </span>
+                      <span class="info-item">
+                        <n-icon size="12">
+                          <FlagOutline />
+                        </n-icon>
+                        优先级: {{ item.priorityLevel || '-' }}
+                      </span>
+                    </div>
+                  </div>
+                  <n-tag :type="getStatusTagType(item.status)" size="small">
+                    {{ getStatusText(item.status) }}
+                  </n-tag>
+                </div>
+                <div class="task-actions desktop-only">
+                  <n-button size="small" type="primary" @click.stop="editTask(item)">编辑</n-button>
+                  <n-button size="small" type="error" @click.stop="deleteTaskConfirm(item)">删除</n-button>
+                </div>
+              </div>
+            </div>
+            <n-empty v-if="list.length === 0 && !loading" description="暂无数据" />
+          </n-spin>
+        </div>
+
+        <div class="mobile-content">
+          <div class="user-list-wrapper">
+            <div>
+              <n-list v-if="list.length > 0">
+                <n-list-item v-for="(item, index) in list" :key="item.id">
+                  <template #header>
+                    <div class="flex-between">
+                      <div class="task-title">{{ item.courseName }}</div>
+                      <n-tag :type="getStatusTagType(item.status)" size="small">
+                        {{ getStatusText(item.status) }}
+                      </n-tag>
+                    </div>
+                  </template>
+                  <div class="task-info mt-8">
+                    <span class="info-item">
+                      <n-icon size="12">
+                        <TimeOutline />
+                      </n-icon>
+                      周学时: {{ item.weeklyHours || '-' }}
+                    </span>
+                    <span class="info-item">
+                      <n-icon size="12">
+                        <PeopleOutline />
+                      </n-icon>
+                      学生: {{ item.studentCount || '-' }}
+                    </span>
+                    <span class="info-item">
+                      <n-icon size="12">
+                        <FlagOutline />
+                      </n-icon>
+                      优先级: {{ item.priorityLevel || '-' }}
+                    </span>
+                  </div>
+                  <template #action>
+                    <div class="task-actions-mobile">
+                      <n-button type="primary" size="small" @click="editTask(item)">编辑</n-button>
+                      <n-button type="error" size="small" @click="deleteTaskConfirm(item)">删除</n-button>
+                    </div>
+                  </template>
+                </n-list-item>
+              </n-list>
+              <n-empty v-else description="暂无数据" />
+            </div>
+          </div>
+        </div>
       </div>
-    </van-popup>
-  </div>
+    </div>
+
+    <n-modal v-model:show="showAdd" preset="card" :title="editingTask ? '编辑任务' : '新增任务'" :style="{ width: '500px' }" class="task-dialog">
+      <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="100px">
+        <n-form-item label="学期" path="semester">
+          <n-select v-model:value="form.semester" :options="semesterOptions.slice(1)" placeholder="请选择学期" />
+        </n-form-item>
+        <n-form-item label="课程ID" path="courseId">
+          <n-input-number v-model:value="form.courseId" placeholder="请输入课程ID" style="width: 100%" :min="1" />
+        </n-form-item>
+        <n-form-item label="教师ID" path="teacherId">
+          <n-input-number v-model:value="form.teacherId" placeholder="请输入教师ID" style="width: 100%" :min="1" />
+        </n-form-item>
+        <n-form-item label="班级ID" path="classId">
+          <n-input-number v-model:value="form.classId" placeholder="请输入班级ID" style="width: 100%" :min="1" />
+        </n-form-item>
+        <n-form-item label="学生人数">
+          <n-input-number v-model:value="form.studentCount" placeholder="请输入学生人数" style="width: 100%" :min="0" />
+        </n-form-item>
+        <n-form-item label="周学时">
+          <n-input-number v-model:value="form.weeklyHours" placeholder="请输入周学时" style="width: 100%" :min="0" />
+        </n-form-item>
+        <n-form-item label="优先级">
+          <n-input-number v-model:value="form.priorityLevel" placeholder="1-10，数字越小优先级越高" style="width: 100%" :min="1" :max="10" />
+        </n-form-item>
+        <n-form-item label="总周数" path="totalWeeks">
+          <n-input-number v-model:value="form.totalWeeks" placeholder="请输入总周数" style="width: 100%" :min="1" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showAdd = false">取消</n-button>
+          <n-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{ editingTask ? '保存' : '创建' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="showDetail" preset="card" title="任务详情" :style="{ width: '500px' }" class="detail-dialog">
+      <div v-if="currentTask" class="detail-content">
+        <n-descriptions :column="1" bordered>
+          <n-descriptions-item label="学期">{{ currentTask.semester }}</n-descriptions-item>
+          <n-descriptions-item label="课程ID">{{ currentTask.courseId }}</n-descriptions-item>
+          <n-descriptions-item label="教师ID">{{ currentTask.teacherId }}</n-descriptions-item>
+          <n-descriptions-item label="班级ID">{{ currentTask.classId }}</n-descriptions-item>
+          <n-descriptions-item label="学生人数">{{ currentTask.studentCount }}</n-descriptions-item>
+          <n-descriptions-item label="周学时">{{ currentTask.weeklyHours }}</n-descriptions-item>
+          <n-descriptions-item label="优先级">{{ currentTask.priorityLevel }}</n-descriptions-item>
+          <n-descriptions-item label="状态">
+            <n-tag :type="getStatusTagType(currentTask.status)">{{ getStatusText(currentTask.status) }}</n-tag>
+          </n-descriptions-item>
+        </n-descriptions>
+      </div>
+    </n-modal>
+  </PageContainer>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { showToast, showConfirmDialog } from 'vant'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useMessage, useDialog } from 'naive-ui'
 import dayjs from 'dayjs'
 import { getTaskList, createTask, updateTask, deleteTask } from '@/api/task'
 import { useLayoutStore } from '@/stores/layout'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import {
+  NButton,
+  NIcon,
+  NInput,
+  NSelect,
+  NSpin,
+  NTag,
+  NList,
+  NListItem,
+  NModal,
+  NForm,
+  NFormItem,
+  NInputNumber,
+  NEmpty,
+  NSpace,
+  NDescriptions,
+  NDescriptionsItem
+} from 'naive-ui'
+import {
+  RefreshOutline,
+  AddOutline,
+  SearchOutline,
+  TimeOutline,
+  PeopleOutline,
+  FlagOutline
+} from '@vicons/ionicons5'
 
+const message = useMessage()
+const dialog = useDialog()
 const layoutStore = useLayoutStore()
-
-const isMobile = ref(window.innerWidth < 768)
-const checkMobile = () => {
-  isMobile.value = window.innerWidth < 768
-}
-
-const popupProps = computed(() => {
-  if (isMobile.value) {
-    return {
-      position: 'bottom',
-      round: true,
-      style: { height: '85%' }
-    }
-  } else {
-    return {
-      position: 'center',
-      round: true,
-      style: { width: '500px', maxWidth: '90%', borderRadius: '16px' }
-    }
-  }
-})
-
-const detailPopupProps = computed(() => {
-  if (isMobile.value) {
-    return {
-      position: 'bottom',
-      round: true,
-      style: { height: '55%' }
-    }
-  } else {
-    return {
-      position: 'center',
-      round: true,
-      style: { width: '500px', maxWidth: '90%', borderRadius: '16px' }
-    }
-  }
-})
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -228,112 +263,120 @@ const pageSize = 10
 const searchText = ref('')
 const filterSemester = ref('')
 const filterStatus = ref('')
-const selectedSemester = ref([])
 
 const showAdd = ref(false)
 const showDetail = ref(false)
-const showSemesterPicker = ref(false)
 const submitting = ref(false)
 const editingTask = ref(null)
 const currentTask = ref(null)
+const formRef = ref(null)
 
-const form = ref({
+const form = reactive({
   semester: '',
-  courseId: '',
-  teacherId: '',
-  classId: '',
-  studentCount: '',
-  weeklyHours: '',
-  priorityLevel: ''
+  courseId: null,
+  teacherId: null,
+  classId: null,
+  studentCount: null,
+  weeklyHours: null,
+  priorityLevel: null,
+  totalWeeks: null
 })
 
+const rules = {
+  semester: {
+    required: true,
+    message: '请选择学期',
+    trigger: 'blur'
+  },
+  courseId: {
+    required: true,
+    message: '请输入课程ID',
+    trigger: 'blur'
+  },
+  teacherId: {
+    required: true,
+    message: '请输入教师ID',
+    trigger: 'blur'
+  },
+  classId: {
+    required: true,
+    message: '请输入班级ID',
+    trigger: 'blur'
+  },
+  totalWeeks: {
+    required: true,
+    message: '请输入总周数',
+    trigger: 'blur'
+  }
+}
+
 const semesterOptions = ref([
-  { text: '全部学期', value: '' }
+  { label: '全部学期', value: '' }
 ])
 
 const statusOptions = [
-  { text: '全部状态', value: '' },
-  { text: '待排课', value: 'PENDING' },
-  { text: '已排课', value: 'SCHEDULED' },
-  { text: '调整中', value: 'ADJUSTING' },
-  { text: '已完成', value: 'COMPLETED' }
+  { label: '全部状态', value: '' },
+  { label: '待排课', value: 'PENDING' },
+  { label: '已排课', value: 'SCHEDULED' },
+  { label: '调整中', value: 'ADJUSTING' },
+  { label: '已完成', value: 'COMPLETED' }
 ]
-
-const getStatusClass = (status) => {
-  const map = { 
-    'PENDING': 'tag-warning', 
-    'SCHEDULED': 'tag-success', 
-    'ADJUSTING': 'tag-primary', 
-    'COMPLETED': 'tag-default' 
-  }
-  return map[status] || 'tag-default'
-}
-
-const getStatusType = (status) => {
-  const map = { 
-    'PENDING': 'warning', 
-    'SCHEDULED': 'success', 
-    'ADJUSTING': 'primary', 
-    'COMPLETED': 'default' 
-  }
-  return map[status] || 'default'
-}
 
 const getStatusText = (status) => {
   const map = { 'PENDING': '待排课', 'SCHEDULED': '已排课', 'ADJUSTING': '调整中', 'COMPLETED': '已完成' }
   return map[status] || status
 }
 
-const onLoad = async () => {
+const getStatusTagType = (status) => {
+  const map = { 'PENDING': 'warning', 'SCHEDULED': 'success', 'ADJUSTING': 'primary', 'COMPLETED': 'default' }
+  return map[status] || 'default'
+}
+
+const resetForm = () => {
+  form.semester = ''
+  form.courseId = null
+  form.teacherId = null
+  form.classId = null
+  form.studentCount = null
+  form.weeklyHours = null
+  form.priorityLevel = null
+  form.totalWeeks = null
+}
+
+const loadData = async () => {
+  loading.value = true
   try {
-    const res = await getTaskList({
+    const params = {
       current: page.value,
-      size: pageSize,
+      size: 100,
       semester: filterSemester.value,
       status: filterStatus.value
-    })
-    list.value.push(...res.data.records)
-    if (list.value.length >= res.data.total) {
-      finished.value = true
-    } else {
-      page.value++
     }
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key]
+      }
+    })
+    const res = await getTaskList(params)
+    list.value = res.data.records || []
   } catch (e) {
-    finished.value = true
+    message.error(e.message || '加载失败')
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
-const onRefresh = async () => {
-  page.value = 1
-  list.value = []
-  finished.value = false
-  await onLoad()
-  refreshing.value = false
+const onRefresh = () => {
+  loadData()
 }
 
 const onSearch = () => {
-  page.value = 1
-  list.value = []
-  finished.value = false
-  onLoad()
+  loadData()
 }
 
 const onFilterChange = () => {
   onRefresh()
-}
-
-const confirmSemester = () => {
-  if (selectedSemester.value.length > 0) {
-    form.value.semester = selectedSemester.value[0].value
-  }
-  showSemesterPicker.value = false
-}
-
-const onSemesterConfirm = ({ selectedOptions }) => {
-  form.value.semester = selectedOptions[0].value
-  showSemesterPicker.value = false
 }
 
 const showTaskDetail = (item) => {
@@ -343,33 +386,67 @@ const showTaskDetail = (item) => {
 
 const editTask = (item) => {
   editingTask.value = item
-  form.value = { ...item }
+  form.semester = item.semester
+  form.courseId = item.courseId
+  form.teacherId = item.teacherId
+  form.classId = item.classId
+  form.studentCount = item.studentCount
+  form.weeklyHours = item.weeklyHours
+  form.priorityLevel = item.priorityLevel
+  form.totalWeeks = item.totalWeeks
   showAdd.value = true
 }
 
 const deleteTaskConfirm = async (item) => {
-  await showConfirmDialog({ title: '确认删除', message: '删除后数据将无法恢复，确定删除吗？' })
-  await deleteTask(item.id)
-  showToast('删除成功')
-  onRefresh()
+  dialog.warning({
+    title: '确认删除',
+    content: '删除后数据将无法恢复，确定删除吗？',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await deleteTask(item.id)
+        message.success('删除成功')
+        onRefresh()
+      } catch (e) {
+        message.error(e.message || '删除失败')
+      }
+    }
+  })
 }
 
 const handleSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+  } catch (e) {
+    return
+  }
+
   submitting.value = true
   try {
+    const data = {
+      ...form,
+      courseId: form.courseId ? Number(form.courseId) : null,
+      teacherId: form.teacherId ? Number(form.teacherId) : null,
+      classId: form.classId ? Number(form.classId) : null,
+      studentCount: form.studentCount ? Number(form.studentCount) : null,
+      weeklyHours: form.weeklyHours ? Number(form.weeklyHours) : null,
+      priorityLevel: form.priorityLevel ? Number(form.priorityLevel) : null,
+      totalWeeks: form.totalWeeks ? Number(form.totalWeeks) : null
+    }
     if (editingTask.value) {
-      await updateTask({ ...form.value, id: editingTask.value.id })
-      showToast('更新成功')
+      await updateTask({ ...data, id: editingTask.value.id })
+      message.success('更新成功')
     } else {
-      await createTask(form.value)
-      showToast('创建成功')
+      await createTask(data)
+      message.success('创建成功')
     }
     showAdd.value = false
     editingTask.value = null
-    form.value = { semester: '', courseId: '', teacherId: '', classId: '', studentCount: '', weeklyHours: '', priorityLevel: '' }
+    resetForm()
     onRefresh()
   } catch (e) {
-    showToast('操作失败')
+    message.error(e.message || '操作失败')
   } finally {
     submitting.value = false
   }
@@ -378,8 +455,8 @@ const handleSubmit = async () => {
 onMounted(() => {
   const year = dayjs().year()
   for (let i = 0; i < 3; i++) {
-    semesterOptions.value.push({ text: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
-    semesterOptions.value.push({ text: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
+    semesterOptions.value.push({ label: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
+    semesterOptions.value.push({ label: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
   }
 
   layoutStore.setHeaderAction({
@@ -387,74 +464,18 @@ onMounted(() => {
     text: '新增',
     onClick: () => { showAdd.value = true }
   })
-  
-  window.addEventListener('resize', checkMobile)
 })
 
 onUnmounted(() => {
   layoutStore.clearHeaderAction()
-  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
 <style scoped>
-.task-page {
-  animation: fadeIn 0.3s ease-out;
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-.custom-nav {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.add-btn {
-  border: none;
-  background: var(--primary-gradient);
-  padding: 0 16px;
-  min-height: 44px;
-  min-width: 44px;
-}
-
-.search-wrapper {
-  margin-bottom: 0;
-}
-
-.search-input {
-  width: 100%;
-}
-
-.dropdown-menu-full {
-  width: 100%;
-}
-
-.pull-refresh {
-  min-height: calc(100vh - 200px);
-}
-
-.task-list {
-  padding: var(--spacing-xs) 0;
-}
-
-.swipe-cell {
-  margin: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.task-card {
-  margin: 0;
-  cursor: pointer;
-  animation: slideUp 0.3s ease-out backwards;
-}
-
-.task-card:nth-child(1) { animation-delay: 0.05s; }
-.task-card:nth-child(2) { animation-delay: 0.1s; }
-.task-card:nth-child(3) { animation-delay: 0.15s; }
 
 @keyframes slideUp {
   from {
@@ -467,11 +488,131 @@ onUnmounted(() => {
   }
 }
 
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.task-page-content {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.table-container {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.table-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table-filters {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 240px;
+}
+
+.filter-dropdowns {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.mobile-actions {
+  padding: var(--spacing-md);
+}
+
+.add-btn-mobile {
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-2xl);
+}
+
+.desktop-content {
+  display: block;
+  padding: var(--spacing-md);
+}
+
+.mobile-content {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.task-list.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.task-card {
+  margin: 0;
+  cursor: pointer;
+  padding: var(--spacing-lg);
+  animation: slideUp 0.3s ease-out backwards;
+  transition: all var(--transition-base);
+}
+
+.task-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.task-card:nth-child(1) { animation-delay: 0.05s; }
+.task-card:nth-child(2) { animation-delay: 0.1s; }
+.task-card:nth-child(3) { animation-delay: 0.15s; }
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
 .task-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  margin-bottom: var(--spacing-sm);
 }
 
 .task-info {
@@ -488,186 +629,86 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 
-.status-tag {
-  flex-shrink: 0;
-}
-
-.swipe-btn {
-  height: 100%;
-  border: none;
-}
-
-.edit-btn {
-  background: var(--primary-color);
-}
-
-.delete-btn {
-  background: var(--danger-color);
-}
-
-@media (max-width: 767px) {
-  .task-popup,
-  .detail-popup {
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-  }
-}
-
-.popup-header {
+.task-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
 }
 
-.popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+.user-list-wrapper {
+  padding: var(--spacing-md);
 }
 
-.close-icon {
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--spacing-xs);
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.popup-content {
-  padding: var(--spacing-lg) 0 var(--spacing-xl);
-  height: calc(100% - 60px);
-  overflow-y: auto;
-}
-
-.form-group,
-.detail-group {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.form-field {
-  background: var(--bg-primary);
-}
-
-:deep(.van-field__control) {
-  font-size: 16px;
-}
-
-:deep(.van-field__label) {
-  font-size: 14px;
-}
-
-.form-btn {
-  margin-top: var(--spacing-xl);
-  padding: 0 var(--spacing-lg);
-}
-
-.submit-btn {
-  height: 50px;
-  font-size: 16px;
-  font-weight: 600;
-  background: var(--primary-gradient);
-  border: none;
-  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
-}
-
-.picker-popup {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-}
-
-.picker-header {
+.task-actions-mobile {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
+  gap: var(--spacing-sm);
 }
 
-.picker-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+.task-dialog {
+  margin: var(--spacing-md);
 }
 
-.picker-cancel,
-.picker-confirm {
-  font-size: 15px;
-  color: var(--primary-color);
-  font-weight: 500;
-  cursor: pointer;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
+.detail-dialog {
+  margin: var(--spacing-md);
 }
 
-.picker-cancel {
-  color: var(--text-secondary);
+.detail-content {
+  padding: var(--spacing-md) 0;
 }
 
-@media (max-width: 479px) {
-  .task-title {
-    font-size: 15px;
-  }
-  
-  .info-item {
-    font-size: 11px;
-  }
-  
-  .popup-title {
-    font-size: 16px;
-  }
-  
-  .submit-btn {
-    height: 48px;
-    font-size: 15px;
-  }
-}
-
-@media (min-width: 768px) {
-  .task-page {
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
-  .custom-nav {
-    display: none;
-  }
-  
-  .task-list.grid-layout {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-  }
-  
-  .swipe-cell {
-    margin: 0;
-  }
+.mt-8 {
+  margin-top: 8px;
 }
 
 @media (min-width: 1600px) {
-  .task-page {
-    max-width: 1560px;
-  }
-  
   .task-list.grid-layout {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-xl);
     padding: var(--spacing-xl);
   }
-  
+
   .task-card {
     padding: var(--spacing-xl);
   }
-  
+
   .task-title {
     font-size: 18px;
   }
 }
 
+@media (max-width: 1199px) {
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-filters {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-content {
+    display: none;
+  }
+
+  .mobile-content {
+    display: block;
+  }
+
+  .table-container {
+    margin-top: var(--spacing-md);
+  }
+}
 </style>

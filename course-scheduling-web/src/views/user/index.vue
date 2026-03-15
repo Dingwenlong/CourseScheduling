@@ -1,218 +1,283 @@
 <template>
-  <div class="page page-with-tabbar user-page">
-    <van-nav-bar title="用户管理" class="custom-nav" />
+  <PageContainer with-tabbar class="user-page">
+    <PageHeader title="用户管理">
+      <n-button quaternary @click="onRefresh">
+        <template #icon>
+          <n-icon>
+            <RefreshOutline />
+          </n-icon>
+        </template>
+        刷新
+      </n-button>
+      <n-button type="primary" @click="handleAdd">
+        <template #icon>
+          <n-icon>
+            <AddOutline />
+          </n-icon>
+        </template>
+        新增用户
+      </n-button>
+    </PageHeader>
 
     <div class="table-container animate-fade-in">
       <div class="table-header">
         <div class="table-title desktop-only">用户列表</div>
         <div class="table-filters search-wrapper">
           <div class="search-inputs">
-            <van-search
-              v-model="searchForm.username"
+            <n-input
+              v-model:value="searchForm.username"
               placeholder="用户名"
               class="search-input"
-              @search="handleSearch"
-            />
-            <van-search
-              v-model="searchForm.realName"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <n-icon>
+                  <SearchOutline />
+                </n-icon>
+              </template>
+            </n-input>
+            <n-input
+              v-model:value="searchForm.realName"
               placeholder="真实姓名"
               class="search-input"
-              @search="handleSearch"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <n-icon>
+                  <PersonOutline />
+                </n-icon>
+              </template>
+            </n-input>
+          </div>
+          <div class="filter-dropdowns">
+            <n-select
+              v-model:value="searchForm.role"
+              :options="roleOptions"
+              placeholder="全部角色"
+              style="width: 120px"
+              @update:value="handleSearch"
+            />
+            <n-select
+              v-model:value="searchForm.status"
+              :options="statusOptions"
+              placeholder="全部状态"
+              style="width: 120px"
+              @update:value="handleSearch"
             />
           </div>
-          <van-dropdown-menu class="filter-dropdowns">
-            <van-dropdown-item v-model="searchForm.role" :options="roleOptions" @change="handleSearch" />
-            <van-dropdown-item v-model="searchForm.status" :options="statusOptions" @change="handleSearch" />
-          </van-dropdown-menu>
-          <van-button type="success" icon="plus" size="small" @click="handleAdd" class="add-btn-desktop desktop-only">
+          <n-button type="success" @click="handleAdd" class="add-btn-desktop desktop-only">
+            <template #icon>
+              <n-icon>
+                <AddOutline />
+              </n-icon>
+            </template>
             新增用户
-          </van-button>
+          </n-button>
         </div>
       </div>
 
       <div class="mobile-actions mobile-only">
-        <van-button type="success" icon="plus" block @click="handleAdd" class="add-btn-mobile">
+        <n-button type="primary" block @click="handleAdd" class="add-btn-mobile">
+          <template #icon>
+            <n-icon>
+              <AddOutline />
+            </n-icon>
+          </template>
           新增用户
-        </van-button>
+        </n-button>
       </div>
 
-      <div class="user-list-wrapper">
-        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-          <van-list
-            v-model:loading="loading"
-            :finished="finished"
-            finished-text="没有更多了"
-            @load="onLoad"
-            class="user-list"
-          >
-            <van-swipe-cell v-for="user in userList" :key="user.id" class="user-item">
-              <van-cell class="user-cell">
-                <template #icon>
-                  <van-image round width="48" height="48" :src="user.avatar || defaultAvatar" class="user-avatar" />
+      <div class="desktop-content">
+        <n-spin :show="loading" class="loading-container">
+          <div v-if="!loading" class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>头像</th>
+                  <th>用户名</th>
+                  <th>真实姓名</th>
+                  <th>角色</th>
+                  <th>手机号</th>
+                  <th>邮箱</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="user in userList" :key="user.id">
+                  <td>
+                    <n-avatar round size="small" :src="user.avatar || defaultAvatar" />
+                  </td>
+                  <td>{{ user.username }}</td>
+                  <td class="name-cell">{{ user.realName || '-' }}</td>
+                  <td>
+                    <n-tag :type="getRoleTagType(user.role)" size="small">
+                      {{ getRoleName(user.role) }}
+                    </n-tag>
+                  </td>
+                  <td>{{ user.phone || '-' }}</td>
+                  <td>{{ user.email || '-' }}</td>
+                  <td>
+                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small">
+                      {{ user.status === 1 ? '启用' : '禁用' }}
+                    </n-tag>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <n-button size="small" type="primary" @click="handleEdit(user)">编辑</n-button>
+                      <n-button size="small" :type="user.status === 1 ? 'default' : 'success'" @click="handleToggleStatus(user)">
+                        {{ user.status === 1 ? '禁用' : '启用' }}
+                      </n-button>
+                      <n-button size="small" type="warning" @click="handleResetPassword(user)">重置密码</n-button>
+                      <n-button size="small" type="error" @click="handleDelete(user)">删除</n-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <n-empty v-if="userList.length === 0" description="暂无数据" />
+          </div>
+        </n-spin>
+      </div>
+
+      <div class="mobile-content">
+        <div class="user-list-wrapper">
+          <n-pull-refresh v-model:refreshing="refreshing" @refresh="onRefresh">
+            <n-list v-if="userList.length > 0">
+              <n-list-item v-for="user in userList" :key="user.id">
+                <template #prefix>
+                  <n-avatar round size="large" :src="user.avatar || defaultAvatar" />
                 </template>
-                <template #title>
+                <template #header>
                   <div class="user-title">
                     <span class="user-name">{{ user.realName || user.username }}</span>
-                    <van-tag :type="getRoleTagType(user.role)" size="small" class="role-tag">
+                    <n-tag :type="getRoleTagType(user.role)" size="small" class="role-tag">
                       {{ getRoleName(user.role) }}
-                    </van-tag>
-                    <van-tag :type="user.status === 1 ? 'success' : 'danger'" size="small">
+                    </n-tag>
+                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small">
                       {{ user.status === 1 ? '启用' : '禁用' }}
-                    </van-tag>
+                    </n-tag>
                   </div>
                 </template>
-                <template #label>
-                  <div class="user-info">
-                    <div class="info-line">
-                      <van-icon name="user-o" size="12" />
-                      <span>{{ user.username }}</span>
-                    </div>
-                    <div v-if="user.phone" class="info-line">
-                      <van-icon name="phone-o" size="12" />
-                      <span>{{ user.phone }}</span>
-                    </div>
-                    <div v-if="user.email" class="info-line">
-                      <van-icon name="envelop-o" size="12" />
-                      <span>{{ user.email }}</span>
-                    </div>
+                <div class="user-info">
+                  <div class="info-line">
+                    <n-icon size="12">
+                      <PersonOutline />
+                    </n-icon>
+                    <span>{{ user.username }}</span>
                   </div>
-                </template>
-                <template #value>
+                  <div v-if="user.phone" class="info-line">
+                    <n-icon size="12">
+                      <CallOutline />
+                    </n-icon>
+                    <span>{{ user.phone }}</span>
+                  </div>
+                  <div v-if="user.email" class="info-line">
+                    <n-icon size="12">
+                      <MailOutline />
+                    </n-icon>
+                    <span>{{ user.email }}</span>
+                  </div>
+                </div>
+                <template #action>
                   <div class="user-actions">
-                    <van-button type="primary" size="mini" @click="handleEdit(user)">编辑</van-button>
+                    <n-button type="primary" size="small" @click="handleEdit(user)">编辑</n-button>
                   </div>
                 </template>
-              </van-cell>
-              <template #right>
-                <van-button
-                  square
-                  :type="user.status === 1 ? 'danger' : 'success'"
-                  :text="user.status === 1 ? '禁用' : '启用'"
-                  class="swipe-btn"
-                  @click="handleToggleStatus(user)"
-                />
-                <van-button
-                  square
-                  type="warning"
-                  text="重置密码"
-                  class="swipe-btn"
-                  @click="handleResetPassword(user)"
-                />
-                <van-button
-                  square
-                  type="danger"
-                  text="删除"
-                  class="swipe-btn"
-                  @click="handleDelete(user)"
-                />
-              </template>
-            </van-swipe-cell>
-          </van-list>
-        </van-pull-refresh>
+              </n-list-item>
+            </n-list>
+            <n-empty v-else description="暂无数据" />
+          </n-pull-refresh>
+        </div>
       </div>
     </div>
 
-    <van-dialog v-model:show="showForm" :title="isEdit ? '编辑用户' : '新增用户'" show-cancel-button @confirm="handleSubmit" class="user-dialog">
-      <van-form @submit.prevent="handleSubmit">
-        <van-cell-group inset class="form-group">
-          <van-field
-            v-model="form.username"
-            name="username"
-            label="用户名"
-            placeholder="请输入用户名"
-            :rules="[{ required: true, message: '用户名不能为空' }]"
-            :disabled="isEdit"
-            required
-            class="form-field"
-          />
-          <van-field
-            v-if="!isEdit"
-            v-model="form.password"
-            type="password"
-            name="password"
-            label="密码"
-            placeholder="请输入密码"
-            :rules="[{ required: !isEdit, message: '密码不能为空' }]"
-            required
-            class="form-field"
-          />
-          <van-field
-            v-model="form.realName"
-            name="realName"
-            label="真实姓名"
-            placeholder="请输入真实姓名"
-            :rules="[{ required: true, message: '真实姓名不能为空' }]"
-            required
-            class="form-field"
-          />
-          <van-field
-            v-model="form.role"
-            name="role"
-            label="角色"
-            placeholder="请选择角色"
-            :rules="[{ required: true, message: '请选择角色' }]"
-            required
-            class="form-field"
-            readonly
-            @click="showRolePicker = true"
-          />
-          <van-field
-            v-model="form.phone"
-            name="phone"
-            label="手机号"
-            placeholder="请输入手机号"
-            class="form-field"
-          />
-          <van-field
-            v-model="form.email"
-            name="email"
-            label="邮箱"
-            placeholder="请输入邮箱"
-            class="form-field"
-          />
-          <van-field name="status" label="状态" class="form-field">
-            <template #input>
-              <van-radio-group v-model="form.status" direction="horizontal">
-                <van-radio :name="1">启用</van-radio>
-                <van-radio :name="0">禁用</van-radio>
-              </van-radio-group>
-            </template>
-          </van-field>
-        </van-cell-group>
-      </van-form>
-    </van-dialog>
-
-    <van-popup v-model:show="showRolePicker" position="bottom" round>
-      <van-picker
-        :columns="roleColumns"
-        @confirm="onRoleConfirm"
-        @cancel="showRolePicker = false"
-      />
-    </van-popup>
-  </div>
+    <n-modal v-model:show="showForm" preset="card" :title="isEdit ? '编辑用户' : '新增用户'" :style="{ width: '500px' }" class="user-dialog">
+      <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="80px">
+        <n-form-item label="用户名" path="username">
+          <n-input v-model:value="form.username" placeholder="请输入用户名" :disabled="isEdit" />
+        </n-form-item>
+        <n-form-item v-if="!isEdit" label="密码" path="password">
+          <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="请输入密码" />
+        </n-form-item>
+        <n-form-item label="真实姓名" path="realName">
+          <n-input v-model:value="form.realName" placeholder="请输入真实姓名" />
+        </n-form-item>
+        <n-form-item label="角色" path="role">
+          <n-select v-model:value="form.role" :options="roleSelectOptions" placeholder="请选择角色" />
+        </n-form-item>
+        <n-form-item label="手机号">
+          <n-input v-model:value="form.phone" placeholder="请输入手机号" />
+        </n-form-item>
+        <n-form-item label="邮箱">
+          <n-input v-model:value="form.email" placeholder="请输入邮箱" />
+        </n-form-item>
+        <n-form-item label="状态">
+          <n-radio-group v-model:value="form.status">
+            <n-radio :value="1">启用</n-radio>
+            <n-radio :value="0">禁用</n-radio>
+          </n-radio-group>
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showForm = false">取消</n-button>
+          <n-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{ isEdit ? '保存' : '创建' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+  </PageContainer>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
+import { useMessage, useDialog } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import { getUserList, createUser, updateUser, deleteUser, resetUserPassword, toggleUserStatus } from '@/api/user'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import {
+  NButton,
+  NIcon,
+  NInput,
+  NSelect,
+  NSpin,
+  NTag,
+  NAvatar,
+  NList,
+  NListItem,
+  NModal,
+  NForm,
+  NFormItem,
+  NRadioGroup,
+  NRadio,
+  NEmpty,
+  NSpace
+} from 'naive-ui'
+import {
+  RefreshOutline,
+  AddOutline,
+  SearchOutline,
+  PersonOutline,
+  CallOutline,
+  MailOutline
+} from '@vicons/ionicons5'
 
+const message = useMessage()
+const dialog = useDialog()
 const userStore = useUserStore()
 const defaultAvatar = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
 
 const loading = ref(false)
-const finished = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
 const showForm = ref(false)
-const showRolePicker = ref(false)
 const isEdit = ref(false)
+const formRef = ref(null)
 
 const userList = ref([])
-const pageNum = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
 
 const searchForm = reactive({
   username: '',
@@ -232,23 +297,46 @@ const form = reactive({
   status: 1
 })
 
+const rules = {
+  username: {
+    required: true,
+    message: '用户名不能为空',
+    trigger: 'blur'
+  },
+  password: {
+    required: true,
+    message: '密码不能为空',
+    trigger: 'blur'
+  },
+  realName: {
+    required: true,
+    message: '真实姓名不能为空',
+    trigger: 'blur'
+  },
+  role: {
+    required: true,
+    message: '请选择角色',
+    trigger: 'blur'
+  }
+}
+
 const roleOptions = [
-  { text: '全部角色', value: '' },
-  { text: '管理员', value: 'ADMIN' },
-  { text: '教师', value: 'TEACHER' },
-  { text: '学生', value: 'STUDENT' }
+  { label: '全部角色', value: '' },
+  { label: '管理员', value: 'ADMIN' },
+  { label: '教师', value: 'TEACHER' },
+  { label: '学生', value: 'STUDENT' }
+]
+
+const roleSelectOptions = [
+  { label: '管理员', value: 'ADMIN' },
+  { label: '教师', value: 'TEACHER' },
+  { label: '学生', value: 'STUDENT' }
 ]
 
 const statusOptions = [
-  { text: '全部状态', value: null },
-  { text: '启用', value: 1 },
-  { text: '禁用', value: 0 }
-]
-
-const roleColumns = [
-  { text: '管理员', value: 'ADMIN' },
-  { text: '教师', value: 'TEACHER' },
-  { text: '学生', value: 'STUDENT' }
+  { label: '全部状态', value: null },
+  { label: '启用', value: 1 },
+  { label: '禁用', value: 0 }
 ]
 
 const getRoleName = (role) => {
@@ -257,7 +345,7 @@ const getRoleName = (role) => {
 }
 
 const getRoleTagType = (role) => {
-  const map = { 'ADMIN': 'danger', 'TEACHER': 'primary', 'STUDENT': 'success' }
+  const map = { 'ADMIN': 'error', 'TEACHER': 'primary', 'STUDENT': 'success' }
   return map[role] || 'default'
 }
 
@@ -273,13 +361,11 @@ const resetForm = () => {
 }
 
 const loadData = async () => {
-  if (loading.value) return
   loading.value = true
-
   try {
     const params = {
-      pageNum: pageNum.value,
-      pageSize: pageSize.value,
+      current: 1,
+      size: 100,
       ...searchForm
     }
     Object.keys(params).forEach(key => {
@@ -289,38 +375,20 @@ const loadData = async () => {
     })
 
     const res = await getUserList(params)
-    if (res.data) {
-      if (pageNum.value === 1) {
-        userList.value = res.data.list || []
-      } else {
-        userList.value.push(...(res.data.list || []))
-      }
-      total.value = res.data.total || 0
-      finished.value = userList.value.length >= total.value
-    }
+    userList.value = res.data.records || []
   } catch (e) {
-    showToast(e.message || '加载失败')
+    message.error(e.message || '加载失败')
   } finally {
     loading.value = false
     refreshing.value = false
   }
 }
 
-const onLoad = () => {
-  loadData()
-  pageNum.value++
-}
-
 const onRefresh = () => {
-  pageNum.value = 1
-  finished.value = false
   loadData()
 }
 
 const handleSearch = () => {
-  pageNum.value = 1
-  userList.value = []
-  finished.value = false
   loadData()
 }
 
@@ -343,19 +411,14 @@ const handleEdit = (user) => {
   showForm.value = true
 }
 
-const onRoleConfirm = ({ selectedOptions }) => {
-  form.role = selectedOptions[0].value
-  showRolePicker.value = false
-}
-
 const handleSubmit = async () => {
-  submitting.value = true
-  showLoadingToast({
-    message: isEdit.value ? '保存中...' : '创建中...',
-    forbidClick: true,
-    duration: 0
-  })
+  try {
+    await formRef.value?.validate()
+  } catch (e) {
+    return
+  }
 
+  submitting.value = true
   try {
     if (isEdit.value) {
       await updateUser(form.id, {
@@ -366,7 +429,7 @@ const handleSubmit = async () => {
         email: form.email,
         status: form.status
       })
-      showToast('修改成功')
+      message.success('修改成功')
     } else {
       await createUser({
         username: form.username,
@@ -377,63 +440,68 @@ const handleSubmit = async () => {
         email: form.email,
         status: form.status
       })
-      showToast('创建成功')
+      message.success('创建成功')
     }
     showForm.value = false
     onRefresh()
   } catch (e) {
-    showToast(e.message || (isEdit.value ? '修改失败' : '创建失败'))
+    message.error(e.message || (isEdit.value ? '修改失败' : '创建失败'))
   } finally {
     submitting.value = false
-    closeToast()
   }
 }
 
 const handleToggleStatus = async (user) => {
-  try {
-    await showConfirmDialog({
-      title: '确认操作',
-      message: `确定要${user.status === 1 ? '禁用' : '启用'}该用户吗？`
-    })
-    await toggleUserStatus(user.id)
-    showToast(user.status === 1 ? '已禁用' : '已启用')
-    onRefresh()
-  } catch (e) {
-    if (e !== 'cancel') {
-      showToast(e.message || '操作失败')
+  dialog.warning({
+    title: '确认操作',
+    content: `确定要${user.status === 1 ? '禁用' : '启用'}该用户吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await toggleUserStatus(user.id)
+        message.success(user.status === 1 ? '已禁用' : '已启用')
+        onRefresh()
+      } catch (e) {
+        message.error(e.message || '操作失败')
+      }
     }
-  }
+  })
 }
 
 const handleResetPassword = async (user) => {
-  try {
-    await showConfirmDialog({
-      title: '确认重置',
-      message: `确定要重置 ${user.realName || user.username} 的密码吗？`
-    })
-    const res = await resetUserPassword(user.id)
-    showToast(res.data || '密码重置成功')
-  } catch (e) {
-    if (e !== 'cancel') {
-      showToast(e.message || '重置失败')
+  dialog.warning({
+    title: '确认重置',
+    content: `确定要重置 ${user.realName || user.username} 的密码吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await resetUserPassword(user.id)
+        message.success(res.data || '密码重置成功')
+      } catch (e) {
+        message.error(e.message || '重置失败')
+      }
     }
-  }
+  })
 }
 
 const handleDelete = async (user) => {
-  try {
-    await showConfirmDialog({
-      title: '确认删除',
-      message: `确定要删除用户 ${user.realName || user.username} 吗？此操作不可恢复！`
-    })
-    await deleteUser(user.id)
-    showToast('删除成功')
-    onRefresh()
-  } catch (e) {
-    if (e !== 'cancel') {
-      showToast(e.message || '删除失败')
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除用户 ${user.realName || user.username} 吗？此操作不可恢复！`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await deleteUser(user.id)
+        message.success('删除成功')
+        onRefresh()
+      } catch (e) {
+        message.error(e.message || '删除失败')
+      }
     }
-  }
+  })
 }
 
 onMounted(() => {
@@ -442,13 +510,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-page {
-  animation: fadeIn 0.3s ease-out;
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
 }
 
 .table-container {
@@ -456,9 +524,6 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  margin-top: var(--spacing-md);
-  margin-left: 10px;
-  margin-right: 10px;
 }
 
 .table-header {
@@ -481,9 +546,8 @@ onMounted(() => {
   display: flex;
   gap: var(--spacing-md);
   align-items: center;
-  flex: 1;
-  justify-content: flex-end;
   flex-wrap: wrap;
+  margin-bottom: 0;
 }
 
 .search-inputs {
@@ -503,12 +567,6 @@ onMounted(() => {
   gap: var(--spacing-sm);
 }
 
-.filter-dropdowns :deep(.van-dropdown-menu__bar) {
-  box-shadow: none;
-  height: 36px;
-  background: transparent;
-}
-
 .add-btn-desktop {
   height: 36px;
 }
@@ -522,49 +580,71 @@ onMounted(() => {
   border-radius: var(--radius-md);
 }
 
-.user-list-wrapper {
-  padding: var(--spacing-md);
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-2xl);
 }
 
-.custom-nav {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 900px;
+}
+
+.data-table th {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.name-cell {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .desktop-only {
-  display: none;
-}
-
-.mobile-only {
   display: block;
 }
 
-@media (min-width: 768px) {
-  .custom-nav {
-    display: none;
-  }
-  
-  .desktop-only {
-    display: block;
-  }
-  
-  .mobile-only {
-    display: none;
-  }
-  
-  .table-container {
-    margin-top: 0;
-  }
-  
-  .user-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: var(--spacing-md);
-  }
-  
-  .user-item {
-    margin-bottom: 0;
-  }
+.mobile-only {
+  display: none;
+}
+
+.desktop-content {
+  display: block;
+}
+
+.mobile-content {
+  display: none;
+}
+
+.user-list-wrapper {
+  padding: var(--spacing-md);
 }
 
 .user-item {
@@ -626,12 +706,7 @@ onMounted(() => {
   gap: 8px;
 }
 
-.swipe-btn {
-  height: 100%;
-  min-width: 60px;
-}
-
-.user-dialog .form-group {
+.user-dialog {
   margin: var(--spacing-md);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -639,14 +714,64 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.user-dialog .form-field {
-  background: var(--bg-primary);
+@media (min-width: 1440px) {
+  .table-header {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+  }
+
+  .data-table {
+    font-size: 15px;
+  }
 }
 
-@media (min-width: 1440px) {
-  .user-list {
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: var(--spacing-lg);
+@media (min-width: 1920px) {
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+@media (max-width: 1439px) {
+  .data-table {
+    min-width: 800px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+}
+
+@media (max-width: 1199px) {
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .table-filters {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-content {
+    display: none;
+  }
+
+  .mobile-content {
+    display: block;
+  }
+
+  .table-container {
+    margin-top: var(--spacing-md);
   }
 }
 </style>

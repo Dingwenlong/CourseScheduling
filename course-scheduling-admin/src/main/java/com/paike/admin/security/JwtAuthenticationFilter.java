@@ -1,6 +1,7 @@
 package com.paike.admin.security;
 
 import com.paike.common.utils.JwtUtils;
+import com.paike.common.utils.RedisUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,26 +23,38 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final String TOKEN_BLACKLIST_PREFIX = "token:blacklist:";
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private RedisUtils redisUtils;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = getTokenFromRequest(request);
 
-        if (StringUtils.hasText(token) && jwtUtils.validateToken(token)) {
-            Long userId = jwtUtils.getUserIdFromToken(token);
-            String username = jwtUtils.getUsernameFromToken(token);
-            String role = jwtUtils.getRoleFromToken(token);
+        if (StringUtils.hasText(token)) {
+            if (Boolean.TRUE.equals(redisUtils.hasKey(TOKEN_BLACKLIST_PREFIX + token))) {
+                log.warn("Token已在黑名单中，拒绝访问");
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-            if (userId != null && username != null && role != null) {
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, Collections.singletonList(authority));
+            if (jwtUtils.validateToken(token)) {
+                Long userId = jwtUtils.getUserIdFromToken(token);
+                String username = jwtUtils.getUsernameFromToken(token);
+                String role = jwtUtils.getRoleFromToken(token);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (userId != null && username != null && role != null) {
+                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userId, null, Collections.singletonList(authority));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         }
 

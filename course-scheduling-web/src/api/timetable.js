@@ -47,3 +47,7 @@ export function getConflicts(id) {
 export function getLatestTimetable(semester) {
   return request.get('/timetable/latest', { params: { semester } })
 }
+
+export function getAlgorithms() {
+  return request.get('/schedule/algorithms')
+}

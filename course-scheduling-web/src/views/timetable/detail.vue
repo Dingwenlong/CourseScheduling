@@ -1,181 +1,281 @@
 <template>
-  <div class="page">
-    <van-nav-bar title="课表详情" left-arrow @click-left="goBack">
-      <template #right>
-        <van-icon name="ellipsis" size="20" @click="showActions = true" />
-      </template>
-    </van-nav-bar>
-
-    <van-loading v-if="loading" class="loading-container" />
-
-    <template v-else-if="timetable">
-      <div class="card">
-        <div class="flex-between">
-          <div>
-            <div class="page-title">{{ timetable.name }}</div>
-            <div class="text-muted">{{ timetable.semester }} · 第{{ timetable.version }}版</div>
-          </div>
-          <van-tag :type="getStatusType(timetable.status)" size="large">
-            {{ getStatusText(timetable.status) }}
-          </van-tag>
-        </div>
-
-        <van-grid :column-num="4" :border="false" class="mt-16">
-          <van-grid-item>
-            <div class="stat-value">{{ timetable.taskCount }}</div>
-            <div class="stat-label">任务数</div>
-          </van-grid-item>
-          <van-grid-item>
-            <div class="stat-value text-success">{{ timetable.scheduledCount }}</div>
-            <div class="stat-label">已排课</div>
-          </van-grid-item>
-          <van-grid-item>
-            <div class="stat-value text-danger">{{ timetable.conflictCount }}</div>
-            <div class="stat-label">冲突</div>
-          </van-grid-item>
-          <van-grid-item>
-            <div class="stat-value">{{ timetable.utilizationRate ? timetable.utilizationRate.toFixed(1) : 0 }}%</div>
-            <div class="stat-label">利用率</div>
-          </van-grid-item>
-        </van-grid>
-      </div>
-
-      <van-tabs v-model:active="activeTab" sticky>
-        <van-tab title="课表视图">
-          <div class="card">
-            <div class="timetable-grid">
-              <div class="timetable-header"></div>
-              <div v-for="day in 5" :key="'h'+day" class="timetable-header">
-                周{{ ['一', '二', '三', '四', '五'][day - 1] }}
-              </div>
-              <template v-for="slot in 10" :key="'s'+slot">
-                <div class="timetable-header">{{ slot }}</div>
-                <div
-                  v-for="day in 5"
-                  :key="'c'+day+'-'+slot"
-                  class="timetable-cell"
-                  :class="{
-                    'has-course': getCourse(day, slot),
-                    'conflict': getCourse(day, slot)?.isConflict
-                  }"
-                  @click="showCourseInfo(day, slot)"
-                >
-                  <div v-if="getCourse(day, slot)" class="course-block">
-                    <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
-                    <div class="course-block-info">
-                      {{ getCourse(day, slot).classroomName }}
-                    </div>
-                  </div>
-                </div>
+  <PageContainer>
+    <div class="desktop-detail-page">
+      <PageHeader :title="timetable?.name || '课表详情'" :subtitle="timetable?.semester ? `${timetable.semester} · 第${timetable.version}版` : ''">
+        <template #actions>
+          <n-button quaternary @click="goBack" class="back-btn">
+            <template #icon>
+              <n-icon>
+                <ArrowBackOutline />
+              </n-icon>
+            </template>
+            返回
+          </n-button>
+          <n-tag :type="getStatusTagType(timetable?.status)" size="large">
+            {{ getStatusText(timetable?.status) }}
+          </n-tag>
+          <n-dropdown trigger="click" :options="dropdownOptions" @select="onDropdownSelect">
+            <n-button>
+              <template #icon>
+                <n-icon>
+                  <EllipsisHorizontalOutline />
+                </n-icon>
               </template>
+              操作
+            </n-button>
+          </n-dropdown>
+        </template>
+      </PageHeader>
+
+    <n-spin :show="loading" class="loading-container">
+      <div v-if="timetable">
+        <div class="stats-grid">
+          <div class="stat-card-desktop" tabindex="0" role="article">
+            <div class="stat-icon" style="background: #eff6ff;">
+              <n-icon size="32" color="#51caba">
+                <ListOutline />
+              </n-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ timetable.taskCount }}</div>
+              <div class="stat-label">任务数</div>
             </div>
           </div>
-        </van-tab>
 
-        <van-tab title="课程列表">
-          <van-list>
-            <van-cell
-              v-for="detail in details"
-              :key="detail.id"
-              :title="detail.courseName"
-              :label="`周${detail.dayOfWeek} 第${detail.slotNo}节 · ${detail.classroomName}`"
-              is-link
-              @click="showDetailInfo(detail)"
-            >
-              <template #value>
-                <van-tag v-if="detail.isConflict" type="danger">冲突</van-tag>
-              </template>
-            </van-cell>
-          </van-list>
-        </van-tab>
-
-        <van-tab :title="'冲突(' + conflicts.length + ')'">
-          <div v-if="conflicts.length === 0" class="empty-container">
-            <van-icon name="passed" class="empty-icon" color="#07c160" />
-            <div>暂无冲突</div>
+          <div class="stat-card-desktop" tabindex="0" role="article">
+            <div class="stat-icon" style="background: #ecfdf5;">
+              <n-icon size="32" color="#10b981">
+                <CheckmarkDoneOutline />
+              </n-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value text-success">{{ timetable.scheduledCount }}</div>
+              <div class="stat-label">已排课</div>
+            </div>
           </div>
-          <van-list v-else>
-            <van-cell
-              v-for="conflict in conflicts"
-              :key="conflict.id"
-              :title="conflict.courseName"
-              :label="conflict.conflictInfo"
-            >
-              <template #value>
-                <van-tag type="danger">冲突</van-tag>
-              </template>
-            </van-cell>
-          </van-list>
-        </van-tab>
-      </van-tabs>
-    </template>
 
-    <van-action-sheet
-      v-model:show="showActions"
-      :actions="actions"
-      cancel-text="取消"
-      @select="onActionSelect"
-    />
+          <div class="stat-card-desktop" tabindex="0" role="article">
+            <div class="stat-icon" style="background: #fef2f2;">
+              <n-icon size="32" color="#ef4444">
+                <WarningOutline />
+              </n-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value text-danger">{{ timetable.conflictCount }}</div>
+              <div class="stat-label">冲突</div>
+            </div>
+          </div>
 
-    <van-popup v-model:show="showCoursePopup" position="bottom" round style="height: 40%;">
-      <div class="course-popup" v-if="currentCourse">
-        <div class="page-title">{{ currentCourse.courseName }}</div>
-        <van-cell-group inset>
-          <van-cell title="教师" :value="currentCourse.teacherName" />
-          <van-cell title="班级" :value="currentCourse.className" />
-          <van-cell title="教室" :value="currentCourse.classroomName" />
-          <van-cell title="时间" :value="`周${currentCourse.dayOfWeek} 第${currentCourse.slotNo}节`" />
-        </van-cell-group>
-        <div class="course-popup-btn">
-          <van-button round block type="primary" @click="goAdjustment">
-            申请调课
-          </van-button>
+          <div class="stat-card-desktop" tabindex="0" role="article">
+            <div class="stat-icon" style="background: #fef3c7;">
+              <n-icon size="32" color="#f59e0b">
+                <TrendingUpOutline />
+              </n-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value text-primary">{{ timetable.utilizationRate ? timetable.utilizationRate.toFixed(1) : 0 }}%</div>
+              <div class="stat-label">利用率</div>
+            </div>
+          </div>
         </div>
+
+        <n-tabs v-model:value="activeTab" class="content-tabs">
+          <n-tab-pane name="timetable" tab="课表视图">
+            <div class="card timetable-card">
+              <div class="timetable-grid">
+                <div class="timetable-header"></div>
+                <div v-for="day in 5" :key="'h'+day" class="timetable-header">
+                  周{{ ['一', '二', '三', '四', '五'][day - 1] }}
+                </div>
+                <template v-for="slot in 10" :key="'s'+slot">
+                  <div class="timetable-header">{{ slot }}</div>
+                  <div
+                    v-for="day in 5"
+                    :key="'c'+day+'-'+slot"
+                    class="timetable-cell"
+                    :class="{
+                      'has-course': getCourse(day, slot),
+                      'conflict': getCourse(day, slot)?.isConflict === 1
+                    }"
+                    @click="showCourseInfo(day, slot)"
+                  >
+                    <div v-if="getCourse(day, slot)" class="course-block">
+                      <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
+                      <div class="course-block-info">{{ getCourse(day, slot).classroomName }}</div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </n-tab-pane>
+
+          <n-tab-pane name="courses" tab="课程列表">
+            <div class="card">
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>课程名称</th>
+                      <th>教师</th>
+                      <th>班级</th>
+                      <th>教室</th>
+                      <th>时间</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="detail in details" :key="detail.id">
+                      <td class="name-cell">{{ detail.courseName }}</td>
+                      <td>{{ detail.teacherName }}</td>
+                      <td>{{ detail.className }}</td>
+                      <td>{{ detail.classroomName }}</td>
+                      <td>周{{ detail.dayOfWeek }} 第{{ detail.slotNo }}节</td>
+                      <td>
+                        <n-tag v-if="detail.isConflict === 1" type="error">冲突</n-tag>
+                        <n-tag v-else type="success">正常</n-tag>
+                      </td>
+                      <td>
+                        <n-button size="small" type="primary" @click="showDetailInfo(detail)">详情</n-button>
+                        <n-button size="small" type="default" @click="goAdjustmentFromDetail(detail)">调课</n-button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <n-empty v-if="details.length === 0" description="暂无数据" />
+            </div>
+          </n-tab-pane>
+
+          <n-tab-pane name="conflicts" :tab="'冲突(' + conflicts.length + ')'">
+            <div class="card">
+              <div v-if="conflicts.length === 0" class="empty-container">
+                <n-icon size="64" color="#07c160">
+                  <CheckmarkCircleOutline />
+                </n-icon>
+                <div>暂无冲突</div>
+              </div>
+              <div v-else class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>课程名称</th>
+                      <th>教师</th>
+                      <th>冲突信息</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="conflict in conflicts" :key="conflict.id">
+                      <td class="name-cell">{{ conflict.courseName }}</td>
+                      <td>{{ conflict.teacherName }}</td>
+                      <td class="text-danger">{{ conflict.conflictInfo }}</td>
+                      <td>
+                        <n-button size="small" type="error" @click="goAdjustmentFromDetail(conflict)">处理</n-button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </n-tab-pane>
+        </n-tabs>
       </div>
-    </van-popup>
-  </div>
+    </n-spin>
+
+    <n-modal v-model:show="showCoursePopup" preset="card" title="课程详情" :style="{ width: '500px' }" class="course-dialog">
+      <div v-if="currentCourse" class="course-details">
+        <n-descriptions :column="1" bordered>
+          <n-descriptions-item label="课程名称">{{ currentCourse.courseName }}</n-descriptions-item>
+          <n-descriptions-item label="教师">{{ currentCourse.teacherName }}</n-descriptions-item>
+          <n-descriptions-item label="班级">{{ currentCourse.className }}</n-descriptions-item>
+          <n-descriptions-item label="教室">{{ currentCourse.classroomName }}</n-descriptions-item>
+          <n-descriptions-item label="时间">周{{ currentCourse.dayOfWeek }} 第{{ currentCourse.slotNo }}节</n-descriptions-item>
+          <n-descriptions-item v-if="currentCourse.weeks" label="上课周次">{{ currentCourse.weeks }}</n-descriptions-item>
+          <n-descriptions-item v-if="currentCourse.isConflict === 1" label="冲突信息">
+            <span class="text-danger">{{ currentCourse.conflictInfo }}</span>
+          </n-descriptions-item>
+        </n-descriptions>
+      </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button type="primary" @click="goAdjustment">申请调课</n-button>
+          <n-button @click="showCoursePopup = false">关闭</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+    </div>
+  </PageContainer>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showConfirmDialog } from 'vant'
+import { useMessage, useDialog } from 'naive-ui'
 import { getTimetableById, getTimetableDetails, getConflicts, publishTimetable, archiveTimetable, deleteTimetable } from '@/api/timetable'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import { useLayoutStore } from '@/stores/layout'
+import {
+  NButton,
+  NIcon,
+  NSpin,
+  NTag,
+  NTabs,
+  NTabPane,
+  NEmpty,
+  NModal,
+  NDescriptions,
+  NDescriptionsItem,
+  NSpace,
+  NDropdown
+} from 'naive-ui'
+import {
+  ArrowBackOutline,
+  EllipsisHorizontalOutline,
+  ListOutline,
+  CheckmarkDoneOutline,
+  WarningOutline,
+  TrendingUpOutline,
+  CheckmarkCircleOutline
+} from '@vicons/ionicons5'
 
 const route = useRoute()
 const router = useRouter()
+const message = useMessage()
+const dialog = useDialog()
+const layoutStore = useLayoutStore()
 
 const loading = ref(true)
 const timetable = ref(null)
 const details = ref([])
 const conflicts = ref([])
-const activeTab = ref(0)
-const showActions = ref(false)
+const activeTab = ref('timetable')
 const showCoursePopup = ref(false)
 const currentCourse = ref(null)
 
-const actions = computed(() => {
-  const list = []
+const dropdownOptions = computed(() => {
+  const options = []
   if (timetable.value?.status === 'DRAFT') {
-    list.push({ name: '发布课表', value: 'publish' })
+    options.push({ label: '发布课表', value: 'publish' })
   }
   if (timetable.value?.status !== 'ARCHIVED') {
-    list.push({ name: '归档课表', value: 'archive' })
+    options.push({ label: '归档课表', value: 'archive' })
   }
   if (timetable.value?.status === 'DRAFT') {
-    list.push({ name: '删除课表', value: 'delete', color: '#ee0a24' })
+    options.push({ label: '删除课表', value: 'delete' })
   }
-  return list
+  return options.length > 0 ? options : [{ label: '无操作', value: 'none' }]
 })
-
-const getStatusType = (status) => {
-  const map = { 'DRAFT': 'warning', 'PUBLISHED': 'success', 'ARCHIVED': 'default' }
-  return map[status] || 'default'
-}
 
 const getStatusText = (status) => {
   const map = { 'DRAFT': '草稿', 'PUBLISHED': '已发布', 'ARCHIVED': '已归档' }
   return map[status] || status
+}
+
+const getStatusTagType = (status) => {
+  const map = { 'DRAFT': 'warning', 'PUBLISHED': 'success', 'ARCHIVED': 'default' }
+  return map[status] || 'default'
 }
 
 const getCourse = (day, slot) => {
@@ -203,22 +303,65 @@ const goAdjustment = () => {
   })
 }
 
-const onActionSelect = async (action) => {
-  if (action.value === 'publish') {
-    await showConfirmDialog({ title: '确认发布', message: '发布后课表将对外可见，确定发布吗？' })
-    await publishTimetable(route.params.id)
-    showToast('发布成功')
-    loadData()
-  } else if (action.value === 'archive') {
-    await showConfirmDialog({ title: '确认归档', message: '归档后课表将不可修改，确定归档吗？' })
-    await archiveTimetable(route.params.id)
-    showToast('归档成功')
-    loadData()
-  } else if (action.value === 'delete') {
-    await showConfirmDialog({ title: '确认删除', message: '删除后数据将无法恢复，确定删除吗？' })
-    await deleteTimetable(route.params.id)
-    showToast('删除成功')
-    router.back()
+const goAdjustmentFromDetail = (detail) => {
+  router.push({
+    path: '/adjustment',
+    query: { timetableId: route.params.id, detailId: detail.id }
+  })
+}
+
+const onDropdownSelect = async (value) => {
+  if (value === 'none') {
+    return
+  }
+  if (value === 'publish') {
+    dialog.warning({
+      title: '确认发布',
+      content: '发布后课表将对外可见，确定发布吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        try {
+          await publishTimetable(route.params.id)
+          message.success('发布成功')
+          loadData()
+        } catch (e) {
+          message.error(e.message || '发布失败')
+        }
+      }
+    })
+  } else if (value === 'archive') {
+    dialog.warning({
+      title: '确认归档',
+      content: '归档后课表将不可修改，确定归档吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        try {
+          await archiveTimetable(route.params.id)
+          message.success('归档成功')
+          loadData()
+        } catch (e) {
+          message.error(e.message || '归档失败')
+        }
+      }
+    })
+  } else if (value === 'delete') {
+    dialog.warning({
+      title: '确认删除',
+      content: '删除后数据将无法恢复，确定删除吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        try {
+          await deleteTimetable(route.params.id)
+          message.success('删除成功')
+          router.back()
+        } catch (e) {
+          message.error(e.message || '删除失败')
+        }
+      }
+    })
   }
 }
 
@@ -237,6 +380,7 @@ const loadData = async () => {
     conflicts.value = conflictsRes.data
   } catch (e) {
     console.error(e)
+    message.error(e.message || '加载失败')
   } finally {
     loading.value = false
   }
@@ -245,48 +389,280 @@ const loadData = async () => {
 onMounted(() => {
   loadData()
 })
+
+onUnmounted(() => {
+  layoutStore.clearHeaderAction()
+})
 </script>
 
 <style scoped>
-@media (min-width: 1024px) {
-  .page {
-    max-width: var(--content-max-width);
-    margin: 0 auto;
-  }
-  
-  .timetable-grid {
-    grid-template-columns: 80px repeat(5, 1fr);
-  }
-  
-  .timetable-header {
-    padding: var(--spacing-md);
-    font-size: 14px;
-  }
-  
-  .timetable-cell {
-    min-height: 100px;
-    padding: var(--spacing-sm);
-  }
-  
-  .course-block {
-    padding: var(--spacing-sm);
-    font-size: 12px;
-  }
+.desktop-detail-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.header-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.stat-card-desktop {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.stat-card-desktop:hover {
+  box-shadow: 0 6px 16px rgba(81, 202, 186, 0.4);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.text-success {
+  color: var(--text-success);
+}
+
+.text-danger {
+  color: var(--text-danger);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.content-tabs {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.timetable-card {
+  padding: var(--spacing-xl);
+}
+
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(5, 1fr);
+  gap: 2px;
+  background: var(--border-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.timetable-header {
+  background: var(--bg-secondary);
+  padding: var(--spacing-md);
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.timetable-cell {
+  background: var(--bg-primary);
+  min-height: 100px;
+  padding: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.timetable-cell:hover {
+  background: var(--bg-secondary);
+}
+
+.timetable-cell.has-course {
+  background: linear-gradient(135deg, rgba(81, 202, 186, 0.1) 0%, rgba(81, 202, 186, 0.05) 100%);
+}
+
+.timetable-cell.conflict {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border: 1px dashed var(--text-danger);
+}
+
+.course-block {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--primary-color);
+  border-radius: var(--radius-sm);
+  color: white;
+  text-align: center;
+}
+
+.course-block-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-block-info {
+  font-size: 11px;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  padding: var(--spacing-lg);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 800px;
+}
+
+.data-table th {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.name-cell {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3xl);
+  color: var(--text-secondary);
+}
+
+.course-dialog {
+  margin: var(--spacing-md);
+}
+
+.course-details {
+  padding: var(--spacing-md) 0;
 }
 
 @media (min-width: 1440px) {
-  .page {
-    max-width: var(--content-max-width-wide);
+  .page-title {
+    font-size: 28px;
+  }
+
+  .stats-grid {
+    gap: var(--spacing-xl);
   }
 
   .timetable-grid {
     grid-template-columns: 100px repeat(5, 1fr);
-  }
-}
-
-@media (min-width: 1920px) {
-  .page {
-    max-width: var(--content-max-width-ultra);
   }
 
   .timetable-cell {
@@ -296,6 +672,33 @@ onMounted(() => {
   .stat-value {
     font-size: 28px;
   }
+}
+
+@media (min-width: 1920px) {
+  .page-header {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .stats-grid {
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .stat-card-desktop {
+    padding: var(--spacing-xl);
+  }
+
+  .timetable-card {
+    padding: var(--spacing-2xl);
+  }
+
+  .timetable-cell {
+    min-height: 140px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+  }
 
   .stat-label {
     font-size: 14px;
@@ -303,41 +706,55 @@ onMounted(() => {
 }
 
 @media (min-width: 2560px) {
-  .page {
-    max-width: var(--content-max-width-super);
+  .page-title {
+    font-size: 32px;
   }
 
   .timetable-cell {
-    min-height: 150px;
+    min-height: 160px;
   }
 
   .course-block-name {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .course-block-info {
     font-size: 13px;
   }
+
+  .data-table {
+    font-size: 15px;
+  }
 }
 
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
+@media (max-width: 1439px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .timetable-grid {
+    grid-template-columns: 60px repeat(5, 1fr);
+  }
+
+  .timetable-header {
+    padding: var(--spacing-sm);
+    font-size: 12px;
+  }
+
+  .timetable-cell {
+    min-height: 80px;
+  }
 }
 
-.stat-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
+@media (max-width: 1199px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-.course-popup {
-  padding: 20px 16px;
-}
-
-.course-popup-btn {
-  margin-top: 20px;
-  padding: 0 8px;
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>

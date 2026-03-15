@@ -1,4 +1,11 @@
+/* ==========================================================================
+   Design Tokens - 设计令牌系统
+   ========================================================================== */
+
 :root {
+  /* ------------------------------------------------------------------------
+     1. Color Palette - 色彩系统
+     ------------------------------------------------------------------------ */
   --bright-turquoise-50: #c9fffc;
   --bright-turquoise-100: #66fff3;
   --bright-turquoise-200: #54f8e5;
@@ -14,6 +21,78 @@
   --bright-turquoise-1200: #0e2c28;
   --bright-turquoise-1300: #051b18;
 
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+  --green-950: #052e16;
+
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+  --amber-950: #451a03;
+
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --red-900: #7f1d1d;
+  --red-950: #450a0a;
+
+  --indigo-50: #eef2ff;
+  --indigo-100: #e0e7ff;
+  --indigo-200: #c7d2fe;
+  --indigo-300: #a5b4fc;
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+  --indigo-800: #3730a3;
+  --indigo-900: #312e81;
+  --indigo-950: #1e1b4b;
+
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --gray-950: #030712;
+
   --primary-color: #51caba;
   --primary-light: #66fff3;
   --primary-dark: #42988e;
@@ -24,6 +103,123 @@
   --warning-light: #fbbf24;
   --danger-color: #ef4444;
   --danger-light: #f87171;
+
+  /* ------------------------------------------------------------------------
+     2. Spacing System - 间距系统 (8px Grid)
+     ------------------------------------------------------------------------ */
+  --space-0: 0;
+  --space-0_5: 2px;
+  --space-1: 4px;
+  --space-1_5: 6px;
+  --space-2: 8px;
+  --space-2_5: 10px;
+  --space-3: 12px;
+  --space-3_5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Component Spacing */
+  --card-padding: var(--spacing-lg);
+  --card-padding-mobile: var(--spacing-md);
+  --card-padding-desktop: var(--spacing-xl);
+  --card-padding-wide: var(--spacing-2xl);
+  --component-gap: var(--spacing-md);
+  --section-gap: var(--spacing-xl);
+  --content-gap: var(--spacing-lg);
+
+  /* ------------------------------------------------------------------------
+     3. Border Radius - 圆角系统
+     ------------------------------------------------------------------------ */
+  --radius-none: 0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --radius-full: 9999px;
+
+  /* Component Radius */
+  --radius-button: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-input: var(--radius-md);
+  --radius-tag: var(--radius-sm);
+  --radius-modal: var(--radius-xl);
+  --radius-avatar: var(--radius-full);
+
+  /* ------------------------------------------------------------------------
+     4. Shadows - 阴影系统
+     ------------------------------------------------------------------------ */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Component Shadows */
+  --shadow-card: var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-lg);
+  --shadow-button: var(--shadow-sm);
+  --shadow-button-hover: var(--shadow-md);
+  --shadow-dropdown: var(--shadow-lg);
+  --shadow-modal: var(--shadow-2xl);
+
+  /* ------------------------------------------------------------------------
+     5. Borders - 边框系统
+     ------------------------------------------------------------------------ */
+  --border-width-0: 0;
+  --border-width-1: 1px;
+  --border-width-2: 2px;
+  --border-width-4: 4px;
+  --border-width: var(--border-width-1);
+  --border-width-thick: var(--border-width-2);
+
+  /* ------------------------------------------------------------------------
+     6. Icons - 图标系统
+     ------------------------------------------------------------------------ */
+  --icon-size-xs: 12px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 32px;
+  --icon-size-2xl: 40px;
+  --icon-size-3xl: 48px;
+  --icon-stroke-width: 2px;
+
+  /* ------------------------------------------------------------------------
+     7. Dropdown - 下拉菜单系统
+     ------------------------------------------------------------------------ */
+  --dropdown-menu-height: 44px;
+  --dropdown-menu-min-width: 160px;
+  --dropdown-option-height: 48px;
+  --dropdown-option-padding-x: 16px;
+  --dropdown-option-padding-y: 12px;
+  --dropdown-option-font-size: 15px;
+  --dropdown-border-radius: 12px;
+  --dropdown-bg: var(--bg-primary);
+  --dropdown-border-color: var(--border-color);
+  --dropdown-shadow: var(--shadow-lg);
+  --dropdown-option-text: var(--text-primary);
+  --dropdown-option-text-hover: var(--text-primary);
+  --dropdown-option-text-active: var(--primary-color);
+  --dropdown-option-bg-hover: var(--bg-tertiary);
+  --dropdown-option-bg-active: rgba(37, 99, 235, 0.1);
+  --dropdown-option-border-active: rgba(37, 99, 235, 0.2);
+  --dropdown-title-color: var(--text-primary);
+  --dropdown-title-color-active: var(--primary-color);
+  --dropdown-title-color-hover: var(--text-primary);
+
+  /* Dropdown Z-index */
+  --dropdown-z-index: 1000;
+
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
@@ -167,6 +363,91 @@
 
 .van-dropdown-menu__title--active {
   color: var(--primary-color) !important;
+}
+
+/* 下拉菜单选项完整样式 */
+.van-dropdown-item__option {
+  color: var(--text-primary) !important;
+  background: var(--bg-primary) !important;
+  transition: all var(--transition-fast) !important;
+  padding: var(--dropdown-option-padding-y) var(--dropdown-option-padding-x) !important;
+  font-size: var(--dropdown-option-font-size) !important;
+  line-height: 1.5 !important;
+  min-height: var(--dropdown-option-height) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.van-dropdown-item__option:hover,
+.van-dropdown-item__option--hover {
+  background: var(--dropdown-option-bg-hover) !important;
+  color: var(--dropdown-option-text-hover) !important;
+}
+
+.van-dropdown-item__option:active {
+  background: var(--dropdown-option-bg-active) !important;
+}
+
+.van-dropdown-item__option--active {
+  color: var(--dropdown-option-text-active) !important;
+  background: var(--dropdown-option-bg-active) !important;
+  font-weight: 600 !important;
+  position: relative !important;
+}
+
+.van-dropdown-item__option--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary-color);
+  border-radius: 0 3px 3px 0;
+}
+
+/* 下拉菜单内容区域 */
+.van-dropdown-item__content {
+  background: var(--bg-primary) !important;
+  border-radius: 0 0 var(--dropdown-border-radius) var(--dropdown-border-radius) !important;
+  box-shadow: var(--dropdown-shadow) !important;
+  border: 1px solid var(--dropdown-border-color) !important;
+  border-top: none !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  animation: dropdownFadeIn var(--transition-base) ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 下拉菜单滚动条样式 */
+.van-dropdown-item__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.van-dropdown-item__content::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.van-dropdown-item__content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+  transition: background var(--transition-fast);
+}
+
+.van-dropdown-item__content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .px-page {
@@ -1506,22 +1787,4 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: var(--primary-color);
-  color: white;
-  padding: 8px 16px;
-  z-index: 10000;
-  text-decoration: none;
-  font-weight: 600;
-  border-radius: 0 0 var(--radius-sm) 0;
-  transition: top var(--transition-fast);
-}
-
-.skip-link:focus {
-  top: 0;
 }

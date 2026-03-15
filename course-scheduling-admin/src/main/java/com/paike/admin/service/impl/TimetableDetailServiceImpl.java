@@ -114,7 +114,7 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
                     if (i == j) continue;
                     TimetableDetail d2 = slotDetails.get(j);
 
-                    if (d1.getClassroomId().equals(d2.getClassroomId())) {
+                    if (d1.getClassroomId() != null && d1.getClassroomId().equals(d2.getClassroomId())) {
                         conflictInfo.append("教室冲突:").append(d2.getCourseName()).append(";");
                     }
                     if (d1.getTeacherId() != null && d1.getTeacherId().equals(d2.getTeacherId())) {

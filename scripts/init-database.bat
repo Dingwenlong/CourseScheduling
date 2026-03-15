@@ -20,18 +20,11 @@ echo.
 echo 正在初始化数据库...
 echo.
 
-cd /d "%~dp0..\docs\sql"
+cd /d "%~dp0..\database\mysql"
 
-mysql -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < schema.sql
+mysql -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < init-schema.sql
 if %errorlevel% neq 0 (
     echo 数据库结构创建失败！
-    pause
-    exit /b 1
-)
-
-mysql -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < data.sql
-if %errorlevel% neq 0 (
-    echo 测试数据导入失败！
     pause
     exit /b 1
 )

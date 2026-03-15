@@ -65,7 +65,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Async
     public CompletableFuture<SchedulingResult> scheduleAsync(SchedulingRequest request) {
-        return CompletableFuture.completedFuture(schedule(request));
+        SchedulingResult result = schedule(request);
+        return CompletableFuture.completedFuture(result);
     }
 
     private List<TaskData> loadTasks(SchedulingRequest request) {

@@ -2,15 +2,28 @@ package com.paike.admin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.paike.admin.dto.TeachingTaskCreateRequest;
+import com.paike.admin.dto.TeachingTaskQueryRequest;
+import com.paike.admin.dto.TeachingTaskUpdateRequest;
+import com.paike.admin.entity.Course;
 import com.paike.admin.entity.TeachingTask;
-import com.paike.admin.mapper.TeachingTaskMapper;
+import com.paike.admin.mapper.CourseMapper;
+import com.paike.admin.service.TeachingTaskService;
 import com.paike.common.result.PageResult;
 import com.paike.common.result.Result;
+import com.paike.common.result.ResultCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Tag(name = "教学任务管理", description = "教学任务相关接口")
 @RestController
@@ -18,48 +31,84 @@ import org.springframework.web.bind.annotation.*;
 public class TeachingTaskController {
 
     @Autowired
-    private TeachingTaskMapper teachingTaskMapper;
+    private TeachingTaskService teachingTaskService;
+
+    @Autowired
+    private CourseMapper courseMapper;
 
     @Operation(summary = "分页查询教学任务")
     @GetMapping("/page")
-    public Result<PageResult<TeachingTask>> page(
-            @RequestParam(defaultValue = "1") Long current,
-            @RequestParam(defaultValue = "10") Long size,
-            @RequestParam(required = false) String semester) {
-        
-        Page<TeachingTask> page = new Page<>(current, size);
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public Result<PageResult<TeachingTask>> page(@Valid TeachingTaskQueryRequest request) {
+        Page<TeachingTask> page = new Page<>(request.getCurrent(), request.getSize());
         LambdaQueryWrapper<TeachingTask> wrapper = new LambdaQueryWrapper<>();
-        
-        if (semester != null && !semester.isEmpty()) {
-            wrapper.eq(TeachingTask::getSemester, semester);
+
+        if (request.getSemester() != null && !request.getSemester().isEmpty()) {
+            wrapper.eq(TeachingTask::getSemester, request.getSemester());
         }
-        
+
         wrapper.orderByDesc(TeachingTask::getCreateTime);
-        Page<TeachingTask> result = teachingTaskMapper.selectPage(page, wrapper);
-        
-        return Result.success(PageResult.of(result.getRecords(), result.getTotal(), result.getSize(), result.getCurrent()));
+        Page<TeachingTask> result = teachingTaskService.page(page, wrapper);
+
+        populateCourseNames(result.getRecords());
+        return Result.success(PageResult.of(result.getRecords(), result.getTotal(), (long) result.getSize(), (long) result.getCurrent()));
     }
 
     @Operation(summary = "根据ID查询教学任务")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public Result<TeachingTask> getById(@PathVariable Long id) {
-        TeachingTask task = teachingTaskMapper.selectById(id);
+        TeachingTask task = teachingTaskService.getById(id);
+        if (task == null) {
+            return Result.fail(ResultCode.PARAM_ERROR.getCode(), "教学任务不存在");
+        }
+        populateCourseNames(List.of(task));
         return Result.success(task);
+    }
+
+    private void populateCourseNames(List<TeachingTask> tasks) {
+        Set<Long> courseIds = tasks.stream()
+                .map(TeachingTask::getCourseId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        if (courseIds.isEmpty()) {
+            return;
+        }
+
+        List<Course> courses = courseMapper.selectBatchIds(courseIds);
+        Map<Long, String> courseNameMap = courses.stream()
+                .collect(Collectors.toMap(Course::getId, Course::getCourseName));
+
+        for (TeachingTask task : tasks) {
+            if (task.getCourseId() != null) {
+                task.setCourseName(courseNameMap.get(task.getCourseId()));
+            }
+        }
     }
 
     @Operation(summary = "新增教学任务")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public Result<Void> add(@RequestBody TeachingTask task) {
-        teachingTaskMapper.insert(task);
+    public Result<Void> add(@Valid @RequestBody TeachingTaskCreateRequest request) {
+        TeachingTask task = new TeachingTask();
+        BeanUtils.copyProperties(request, task);
+        teachingTaskService.save(task);
         return Result.success();
     }
 
     @Operation(summary = "更新教学任务")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping
-    public Result<Void> update(@RequestBody TeachingTask task) {
-        teachingTaskMapper.updateById(task);
+    public Result<Void> update(@Valid @RequestBody TeachingTaskUpdateRequest request) {
+        TeachingTask existingTask = teachingTaskService.getById(request.getId());
+        if (existingTask == null) {
+            return Result.fail(ResultCode.PARAM_ERROR.getCode(), "教学任务不存在");
+        }
+
+        TeachingTask task = new TeachingTask();
+        BeanUtils.copyProperties(request, task);
+        teachingTaskService.updateById(task);
         return Result.success();
     }
 
@@ -67,7 +116,11 @@ public class TeachingTaskController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        teachingTaskMapper.deleteById(id);
+        TeachingTask task = teachingTaskService.getById(id);
+        if (task == null) {
+            return Result.fail(ResultCode.PARAM_ERROR.getCode(), "教学任务不存在");
+        }
+        teachingTaskService.removeById(id);
         return Result.success();
     }
 }

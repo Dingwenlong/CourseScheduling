@@ -6,10 +6,14 @@ import com.paike.admin.dto.ConflictDetail;
 import com.paike.admin.dto.ConflictReport;
 import com.paike.admin.dto.TeacherWorkload;
 import com.paike.admin.entity.Classroom;
+import com.paike.admin.entity.Timetable;
 import com.paike.admin.entity.TimetableDetail;
 import com.paike.admin.mapper.ClassroomMapper;
 import com.paike.admin.mapper.TimetableDetailMapper;
+import com.paike.admin.mapper.TimetableMapper;
 import com.paike.admin.service.StatisticsService;
+import com.paike.common.exception.BusinessException;
+import com.paike.common.result.ResultCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +33,19 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private ClassroomMapper classroomMapper;
 
+    @Autowired
+    private TimetableMapper timetableMapper;
+
+    private void validateTimetableExists(Long timetableId) {
+        Timetable timetable = timetableMapper.selectById(timetableId);
+        if (timetable == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "课表不存在");
+        }
+    }
+
     @Override
     public List<ClassroomUtilization> getClassroomUtilization(Long timetableId) {
+        validateTimetableExists(timetableId);
         List<TimetableDetail> details = timetableDetailMapper.selectList(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId));
@@ -72,11 +87,14 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public List<TeacherWorkload> getTeacherWorkload(Long timetableId) {
+        validateTimetableExists(timetableId);
         List<TimetableDetail> details = timetableDetailMapper.selectList(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId));
 
         Map<Long, TeacherWorkload> workloadMap = new HashMap<>();
+        Map<Long, java.util.Set<Long>> teacherCoursesMap = new HashMap<>();
+        
         for (TimetableDetail detail : details) {
             if (detail.getTeacherId() == null) continue;
             
@@ -92,13 +110,23 @@ public class StatisticsServiceImpl implements StatisticsService {
                     });
             
             workload.setTotalHours(workload.getTotalHours() + 2);
-            workload.setCourseCount(workload.getCourseCount() + 1);
+            
+            java.util.Set<Long> courses = teacherCoursesMap.computeIfAbsent(
+                    detail.getTeacherId(), 
+                    k -> new java.util.HashSet<>());
+            if (detail.getCourseId() != null) {
+                courses.add(detail.getCourseId());
+            }
         }
 
         for (TeacherWorkload workload : workloadMap.values()) {
-            if (workload.getCourseCount() > 0) {
+            java.util.Set<Long> courses = teacherCoursesMap.get(workload.getTeacherId());
+            int courseCount = courses != null ? courses.size() : 0;
+            workload.setCourseCount(courseCount);
+            
+            if (courseCount > 0) {
                 BigDecimal avg = BigDecimal.valueOf(workload.getTotalHours())
-                        .divide(BigDecimal.valueOf(workload.getCourseCount()), 2, RoundingMode.HALF_UP);
+                        .divide(BigDecimal.valueOf(courseCount), 2, RoundingMode.HALF_UP);
                 workload.setAverageHoursPerCourse(avg);
             }
         }
@@ -108,6 +136,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public ConflictReport getConflictReport(Long timetableId) {
+        validateTimetableExists(timetableId);
         List<TimetableDetail> conflicts = timetableDetailMapper.selectList(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId)
@@ -151,6 +180,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public Integer getTotalScheduledHours(Long timetableId) {
+        validateTimetableExists(timetableId);
         Long count = timetableDetailMapper.selectCount(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId));
@@ -159,9 +189,15 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public Integer getCourseCount(Long timetableId) {
-        Long count = timetableDetailMapper.selectCount(
+        validateTimetableExists(timetableId);
+        List<TimetableDetail> details = timetableDetailMapper.selectList(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId));
-        return count.intValue();
+        
+        return (int) details.stream()
+                .map(TimetableDetail::getCourseId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .count();
     }
 }

@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -37,6 +38,12 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
     @Override
     @Transactional
     public Timetable generateTimetable(SchedulingRequest request) {
+        if (request == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        if (!StringUtils.hasText(request.getSemester())) {
+            throw new BusinessException("学期不能为空");
+        }
         log.info("开始生成课表，学期: {}", request.getSemester());
 
         Timetable latestVersion = getLatestTimetable(request.getSemester());

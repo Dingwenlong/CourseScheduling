@@ -42,9 +42,12 @@ public class AdjustmentServiceImpl implements AdjustmentService {
 
         List<TimetableDetail> existingDetails = timetableDetailMapper.selectList(wrapper);
 
+        Long classroomIdToCheck = request.getNewClassroomId() != null ? 
+                request.getNewClassroomId() : detail.getClassroomId();
+
         for (TimetableDetail existing : existingDetails) {
-            if (request.getNewClassroomId() != null && 
-                    request.getNewClassroomId().equals(existing.getClassroomId())) {
+            if (classroomIdToCheck != null && 
+                    classroomIdToCheck.equals(existing.getClassroomId())) {
                 conflicts.add("教室冲突: " + existing.getCourseName() + " 已占用该教室");
             }
 
@@ -71,6 +74,10 @@ public class AdjustmentServiceImpl implements AdjustmentService {
     public AdjustmentResult executeAdjustment(AdjustmentRequest request) {
         AdjustmentResult checkResult = checkAdjustment(request);
         
+        if (!checkResult.getSuccess()) {
+            throw new BusinessException("调课存在冲突，无法执行: " + String.join(", ", checkResult.getConflicts()));
+        }
+        
         TimetableDetail detail = timetableDetailMapper.selectById(request.getDetailId());
         if (detail == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND);
@@ -83,12 +90,8 @@ public class AdjustmentServiceImpl implements AdjustmentService {
             detail.setClassroomId(request.getNewClassroomId());
         }
 
-        detail.setIsConflict(checkResult.getSuccess() ? 0 : 1);
-        if (!checkResult.getSuccess() && checkResult.getConflicts() != null) {
-            detail.setConflictInfo(String.join(";", checkResult.getConflicts()));
-        } else {
-            detail.setConflictInfo(null);
-        }
+        detail.setIsConflict(0);
+        detail.setConflictInfo(null);
 
         timetableDetailMapper.updateById(detail);
 
@@ -96,6 +99,37 @@ public class AdjustmentServiceImpl implements AdjustmentService {
                 request.getDetailId(), request.getNewDayOfWeek(), request.getNewSlotNo());
 
         return AdjustmentResult.success("调课成功");
+    }
+
+    private List<String> checkDetailConflicts(TimetableDetail detail) {
+        List<String> conflicts = new ArrayList<>();
+
+        LambdaQueryWrapper<TimetableDetail> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TimetableDetail::getTimetableId, detail.getTimetableId())
+                .eq(TimetableDetail::getDayOfWeek, detail.getDayOfWeek())
+                .eq(TimetableDetail::getSlotNo, detail.getSlotNo())
+                .ne(TimetableDetail::getId, detail.getId());
+
+        List<TimetableDetail> existingDetails = timetableDetailMapper.selectList(wrapper);
+
+        for (TimetableDetail existing : existingDetails) {
+            if (detail.getClassroomId() != null && 
+                    detail.getClassroomId().equals(existing.getClassroomId())) {
+                conflicts.add("教室冲突: " + existing.getCourseName() + " 已占用该教室");
+            }
+
+            if (detail.getTeacherId() != null && 
+                    detail.getTeacherId().equals(existing.getTeacherId())) {
+                conflicts.add("教师冲突: " + existing.getCourseName() + " 该教师已有课");
+            }
+
+            if (detail.getClassId() != null && 
+                    detail.getClassId().equals(existing.getClassId())) {
+                conflicts.add("班级冲突: " + existing.getCourseName() + " 该班级已有课");
+            }
+        }
+
+        return conflicts;
     }
 
     @Override
@@ -117,13 +151,52 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         Integer tempSlot = detail1.getSlotNo();
         Long tempClassroom = detail1.getClassroomId();
 
+        TimetableDetail tempDetail1 = new TimetableDetail();
+        tempDetail1.setId(detail1.getId());
+        tempDetail1.setTimetableId(detail1.getTimetableId());
+        tempDetail1.setDayOfWeek(detail2.getDayOfWeek());
+        tempDetail1.setSlotNo(detail2.getSlotNo());
+        tempDetail1.setClassroomId(detail2.getClassroomId());
+        tempDetail1.setTeacherId(detail1.getTeacherId());
+        tempDetail1.setClassId(detail1.getClassId());
+        tempDetail1.setCourseName(detail1.getCourseName());
+
+        TimetableDetail tempDetail2 = new TimetableDetail();
+        tempDetail2.setId(detail2.getId());
+        tempDetail2.setTimetableId(detail2.getTimetableId());
+        tempDetail2.setDayOfWeek(tempDay);
+        tempDetail2.setSlotNo(tempSlot);
+        tempDetail2.setClassroomId(tempClassroom);
+        tempDetail2.setTeacherId(detail2.getTeacherId());
+        tempDetail2.setClassId(detail2.getClassId());
+        tempDetail2.setCourseName(detail2.getCourseName());
+
+        List<String> conflicts1 = checkDetailConflicts(tempDetail1);
+        List<String> conflicts2 = checkDetailConflicts(tempDetail2);
+
+        List<String> allConflicts = new ArrayList<>();
+        if (!conflicts1.isEmpty()) {
+            allConflicts.add(detail1.getCourseName() + " 冲突: " + String.join(", ", conflicts1));
+        }
+        if (!conflicts2.isEmpty()) {
+            allConflicts.add(detail2.getCourseName() + " 冲突: " + String.join(", ", conflicts2));
+        }
+
+        if (!allConflicts.isEmpty()) {
+            throw new BusinessException("课程交换存在冲突: " + String.join("; ", allConflicts));
+        }
+
         detail1.setDayOfWeek(detail2.getDayOfWeek());
         detail1.setSlotNo(detail2.getSlotNo());
         detail1.setClassroomId(detail2.getClassroomId());
+        detail1.setIsConflict(0);
+        detail1.setConflictInfo(null);
 
         detail2.setDayOfWeek(tempDay);
         detail2.setSlotNo(tempSlot);
         detail2.setClassroomId(tempClassroom);
+        detail2.setIsConflict(0);
+        detail2.setConflictInfo(null);
 
         timetableDetailMapper.updateById(detail1);
         timetableDetailMapper.updateById(detail2);

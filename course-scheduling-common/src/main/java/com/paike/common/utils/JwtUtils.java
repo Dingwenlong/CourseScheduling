@@ -112,4 +112,14 @@ public class JwtUtils {
         long diff = tokenExpiration.getTime() - System.currentTimeMillis();
         return diff < this.expiration / 3;
     }
+
+    public Long getExpire(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null) {
+            return null;
+        }
+        Date expiration = claims.getExpiration();
+        long diff = expiration.getTime() - System.currentTimeMillis();
+        return diff > 0 ? diff / 1000 : 0;
+    }
 }

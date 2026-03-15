@@ -1,34 +1,49 @@
-package com.paike.admin.entity;
+package com.paike.admin.dto;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
-@TableName("edu_teaching_task")
-public class TeachingTask extends BaseEntity {
+public class TeachingTaskCreateRequest {
 
+    @NotBlank(message = "学期不能为空")
     private String semester;
+
+    @NotNull(message = "课程ID不能为空")
     private Long courseId;
+
+    @NotNull(message = "教师ID不能为空")
     private Long teacherId;
+
+    @NotNull(message = "班级ID不能为空")
     private Long classId;
+
+    @PositiveOrZero(message = "学生人数不能为负数")
     private Integer studentCount;
+
+    @Positive(message = "周课时必须大于0")
     private Integer weeklyHours;
+
+    @Positive(message = "总周数必须大于0")
     private Integer totalWeeks;
+
     private String weeks;
 
-    @TableField("`course_nature`")
     private String courseNature;
 
+    @PositiveOrZero(message = "优先级不能为负数")
     private Integer priorityLevel;
+
     private Integer fixedDay;
+
     private Integer fixedSlot;
+
     private Long fixedClassroom;
+
     private String timePreference;
 
-    @TableField("`status`")
     private String status;
-
-    @TableField(exist = false)
-    private String courseName;
 
     public String getSemester() {
         return semester;
@@ -148,13 +163,5 @@ public class TeachingTask extends BaseEntity {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public String getCourseName() {
-        return courseName;
-    }
-
-    public void setCourseName(String courseName) {
-        this.courseName = courseName;
     }
 }

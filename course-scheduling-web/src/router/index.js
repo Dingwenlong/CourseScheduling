@@ -80,7 +80,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - 智能排课系统` : '智能排课系统'
   
   const userStore = useUserStore()
@@ -90,11 +90,19 @@ router.beforeEach((to, from, next) => {
     if (token) {
       localStorage.removeItem('token')
       userStore.token = ''
+      userStore.userInfo = null
     }
     next()
   } else if (!token) {
     next('/login')
   } else {
+    if (!userStore.userInfo) {
+      try {
+        await userStore.fetchUserInfo()
+      } catch (e) {
+        console.error('获取用户信息失败', e)
+      }
+    }
     next()
   }
 })

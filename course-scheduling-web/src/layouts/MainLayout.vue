@@ -7,36 +7,38 @@
         </transition>
       </router-view>
     </div>
-    <van-tabbar 
-      v-model="active" 
-      route 
+    <div 
       class="custom-tabbar"
       role="navigation"
       aria-label="底部导航"
     >
-      <van-tabbar-item 
+      <router-link
         v-for="(item, index) in tabItems" 
         :key="item.path"
         :to="item.path" 
-        :icon="item.icon"
+        class="tabbar-item touch-target"
+        :class="{ active: isActive(item.path) }"
         :aria-label="item.text"
-        :aria-current="active === index ? 'page' : null"
+        :aria-current="isActive(item.path) ? 'page' : null"
         tabindex="0"
         @keydown.enter="handleTabKeydown($event, item.path)"
       >
-        {{ item.text }}
-      </van-tabbar-item>
-      <template #after>
-        <button 
-          class="tabbar-theme-toggle"
-          @click="toggleTheme"
-          :aria-label="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
-          type="button"
-        >
-          <van-icon :name="isDarkMode ? 'sun-o' : 'moon-o'" size="20" />
-        </button>
-      </template>
-    </van-tabbar>
+        <n-icon size="22">
+          <component :is="item.icon" />
+        </n-icon>
+        <span class="tabbar-text">{{ item.text }}</span>
+      </router-link>
+      <button 
+        class="tabbar-theme-toggle"
+        @click="toggleTheme"
+        :aria-label="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
+        type="button"
+      >
+        <n-icon size="20">
+          <component :is="isDarkMode ? SunnyOutline : MoonOutline" />
+        </n-icon>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -44,6 +46,17 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { NIcon } from 'naive-ui'
+import {
+  HomeOutline,
+  CalendarOutline,
+  ClipboardOutline,
+  SearchOutline,
+  BarChartOutline,
+  PersonOutline,
+  MoonOutline,
+  SunnyOutline
+} from '@vicons/ionicons5'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,12 +66,12 @@ const active = ref(0)
 const isDarkMode = computed(() => themeStore.isDark())
 
 const tabItems = [
-  { path: '/home', icon: 'home-o', text: '首页' },
-  { path: '/timetable', icon: 'calendar-o', text: '课表管理' },
-  { path: '/task', icon: 'todo-list-o', text: '教学任务' },
-  { path: '/schedule', icon: 'search', text: '排课查询' },
-  { path: '/statistics', icon: 'chart-trending-o', text: '统计分析' },
-  { path: '/profile', icon: 'user-o', text: '个人中心' }
+  { path: '/home', icon: HomeOutline, text: '首页' },
+  { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
+  { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+  { path: '/schedule', icon: SearchOutline, text: '排课查询' },
+  { path: '/statistics', icon: BarChartOutline, text: '统计分析' },
+  { path: '/profile', icon: PersonOutline, text: '个人中心' }
 ]
 
 const tabMap = {
@@ -68,6 +81,10 @@ const tabMap = {
   '/schedule': 3,
   '/statistics': 4,
   '/profile': 5
+}
+
+const isActive = (path) => {
+  return route.path === path || route.path.startsWith(path + '/')
 }
 
 watch(() => route.path, (path) => {
@@ -119,35 +136,50 @@ onUnmounted(() => {
 }
 
 .custom-tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.95);
   box-sizing: border-box;
   padding-right: calc(52px + env(safe-area-inset-right, 0px));
+  padding-left: 4px;
+  padding-right: calc(56px + env(safe-area-inset-right, 0px));
+  padding-top: 6px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   transition: background-color var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
 }
 
-:deep(.van-tabbar-item) {
+.tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 2px;
+  color: var(--text-secondary);
+  text-decoration: none;
   transition: all 0.2s ease;
   min-height: 44px;
   min-width: 44px;
 }
 
-:deep(.van-tabbar-item--active) {
+.tabbar-item:hover {
+  color: var(--text-primary);
+}
+
+.tabbar-item.active {
   color: var(--primary-color);
   transform: scale(1.05);
 }
 
-:deep(.van-tabbar-item__icon) {
-  margin-bottom: 2px;
-  font-size: 22px;
-}
-
-:deep(.van-tabbar-item__text) {
+.tabbar-text {
   font-size: 11px;
 }
 
-:deep(.van-tabbar-item):focus-visible {
+.tabbar-item:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: var(--radius-md);

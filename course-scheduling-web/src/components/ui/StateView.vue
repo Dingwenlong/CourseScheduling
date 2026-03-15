@@ -1,19 +1,20 @@
 <template>
   <div class="state-view">
     <div v-if="loading" class="state state-loading" aria-live="polite">
-      <van-loading size="24" />
+      <n-spin size="medium" />
       <div class="state-text">{{ loadingText }}</div>
     </div>
     <div v-else-if="error" class="state">
-      <van-empty :description="errorText" />
-      <div class="state-actions">
-        <van-button v-if="retryable" size="small" type="primary" class="touch-target" @click="$emit('retry')">
-          重试
-        </van-button>
-      </div>
+      <n-empty :description="errorText">
+        <template #extra>
+          <n-button v-if="retryable" size="small" type="primary" @click="$emit('retry')">
+            重试
+          </n-button>
+        </template>
+      </n-empty>
     </div>
     <div v-else-if="empty" class="state">
-      <van-empty :description="emptyText" />
+      <n-empty :description="emptyText" />
     </div>
     <slot v-else />
   </div>
@@ -54,11 +55,4 @@ defineEmits(['retry'])
   font-size: 13px;
   color: var(--text-secondary);
 }
-
-.state-actions {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0 4px;
-}
 </style>
-

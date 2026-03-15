@@ -13,7 +13,9 @@
     >
       <div class="sidebar-header">
         <div class="logo">
-          <van-icon name="calendar-o" size="28" color="var(--primary-color)" aria-hidden="true" />
+          <n-icon size="28" color="var(--primary-color)" aria-hidden="true">
+            <CalendarOutline />
+          </n-icon>
           <span v-show="!isCollapsed" class="logo-text">排课系统</span>
         </div>
         <button 
@@ -24,7 +26,9 @@
           aria-expanded="true"
           type="button"
         >
-          <van-icon name="arrow-left" size="20" aria-hidden="true" />
+          <n-icon size="20" aria-hidden="true">
+            <ArrowBackOutline />
+          </n-icon>
         </button>
       </div>
       
@@ -40,7 +44,9 @@
           :aria-current="isActive(item.path) ? 'page' : null"
           :aria-label="item.text"
         >
-          <van-icon :name="item.icon" size="20" aria-hidden="true" />
+          <n-icon size="20" aria-hidden="true">
+            <component :is="item.icon" />
+          </n-icon>
           <span v-show="!isCollapsed" class="nav-text">{{ item.text }}</span>
         </router-link>
       </nav>
@@ -53,7 +59,9 @@
           :aria-label="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
           type="button"
         >
-          <van-icon :name="isDarkMode ? 'sun-o' : 'moon-o'" size="18" />
+          <n-icon size="18">
+            <component :is="isDarkMode ? SunnyOutline : MoonOutline" />
+          </n-icon>
           <span class="theme-text">{{ isDarkMode ? '亮色' : '暗色' }}</span>
         </button>
         <button 
@@ -63,10 +71,14 @@
           :aria-label="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
           type="button"
         >
-          <van-icon :name="isDarkMode ? 'sun-o' : 'moon-o'" size="20" aria-hidden="true" />
+          <n-icon size="20" aria-hidden="true">
+            <component :is="isDarkMode ? SunnyOutline : MoonOutline" />
+          </n-icon>
         </button>
         <div v-show="!isCollapsed" class="user-info">
-          <van-icon name="user-o" size="20" aria-hidden="true" />
+          <n-icon size="20" aria-hidden="true">
+            <PersonOutline />
+          </n-icon>
           <span class="user-name">{{ userStore.userInfo?.realName || '用户' }}</span>
         </div>
         <button 
@@ -77,7 +89,9 @@
           aria-expanded="false"
           type="button"
         >
-          <van-icon name="bars" size="20" aria-hidden="true" />
+          <n-icon size="20" aria-hidden="true">
+            <MenuOutline />
+          </n-icon>
         </button>
       </div>
     </aside>
@@ -101,7 +115,9 @@
             :aria-expanded="showOverlay"
             type="button"
           >
-            <van-icon name="bars" size="24" aria-hidden="true" />
+            <n-icon size="24" aria-hidden="true">
+              <MenuOutline />
+            </n-icon>
           </button>
           <h1 class="page-title">{{ pageTitle }}</h1>
         </div>
@@ -113,11 +129,12 @@
             :aria-label="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
             type="button"
           >
-            <van-icon :name="isDarkMode ? 'sun-o' : 'moon-o'" size="22" />
+            <n-icon size="22">
+              <component :is="isDarkMode ? SunnyOutline : MoonOutline" />
+            </n-icon>
           </button>
-          <van-button 
+          <n-button 
             v-if="layoutStore.headerAction.visible"
-            :icon="layoutStore.headerAction.icon" 
             type="primary" 
             size="small"
             class="touch-target"
@@ -125,7 +142,7 @@
             :aria-label="layoutStore.headerAction.text"
           >
             {{ layoutStore.headerAction.text }}
-          </van-button>
+          </n-button>
         </div>
       </header>
 
@@ -146,6 +163,20 @@ import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useLayoutStore } from '@/stores/layout'
 import { useUserStore } from '@/stores/user'
+import { NIcon, NButton } from 'naive-ui'
+import {
+  CalendarOutline,
+  ArrowBackOutline,
+  HomeOutline,
+  SearchOutline,
+  BarChartOutline,
+  PeopleOutline,
+  PersonOutline,
+  MenuOutline,
+  MoonOutline,
+  SunnyOutline,
+  ClipboardOutline
+} from '@vicons/ionicons5'
 
 const route = useRoute()
 const themeStore = useThemeStore()
@@ -161,18 +192,18 @@ const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
 
 const menuItems = computed(() => {
   const items = [
-    { path: '/home', icon: 'home-o', text: '首页' },
-    { path: '/timetable', icon: 'calendar-o', text: '课表管理' },
-    { path: '/task', icon: 'todo-list-o', text: '教学任务' },
-    { path: '/schedule', icon: 'search', text: '排课查询' },
-    { path: '/statistics', icon: 'chart-trending-o', text: '统计分析' }
+    { path: '/home', icon: HomeOutline, text: '首页' },
+    { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
+    { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+    { path: '/schedule', icon: SearchOutline, text: '排课查询' },
+    { path: '/statistics', icon: BarChartOutline, text: '统计分析' }
   ]
 
   if (isAdmin.value) {
-    items.push({ path: '/users', icon: 'friends-o', text: '用户管理' })
+    items.push({ path: '/users', icon: PeopleOutline, text: '用户管理' })
   }
 
-  items.push({ path: '/profile', icon: 'user-o', text: '个人中心' })
+  items.push({ path: '/profile', icon: PersonOutline, text: '个人中心' })
 
   return items
 })

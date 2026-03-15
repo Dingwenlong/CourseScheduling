@@ -1,91 +1,121 @@
 <template>
-  <div class="page page-with-tabbar schedule-page">
-    <van-nav-bar title="课表查询" class="custom-nav" />
+  <PageContainer with-tabbar class="schedule-page">
+    <PageHeader title="课表查询" />
 
-    <div class="table-container animate-fade-in">
-      <div class="table-header">
-        <div class="table-title desktop-only">查询条件</div>
-        <div class="table-filters search-wrapper">
-          <van-dropdown-menu class="type-dropdown">
-            <van-dropdown-item v-model="queryType" :options="typeOptions" />
-          </van-dropdown-menu>
-          <van-search
-            v-model="searchKeyword"
-            :placeholder="getPlaceholder"
-            @search="handleSearch"
-            class="search-input"
-          />
-        </div>
+    <div class="card animate-fade-in">
+      <div class="section-title">查询条件</div>
+      <div class="search-wrapper">
+        <n-select
+          v-model:value="queryType"
+          :options="typeOptions"
+          placeholder="查询类型"
+          style="width: 150px"
+        />
+        <n-input
+          v-model:value="searchKeyword"
+          :placeholder="getPlaceholder"
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <n-icon>
+              <SearchOutline />
+            </n-icon>
+          </template>
+        </n-input>
+        <n-button type="primary" @click="handleSearch">查询</n-button>
       </div>
+    </div>
 
-      <div class="content-body">
-        <van-loading v-if="loading" class="loading-container" />
-
-        <template v-else-if="timetableId">
-          <div class="timetable-card">
-            <div class="timetable-grid">
-              <div class="timetable-header"></div>
-              <div v-for="day in 5" :key="'h'+day" class="timetable-header">
-                周{{ ['一', '二', '三', '四', '五'][day - 1] }}
-              </div>
-              <template v-for="slot in 10" :key="'s'+slot">
-                <div class="timetable-header">{{ slot }}</div>
-                <div
-                  v-for="day in 5"
-                  :key="'c'+day+'-'+slot"
-                  class="timetable-cell"
-                  :class="{ 'has-course': getCourse(day, slot) }"
-                  @click="showCourseInfo(day, slot)"
-                >
-                  <div v-if="getCourse(day, slot)" class="course-block">
-                    <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
-                    <div class="course-block-info">{{ getCourse(day, slot).classroomName }}</div>
-                  </div>
+    <div class="content-body">
+      <n-spin :show="loading" class="loading-container">
+        <div v-if="timetableId && courses.length > 0">
+          <div class="card timetable-card">
+            <div class="section-title desktop-only">课表</div>
+            <div class="timetable-grid-wrapper">
+              <div class="timetable-grid">
+                <div class="timetable-header"></div>
+                <div v-for="day in 5" :key="'h'+day" class="timetable-header">
+                  周{{ ['一', '二', '三', '四', '五'][day - 1] }}
                 </div>
-              </template>
+                <template v-for="slot in 10" :key="'s'+slot">
+                  <div class="timetable-header">{{ slot }}</div>
+                  <div
+                    v-for="day in 5"
+                    :key="'c'+day+'-'+slot"
+                    class="timetable-cell"
+                    :class="{ 'has-course': getCourse(day, slot) }"
+                    @click="showCourseInfo(day, slot)"
+                  >
+                    <div v-if="getCourse(day, slot)" class="course-block">
+                      <div class="course-block-name">{{ getCourse(day, slot).courseName }}</div>
+                      <div class="course-block-info">{{ getCourse(day, slot).classroomName }}</div>
+                    </div>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
 
           <div class="card mt-16 mobile-only">
-            <div class="page-title">课程列表</div>
-            <van-cell-group inset>
-              <van-cell
-                v-for="course in courses"
-                :key="course.id"
-                :title="course.courseName"
-                :label="`周${course.dayOfWeek} 第${course.slotNo}节`"
-              >
-                <template #value>
-                  <div class="text-muted" style="font-size: 12px;">{{ course.classroomName }}</div>
+            <div class="section-title">课程列表</div>
+            <n-list>
+              <n-list-item v-for="course in courses" :key="course.id">
+                <template #header>
+                  <div class="flex-between">
+                    <div class="course-name">{{ course.courseName }}</div>
+                  </div>
                 </template>
-              </van-cell>
-            </van-cell-group>
+                <div class="text-muted">周{{ course.dayOfWeek }} 第{{ course.slotNo }}节</div>
+                <div class="text-muted" style="font-size: 12px;">{{ course.classroomName }}</div>
+              </n-list-item>
+            </n-list>
           </div>
-        </template>
+        </div>
 
-        <van-empty v-else description="请先选择课表" />
-      </div>
+        <n-empty v-else description="请先选择课表并查询" />
+      </n-spin>
     </div>
 
-    <van-popup v-model:show="showCoursePopup" position="bottom" round style="height: 40%;">
-      <div class="course-popup" v-if="currentCourse">
-        <div class="page-title">{{ currentCourse.courseName }}</div>
-        <van-cell-group inset>
-          <van-cell title="教师" :value="currentCourse.teacherName" />
-          <van-cell title="班级" :value="currentCourse.className" />
-          <van-cell title="教室" :value="currentCourse.classroomName" />
-          <van-cell title="时间" :value="`周${currentCourse.dayOfWeek} 第${currentCourse.slotNo}节`" />
-        </van-cell-group>
+    <n-modal v-model:show="showCoursePopup" preset="card" title="课程详情" :style="{ width: '500px' }" class="course-dialog">
+      <div v-if="currentCourse" class="course-details">
+        <n-descriptions :column="1" bordered>
+          <n-descriptions-item label="课程名称">{{ currentCourse.courseName }}</n-descriptions-item>
+          <n-descriptions-item label="教师">{{ currentCourse.teacherName }}</n-descriptions-item>
+          <n-descriptions-item label="班级">{{ currentCourse.className }}</n-descriptions-item>
+          <n-descriptions-item label="教室">{{ currentCourse.classroomName }}</n-descriptions-item>
+          <n-descriptions-item label="时间">周{{ currentCourse.dayOfWeek }} 第{{ currentCourse.slotNo }}节</n-descriptions-item>
+        </n-descriptions>
       </div>
-    </van-popup>
-  </div>
+    </n-modal>
+  </PageContainer>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { showToast } from 'vant'
+import { useMessage } from 'naive-ui'
 import dayjs from 'dayjs'
 import { getLatestTimetable, getClassTimetable, getTeacherTimetable, getClassroomTimetable } from '@/api/timetable'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import {
+  NButton,
+  NIcon,
+  NSpin,
+  NInput,
+  NSelect,
+  NList,
+  NListItem,
+  NModal,
+  NDescriptions,
+  NDescriptionsItem,
+  NEmpty
+} from 'naive-ui'
+import {
+  SearchOutline
+} from '@vicons/ionicons5'
+
+const message = useMessage()
 
 const loading = ref(false)
 const timetableId = ref(null)
@@ -96,9 +126,9 @@ const showCoursePopup = ref(false)
 const currentCourse = ref(null)
 
 const typeOptions = [
-  { text: '按班级查询', value: 'class' },
-  { text: '按教师查询', value: 'teacher' },
-  { text: '按教室查询', value: 'classroom' }
+  { label: '按班级查询', value: 'class' },
+  { label: '按教师查询', value: 'teacher' },
+  { label: '按教室查询', value: 'classroom' }
 ]
 
 const getPlaceholder = computed(() => {
@@ -124,7 +154,7 @@ const showCourseInfo = (day, slot) => {
 
 const handleSearch = async () => {
   if (!searchKeyword.value) {
-    showToast('请输入查询条件')
+    message.warning('请输入查询条件')
     return
   }
 
@@ -136,7 +166,7 @@ const handleSearch = async () => {
       if (timetableRes.data) {
         timetableId.value = timetableRes.data.id
       } else {
-        showToast('暂无可用课表')
+        message.warning('暂无可用课表')
         return
       }
     }
@@ -152,7 +182,7 @@ const handleSearch = async () => {
     }
     courses.value = res.data || []
   } catch (e) {
-    showToast('查询失败')
+    message.error(e.message || '查询失败')
     courses.value = []
   } finally {
     loading.value = false
@@ -182,91 +212,49 @@ onMounted(async () => {
   to { opacity: 1; }
 }
 
-.table-container {
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.card {
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  margin-top: var(--spacing-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.table-title {
+.section-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
 }
 
-.table-filters {
+.search-wrapper {
   display: flex;
   gap: var(--spacing-md);
   align-items: center;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.type-dropdown {
-  width: 150px;
+  flex-wrap: wrap;
 }
 
 .search-input {
   flex: 1;
-  max-width: 300px;
+  min-width: 200px;
 }
 
 .content-body {
-  padding: var(--spacing-xl);
+  margin-top: var(--spacing-md);
 }
 
 .timetable-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.timetable-grid-wrapper {
   overflow-x: auto;
-}
-
-.course-popup {
-  padding: var(--spacing-xl);
-}
-
-.custom-nav {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.desktop-only {
-  display: none;
-}
-
-.mobile-only {
-  display: block;
-}
-
-@media (min-width: 768px) {
-  .custom-nav {
-    display: none;
-  }
-  
-  .desktop-only {
-    display: block;
-  }
-  
-  .mobile-only {
-    display: none;
-  }
-  
-  .table-container {
-    margin-top: 0;
-  }
+  -webkit-overflow-scrolling: touch;
 }
 
 .timetable-grid {
@@ -330,21 +318,56 @@ onMounted(async () => {
   font-size: 9px;
 }
 
+.course-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-3xl) 0;
+}
+
+.course-dialog {
+  margin: var(--spacing-md);
+}
+
+.course-details {
+  padding: var(--spacing-md) 0;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
 @media (min-width: 1024px) {
   .timetable-grid {
     grid-template-columns: 80px repeat(5, 1fr);
   }
-  
+
   .timetable-header {
     padding: var(--spacing-md);
     font-size: 14px;
   }
-  
+
   .timetable-cell {
     min-height: 100px;
     padding: var(--spacing-sm);
   }
-  
+
   .course-block {
     padding: var(--spacing-sm);
     font-size: 12px;
@@ -361,12 +384,12 @@ onMounted(async () => {
   .timetable-cell {
     min-height: 120px;
   }
-  
+
   .course-block-name {
     font-size: 14px;
     margin-bottom: var(--spacing-xs);
   }
-  
+
   .course-block-info {
     font-size: 11px;
   }
@@ -383,6 +406,17 @@ onMounted(async () => {
 
   .course-block-info {
     font-size: 13px;
+  }
+}
+
+@media (max-width: 767px) {
+  .search-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input {
+    min-width: auto;
   }
 }
 </style>
