@@ -9,6 +9,7 @@ import com.paike.admin.entity.Course;
 import com.paike.admin.entity.TeachingTask;
 import com.paike.admin.mapper.CourseMapper;
 import com.paike.admin.service.TeachingTaskService;
+import com.paike.common.constants.TaskStatus;
 import com.paike.common.result.PageResult;
 import com.paike.common.result.Result;
 import com.paike.common.result.ResultCode;
@@ -18,6 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,8 +45,24 @@ public class TeachingTaskController {
         Page<TeachingTask> page = new Page<>(request.getCurrent(), request.getSize());
         LambdaQueryWrapper<TeachingTask> wrapper = new LambdaQueryWrapper<>();
 
-        if (request.getSemester() != null && !request.getSemester().isEmpty()) {
+        if (StringUtils.hasText(request.getSemester())) {
             wrapper.eq(TeachingTask::getSemester, request.getSemester());
+        }
+        if (StringUtils.hasText(request.getStatus())) {
+            wrapper.eq(TeachingTask::getStatus, request.getStatus());
+        }
+        if (StringUtils.hasText(request.getKeyword())) {
+            List<Long> matchedCourseIds = courseMapper.selectList(new LambdaQueryWrapper<Course>()
+                            .like(Course::getCourseName, request.getKeyword())
+                            .or()
+                            .like(Course::getCourseCode, request.getKeyword()))
+                    .stream()
+                    .map(Course::getId)
+                    .toList();
+            if (matchedCourseIds.isEmpty()) {
+                return Result.success(PageResult.of(List.of(), 0L, request.getSize().longValue(), request.getCurrent().longValue()));
+            }
+            wrapper.in(TeachingTask::getCourseId, matchedCourseIds);
         }
 
         wrapper.orderByDesc(TeachingTask::getCreateTime);
@@ -93,6 +111,9 @@ public class TeachingTaskController {
     public Result<Void> add(@Valid @RequestBody TeachingTaskCreateRequest request) {
         TeachingTask task = new TeachingTask();
         BeanUtils.copyProperties(request, task);
+        if (!StringUtils.hasText(task.getStatus())) {
+            task.setStatus(TaskStatus.PENDING.getCode());
+        }
         teachingTaskService.save(task);
         return Result.success();
     }
@@ -108,6 +129,9 @@ public class TeachingTaskController {
 
         TeachingTask task = new TeachingTask();
         BeanUtils.copyProperties(request, task);
+        if (!StringUtils.hasText(task.getStatus())) {
+            task.setStatus(StringUtils.hasText(existingTask.getStatus()) ? existingTask.getStatus() : TaskStatus.PENDING.getCode());
+        }
         teachingTaskService.updateById(task);
         return Result.success();
     }

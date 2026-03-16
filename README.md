@@ -46,12 +46,14 @@ course-scheduling/
 ### 一键启动
 
 ```bash
-# 启动所有服务（Docker + 后端 + 前端）
+# 启动所有服务（Docker + 数据库初始化 + 后端 + 前端）
 scripts\start-all.bat
 
 # 停止所有服务
 scripts\stop-all.bat
 ```
+
+如果之前启动过其他 MySQL 容器并保留了旧数据卷，导致 root 密码和脚本里的 `root123456` 不一致，先执行 `docker-compose down -v` 再重新启动。
 
 启动成功后访问地址：
 
@@ -87,6 +89,10 @@ docker-compose up -d
 ### 2. 启动后端
 
 ```bash
+# 首次启动前先初始化数据库
+scripts\init-database.bat
+
+# 再启动后端
 cd course-scheduling-admin
 mvn spring-boot:run
 ```

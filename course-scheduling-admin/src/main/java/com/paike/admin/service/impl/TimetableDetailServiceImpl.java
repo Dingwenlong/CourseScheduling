@@ -80,6 +80,7 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
         detail.setClassroomName(task.getClassroomName());
         detail.setDayOfWeek(task.getTimeSlot().getDayOfWeek());
         detail.setSlotNo(task.getTimeSlot().getSlotNo());
+        detail.setWeeks(task.getWeeks());
         detail.setIsConflict(0);
         detail.setStatus(1);
         return detail;
@@ -95,42 +96,70 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
     @Override
     @Transactional
     public void markConflicts(Long timetableId) {
-        List<TimetableDetail> details = listByTimetableId(timetableId);
+        applyConflictState(listByTimetableId(timetableId));
+    }
+
+    @Override
+    @Transactional
+    public void markConflictsForSlots(Long timetableId, Collection<String> slotKeys) {
+        if (slotKeys == null || slotKeys.isEmpty()) {
+            return;
+        }
+
+        List<TimetableDetail> affectedDetails = new ArrayList<>();
+        for (TimetableDetail detail : listByTimetableId(timetableId)) {
+            if (slotKeys.contains(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo()))) {
+                affectedDetails.add(detail);
+            }
+        }
+
+        applyConflictState(affectedDetails);
+    }
+
+    private void applyConflictState(List<TimetableDetail> details) {
+        if (details == null || details.isEmpty()) {
+            return;
+        }
 
         Map<String, List<TimetableDetail>> timeSlotMap = new HashMap<>();
         for (TimetableDetail detail : details) {
-            String key = detail.getDayOfWeek() + "_" + detail.getSlotNo();
-            timeSlotMap.computeIfAbsent(key, k -> new ArrayList<>()).add(detail);
+            timeSlotMap.computeIfAbsent(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo()), key -> new ArrayList<>())
+                    .add(detail);
         }
 
-        for (Map.Entry<String, List<TimetableDetail>> entry : timeSlotMap.entrySet()) {
-            List<TimetableDetail> slotDetails = entry.getValue();
+        List<TimetableDetail> updates = new ArrayList<>(details.size());
+        for (TimetableDetail detail : details) {
+            List<String> conflicts = buildConflicts(detail,
+                    timeSlotMap.getOrDefault(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo()), Collections.emptyList()));
+            detail.setIsConflict(conflicts.isEmpty() ? 0 : 1);
+            detail.setConflictInfo(conflicts.isEmpty() ? null : String.join(";", conflicts));
+            updates.add(detail);
+        }
 
-            for (int i = 0; i < slotDetails.size(); i++) {
-                TimetableDetail d1 = slotDetails.get(i);
-                StringBuilder conflictInfo = new StringBuilder();
+        updateBatchById(updates);
+    }
 
-                for (int j = 0; j < slotDetails.size(); j++) {
-                    if (i == j) continue;
-                    TimetableDetail d2 = slotDetails.get(j);
+    private List<String> buildConflicts(TimetableDetail current, List<TimetableDetail> slotDetails) {
+        List<String> conflicts = new ArrayList<>();
+        for (TimetableDetail other : slotDetails) {
+            if (Objects.equals(current.getId(), other.getId())) {
+                continue;
+            }
 
-                    if (d1.getClassroomId() != null && d1.getClassroomId().equals(d2.getClassroomId())) {
-                        conflictInfo.append("教室冲突:").append(d2.getCourseName()).append(";");
-                    }
-                    if (d1.getTeacherId() != null && d1.getTeacherId().equals(d2.getTeacherId())) {
-                        conflictInfo.append("教师冲突:").append(d2.getCourseName()).append(";");
-                    }
-                    if (d1.getClassId() != null && d1.getClassId().equals(d2.getClassId())) {
-                        conflictInfo.append("班级冲突:").append(d2.getCourseName()).append(";");
-                    }
-                }
-
-                if (conflictInfo.length() > 0) {
-                    d1.setIsConflict(1);
-                    d1.setConflictInfo(conflictInfo.toString());
-                    updateById(d1);
-                }
+            if (current.getClassroomId() != null && current.getClassroomId().equals(other.getClassroomId())) {
+                conflicts.add("教室冲突:" + other.getCourseName());
+            }
+            if (current.getTeacherId() != null && current.getTeacherId().equals(other.getTeacherId())) {
+                conflicts.add("教师冲突:" + other.getCourseName());
+            }
+            if (current.getClassId() != null && current.getClassId().equals(other.getClassId())) {
+                conflicts.add("班级冲突:" + other.getCourseName());
             }
         }
+        return conflicts;
+    }
+
+    private String buildSlotKey(Integer dayOfWeek, Integer slotNo) {
+        return dayOfWeek + "_" + slotNo;
     }
 }

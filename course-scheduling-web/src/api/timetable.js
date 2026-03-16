@@ -12,6 +12,14 @@ export function generateTimetable(data) {
   return request.post('/timetable/generate', data)
 }
 
+export function generateTimetableAsync(data) {
+  return request.post('/timetable/generate-async', data)
+}
+
+export function getTimetableGenerationJob(jobId) {
+  return request.get(`/timetable/generate-jobs/${jobId}`)
+}
+
 export function publishTimetable(id) {
   return request.post(`/timetable/${id}/publish`)
 }

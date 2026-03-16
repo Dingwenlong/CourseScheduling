@@ -9,16 +9,16 @@
     <main class="login-shell">
       <section class="brand-panel" aria-label="品牌信息">
         <div class="brand-logo" aria-hidden="true">
-          <n-icon size="40" color="#fff">
+          <n-icon size="40" color="var(--primary-color)">
             <CalendarOutline />
           </n-icon>
         </div>
         <h1 class="brand-title">智能排课系统</h1>
-        <p class="brand-subtitle">高效便捷的课程调度平台</p>
+        <p class="brand-subtitle">面向高校教学管理的温暖排课工作台</p>
         <div class="brand-caption">
-          <div class="caption-line">更快创建课表</div>
-          <div class="caption-line">更少冲突与调整</div>
-          <div class="caption-line">更清晰的数据统计</div>
+          <div class="caption-line">课程编排更有条理</div>
+          <div class="caption-line">调课申请更易追踪</div>
+          <div class="caption-line">统计信息更适合教学阅读</div>
         </div>
       </section>
 
@@ -26,8 +26,21 @@
         <div class="login-card">
           <header class="card-header">
             <h2 class="card-title">登录</h2>
-            <p class="card-subtitle">请输入账号与密码继续</p>
+            <p class="card-subtitle">请输入校园账号与密码继续</p>
           </header>
+
+          <div class="form-toolbar">
+            <span class="toolbar-text">统一身份认证入口</span>
+            <n-button
+              quaternary
+              size="small"
+              class="demo-btn"
+              :disabled="loading"
+              @click="fillDemoCredentials"
+            >
+              填入测试账号
+            </n-button>
+          </div>
 
           <n-alert
             v-if="errorMessage"
@@ -49,7 +62,7 @@
             :model="form"
             :rules="rules"
             class="form"
-            @submit="handleLogin"
+            @submit.prevent="handleLogin"
           >
             <n-form-item path="username" class="field-wrap">
               <label class="field-label" for="login-username">用户名</label>
@@ -62,7 +75,10 @@
                 :disabled="loading"
                 size="large"
                 class="form-field"
+                clearable
                 @update:value="errorMessage = ''"
+                @blur="normalizeUsername"
+                @keydown.enter.prevent="handleLogin"
               >
                 <template #prefix>
                   <n-icon class="field-icon">
@@ -86,6 +102,7 @@
                 size="large"
                 class="form-field"
                 @update:value="errorMessage = ''"
+                @keydown.enter.prevent="handleLogin"
               >
                 <template #prefix>
                   <n-icon class="field-icon">
@@ -99,11 +116,12 @@
               <n-button
                 block
                 type="primary"
-                native-type="submit"
+                attr-type="button"
                 :loading="loading"
                 :disabled="loading"
                 size="large"
                 class="primary-btn"
+                @click="handleLogin"
               >
                 <template #loading>
                   登录中...
@@ -111,6 +129,8 @@
                 登录
               </n-button>
             </div>
+
+            <div class="login-note">若需体验系统，请先使用管理员测试账号登录。</div>
           </n-form>
 
           <footer class="card-footer">
@@ -156,8 +176,32 @@ const rules = {
 const loading = ref(false)
 const errorMessage = ref('')
 const errorAlertRef = ref(null)
+const demoCredentials = {
+  username: 'admin',
+  password: '123456'
+}
+
+const normalizeUsername = () => {
+  form.username = form.username.trim()
+}
+
+const fillDemoCredentials = () => {
+  form.username = demoCredentials.username
+  form.password = demoCredentials.password
+  errorMessage.value = ''
+}
+
+const resolveLoginMessage = (error) => {
+  return error?.message || '登录失败，请检查用户名和密码'
+}
 
 const handleLogin = async () => {
+  if (loading.value) {
+    return
+  }
+
+  normalizeUsername()
+
   try {
     await formRef.value?.validate()
   } catch (e) {
@@ -169,14 +213,14 @@ const handleLogin = async () => {
   try {
     await userStore.login(form.username, form.password)
     message.success('登录成功')
-    router.push('/home')
+    await router.push('/home')
   } catch (error) {
-    errorMessage.value = '登录失败，请检查用户名和密码'
+    errorMessage.value = resolveLoginMessage(error)
     await nextTick()
     if (errorAlertRef.value && typeof errorAlertRef.value.focus === 'function') {
       errorAlertRef.value.focus()
     }
-    message.error('登录失败，请检查用户名和密码')
+    message.error(errorMessage.value)
   } finally {
     loading.value = false
   }
@@ -188,18 +232,16 @@ const handleLogin = async () => {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  padding: 24px;
+  padding: 20px;
 
-  --bg: #0b1220;
-  --card: rgba(255, 255, 255, 0.92);
-  --card-solid: #ffffff;
-  --text: #0f172a;
-  --muted: rgba(255, 255, 255, 0.75);
-  --muted-dark: #64748b;
-  --primary: #2563eb;
-  --primary-2: #38bdf8;
-  --danger: #dc2626;
-  --border: rgba(15, 23, 42, 0.12);
+  --card: rgba(252, 248, 241, 0.92);
+  --card-solid: rgba(255, 251, 245, 0.9);
+  --text: #3d352e;
+  --muted: rgba(78, 66, 57, 0.72);
+  --muted-dark: #7d7064;
+  --primary: #768c6a;
+  --primary-2: #6f89a3;
+  --border: rgba(145, 120, 91, 0.18);
 }
 
 .login-bg {
@@ -211,43 +253,45 @@ const handleLogin = async () => {
   overflow: hidden;
   z-index: 0;
   background:
-    radial-gradient(1200px 600px at 10% 10%, rgba(56, 189, 248, 0.35), transparent 55%),
-    radial-gradient(900px 520px at 90% 20%, rgba(37, 99, 235, 0.35), transparent 55%),
-    radial-gradient(1000px 560px at 50% 100%, rgba(16, 185, 129, 0.25), transparent 60%),
-    linear-gradient(180deg, #070b14 0%, var(--bg) 100%);
+    radial-gradient(900px 500px at 12% 12%, rgba(255, 255, 255, 0.54), transparent 52%),
+    radial-gradient(1000px 560px at 90% 18%, rgba(198, 144, 84, 0.16), transparent 56%),
+    radial-gradient(720px 460px at 55% 92%, rgba(111, 137, 163, 0.12), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(121, 98, 72, 0.045) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(90deg, rgba(121, 98, 72, 0.035) 0 1px, transparent 1px 14px),
+    linear-gradient(180deg, #f6efe3 0%, #ecdfca 100%);
 }
 
 .bg-blob {
   position: absolute;
   border-radius: 999px;
-  filter: blur(36px);
-  opacity: 0.35;
+  filter: blur(42px);
+  opacity: 0.26;
 }
 
 .blob-1 {
-  width: 520px;
-  height: 520px;
-  top: -180px;
-  left: -220px;
-  background: rgba(56, 189, 248, 0.9);
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  left: -140px;
+  background: rgba(233, 211, 180, 0.92);
   animation: float 10s ease-in-out infinite;
 }
 
 .blob-2 {
-  width: 420px;
-  height: 420px;
-  bottom: -180px;
-  right: -160px;
-  background: rgba(37, 99, 235, 0.9);
+  width: 360px;
+  height: 360px;
+  bottom: -120px;
+  right: -100px;
+  background: rgba(111, 137, 163, 0.5);
   animation: float 12s ease-in-out infinite reverse;
 }
 
 .blob-3 {
-  width: 320px;
-  height: 320px;
+  width: 260px;
+  height: 260px;
   top: 45%;
-  left: 60%;
-  background: rgba(16, 185, 129, 0.85);
+  left: 58%;
+  background: rgba(118, 140, 106, 0.44);
   animation: pulse 14s ease-in-out infinite;
 }
 
@@ -264,64 +308,76 @@ const handleLogin = async () => {
 .login-shell {
   position: relative;
   z-index: 1;
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
   width: 100%;
-  min-height: calc(100vh - 48px);
+  min-height: calc(100vh - 40px);
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 24px;
   align-items: center;
 }
 
 .brand-panel {
-  color: #fff;
+  color: var(--text);
   text-align: center;
-  padding: 10px 6px;
+  padding: 12px 10px;
 }
 
 .brand-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(14px);
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 14px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+  margin: 0 auto 18px;
+  color: #f7f2e9;
 }
 
 .brand-title {
-  font-size: 24px;
+  font-size: clamp(26px, 5vw, 38px);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
   margin: 0;
+  white-space: nowrap;
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-subtitle {
-  margin: 10px 0 0;
-  font-size: 14px;
+  margin: 12px 0 0;
+  font-size: 15px;
   color: var(--muted);
 }
 
 .brand-caption {
-  margin: 18px auto 0;
+  margin: 22px auto 0;
   display: grid;
-  gap: 8px;
-  max-width: 420px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(14px);
+  gap: 10px;
+  max-width: 440px;
+  padding: 18px 20px;
+  text-align: left;
 }
 
 .caption-line {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  color: var(--muted-dark);
+  position: relative;
+  padding-left: 18px;
+}
+
+.caption-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), var(--primary));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .auth-panel {
@@ -331,28 +387,26 @@ const handleLogin = async () => {
 
 .login-card {
   width: 100%;
-  max-width: 420px;
-  border-radius: 20px;
-  background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  backdrop-filter: blur(22px);
-  box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.32),
-    0 1px 0 rgba(255, 255, 255, 0.25) inset;
-  padding: 22px;
+  max-width: 436px;
+  padding: 24px;
 }
 
 .card-header {
   text-align: left;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
+  min-width: 0;
 }
 
 .card-title {
   margin: 0;
-  font-size: 20px;
+  font-size: clamp(22px, 4vw, 24px);
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-subtitle {
@@ -365,65 +419,106 @@ const handleLogin = async () => {
   margin: 12px 0 14px;
 }
 
+.form-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 10px;
+}
+
+.toolbar-text {
+  font-size: 12px;
+  color: var(--muted-dark);
+  letter-spacing: 0.04em;
+}
+
+.demo-btn {
+  min-width: 118px;
+}
+
 .form {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  width: 100%;
 }
 
 .field-wrap {
   display: grid;
   gap: 8px;
+  width: 100%;
 }
 
 .field-label {
   font-size: 13px;
-  color: rgba(15, 23, 42, 0.84);
+  color: var(--text);
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .field-icon {
-  color: rgba(15, 23, 42, 0.45);
+  color: rgba(109, 97, 85, 0.74);
 }
 
 .field-wrap :deep(.n-input) {
-  min-height: 44px;
-  border-radius: 12px;
+  width: 100%;
+  min-height: 46px;
+  border-radius: 18px;
   border: 1px solid var(--border);
   background: var(--card-solid);
   padding: 0 12px;
-  transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.field-wrap :deep(.n-form-item-blank),
+.field-wrap :deep(.n-input-wrapper),
+.field-wrap :deep(.n-input__input-el) {
+  width: 100%;
+}
+
+.field-wrap :deep(.n-input-wrapper) {
+  min-height: 46px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 @media (hover: hover) {
   .field-wrap :deep(.n-input:hover) {
-    border-color: rgba(15, 23, 42, 0.18);
+    border-color: rgba(118, 140, 106, 0.34);
   }
 }
 
 .field-wrap:focus-within :deep(.n-input) {
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  border-color: rgba(118, 140, 106, 0.54);
+  box-shadow: 0 0 0 4px rgba(118, 140, 106, 0.14);
 }
 
 .actions {
   margin-top: 4px;
 }
 
+.login-note {
+  margin-top: -2px;
+  font-size: 12px;
+  color: var(--muted-dark);
+  text-align: center;
+}
+
 .primary-btn {
-  height: 46px;
-  border-radius: 12px;
+  height: 48px;
+  border-radius: 18px;
   font-weight: 700;
-  letter-spacing: 0.01em;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, var(--primary) 0%, #667d5d 100%);
   border: none;
-  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.28);
-  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  box-shadow: 0 10px 22px rgba(94, 115, 85, 0.24);
+  transition: transform 220ms ease, box-shadow 220ms ease, filter 220ms ease;
 }
 
 .primary-btn:hover {
-  filter: brightness(1.02);
+  filter: brightness(1.03);
   transform: translateY(-1px);
-  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.34);
+  box-shadow: 0 14px 28px rgba(94, 115, 85, 0.3);
 }
 
 .primary-btn:active {
@@ -432,34 +527,35 @@ const handleLogin = async () => {
 
 .primary-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.22), 0 14px 32px rgba(37, 99, 235, 0.34);
+  box-shadow: 0 0 0 4px rgba(111, 137, 163, 0.16), 0 14px 28px rgba(94, 115, 85, 0.3);
 }
 
 .card-footer {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(145, 120, 91, 0.2);
 }
 
 .test-account {
   font-size: 12px;
-  color: rgba(15, 23, 42, 0.58);
+  color: rgba(109, 97, 85, 0.82);
+  letter-spacing: 0.02em;
 }
 
 @media (min-width: 768px) {
   .login-page {
-    padding: 32px;
+    padding: 28px;
   }
 
   .login-card {
-    padding: 26px;
+    padding: 28px;
   }
 }
 
 @media (min-width: 1024px) {
   .login-shell {
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 28px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 42px;
   }
 
   .brand-panel {
@@ -468,23 +564,20 @@ const handleLogin = async () => {
   }
 
   .brand-logo {
-    margin: 0 0 18px;
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
+    margin: 0 0 20px;
   }
 
   .brand-title {
-    font-size: 28px;
+    font-size: 38px;
   }
 
   .brand-subtitle {
-    font-size: 15px;
-    margin-top: 12px;
+    font-size: 16px;
+    margin-top: 14px;
   }
 
   .brand-caption {
-    margin: 22px 0 0;
+    margin: 28px 0 0;
     max-width: 520px;
   }
 }

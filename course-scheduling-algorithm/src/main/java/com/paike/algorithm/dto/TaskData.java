@@ -15,6 +15,7 @@ public class TaskData implements Serializable {
     private String className;
     private Integer studentCount;
     private Integer weeklyHours;
+    private String weeks;
     private Integer priority;
     private String courseType;
     private Integer needMultimedia;
@@ -92,6 +93,14 @@ public class TaskData implements Serializable {
 
     public void setWeeklyHours(Integer weeklyHours) {
         this.weeklyHours = weeklyHours;
+    }
+
+    public String getWeeks() {
+        return weeks;
+    }
+
+    public void setWeeks(String weeks) {
+        this.weeks = weeks;
     }
 
     public Integer getPriority() {

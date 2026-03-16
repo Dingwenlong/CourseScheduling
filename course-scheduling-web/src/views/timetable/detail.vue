@@ -31,8 +31,8 @@
       <div v-if="timetable">
         <div class="stats-grid">
           <div class="stat-card-desktop" tabindex="0" role="article">
-            <div class="stat-icon" style="background: #eff6ff;">
-              <n-icon size="32" color="#51caba">
+            <div class="stat-icon" style="background: rgba(114, 137, 103, 0.12);">
+              <n-icon size="32" color="var(--primary-color)">
                 <ListOutline />
               </n-icon>
             </div>
@@ -43,8 +43,8 @@
           </div>
 
           <div class="stat-card-desktop" tabindex="0" role="article">
-            <div class="stat-icon" style="background: #ecfdf5;">
-              <n-icon size="32" color="#10b981">
+            <div class="stat-icon" style="background: rgba(125, 149, 99, 0.14);">
+              <n-icon size="32" color="var(--success-color)">
                 <CheckmarkDoneOutline />
               </n-icon>
             </div>
@@ -55,8 +55,8 @@
           </div>
 
           <div class="stat-card-desktop" tabindex="0" role="article">
-            <div class="stat-icon" style="background: #fef2f2;">
-              <n-icon size="32" color="#ef4444">
+            <div class="stat-icon" style="background: rgba(184, 102, 89, 0.14);">
+              <n-icon size="32" color="var(--danger-color)">
                 <WarningOutline />
               </n-icon>
             </div>
@@ -67,8 +67,8 @@
           </div>
 
           <div class="stat-card-desktop" tabindex="0" role="article">
-            <div class="stat-icon" style="background: #fef3c7;">
-              <n-icon size="32" color="#f59e0b">
+            <div class="stat-icon" style="background: rgba(198, 144, 84, 0.14);">
+              <n-icon size="32" color="var(--warning-color)">
                 <TrendingUpOutline />
               </n-icon>
             </div>
@@ -150,7 +150,7 @@
           <n-tab-pane name="conflicts" :tab="'冲突(' + conflicts.length + ')'">
             <div class="card">
               <div v-if="conflicts.length === 0" class="empty-container">
-                <n-icon size="64" color="#07c160">
+                <n-icon size="64" color="var(--success-color)">
                   <CheckmarkCircleOutline />
                 </n-icon>
                 <div>暂无冲突</div>
@@ -278,8 +278,16 @@ const getStatusTagType = (status) => {
   return map[status] || 'default'
 }
 
+const detailMap = computed(() => {
+  const map = new Map()
+  for (const detail of details.value) {
+    map.set(`${detail.dayOfWeek}_${detail.slotNo}`, detail)
+  }
+  return map
+})
+
 const getCourse = (day, slot) => {
-  return details.value.find(d => d.dayOfWeek === day && d.slotNo === slot)
+  return detailMap.value.get(`${day}_${slot}`) || null
 }
 
 const showCourseInfo = (day, slot) => {
@@ -469,8 +477,8 @@ onUnmounted(() => {
 }
 
 .stat-card-desktop:hover {
-  box-shadow: 0 6px 16px rgba(81, 202, 186, 0.4);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .stat-icon {
@@ -513,16 +521,14 @@ onUnmounted(() => {
 }
 
 .content-tabs {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
 .card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -622,7 +628,7 @@ onUnmounted(() => {
 
 .data-table td {
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px dashed var(--border-light);
   color: var(--text-primary);
 }
 

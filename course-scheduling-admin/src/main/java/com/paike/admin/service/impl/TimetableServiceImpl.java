@@ -1,15 +1,20 @@
 package com.paike.admin.service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.paike.admin.entity.TeachingTask;
 import com.paike.admin.entity.Timetable;
 import com.paike.admin.entity.TimetableDetail;
+import com.paike.admin.mapper.TeachingTaskMapper;
 import com.paike.admin.mapper.TimetableMapper;
 import com.paike.admin.service.ScheduleService;
 import com.paike.admin.service.TimetableDetailService;
 import com.paike.admin.service.TimetableService;
 import com.paike.algorithm.dto.SchedulingRequest;
 import com.paike.algorithm.dto.SchedulingResult;
+import com.paike.common.constants.TaskStatus;
 import com.paike.common.exception.BusinessException;
 import com.paike.common.result.ResultCode;
 import org.slf4j.Logger;
@@ -22,7 +27,11 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable> implements TimetableService {
@@ -34,6 +43,9 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
 
     @Autowired
     private TimetableDetailService timetableDetailService;
+
+    @Autowired
+    private TeachingTaskMapper teachingTaskMapper;
 
     @Override
     @Transactional
@@ -58,12 +70,21 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
             throw new BusinessException("排课失败：" + result.getMessage());
         }
 
+        String algorithmType = StringUtils.hasText(request.getAlgorithmType()) ? request.getAlgorithmType().toUpperCase() : "GREEDY";
+        Map<String, Object> algorithmConfig = new LinkedHashMap<>();
+        algorithmConfig.put("algorithmType", algorithmType);
+        algorithmConfig.put("daysPerWeek", request.getDaysPerWeek());
+        algorithmConfig.put("slotsPerDay", request.getSlotsPerDay());
+        algorithmConfig.put("maxGenerations", request.getMaxGenerations());
+        algorithmConfig.put("targetFitness", request.getTargetFitness());
+
         Timetable timetable = new Timetable();
         timetable.setSemester(request.getSemester());
         timetable.setVersion(version);
         timetable.setName(request.getSemester() + " 第" + version + "版课表");
         timetable.setStatus("DRAFT");
-        timetable.setGenerateType(request.getAlgorithmType() != null ? request.getAlgorithmType() : "GREEDY");
+        timetable.setGenerateType("AUTO");
+        timetable.setAlgorithmConfig(JSON.toJSONString(algorithmConfig));
         timetable.setTaskCount(result.getTotalTasks());
         timetable.setScheduledCount(result.getScheduledCount());
         timetable.setConflictCount(result.getConflictCount());
@@ -85,9 +106,14 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
         timetableDetailService.saveScheduleResult(timetable.getId(), result);
 
         timetableDetailService.markConflicts(timetable.getId());
+        int actualConflictCount = timetableDetailService.countConflicts(timetable.getId());
+        if (actualConflictCount != timetable.getConflictCount()) {
+            timetable.setConflictCount(actualConflictCount);
+            updateById(timetable);
+        }
 
         log.info("课表生成完成，ID: {}, 排课成功: {}, 冲突: {}", 
-                timetable.getId(), result.getScheduledCount(), result.getConflictCount());
+                timetable.getId(), result.getScheduledCount(), timetable.getConflictCount());
 
         return timetable;
     }
@@ -111,6 +137,7 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
         timetable.setStatus("PUBLISHED");
         timetable.setPublishTime(LocalDateTime.now());
         updateById(timetable);
+        markPublishedTasksScheduled(timetableId);
 
         log.info("课表发布成功，ID: {}", timetableId);
         return timetable;
@@ -164,5 +191,23 @@ public class TimetableServiceImpl extends ServiceImpl<TimetableMapper, Timetable
         removeById(timetableId);
 
         log.info("课表删除成功，ID: {}", timetableId);
+    }
+
+    private void markPublishedTasksScheduled(Long timetableId) {
+        List<TimetableDetail> details = timetableDetailService.listByTimetableId(timetableId);
+        Set<Long> taskIds = new LinkedHashSet<>();
+        for (TimetableDetail detail : details) {
+            if (detail.getTaskId() != null) {
+                taskIds.add(detail.getTaskId());
+            }
+        }
+        if (taskIds.isEmpty()) {
+            return;
+        }
+
+        teachingTaskMapper.update(null, new LambdaUpdateWrapper<TeachingTask>()
+                .in(TeachingTask::getId, taskIds)
+                .ne(TeachingTask::getStatus, TaskStatus.COMPLETED.getCode())
+                .set(TeachingTask::getStatus, TaskStatus.SCHEDULED.getCode()));
     }
 }

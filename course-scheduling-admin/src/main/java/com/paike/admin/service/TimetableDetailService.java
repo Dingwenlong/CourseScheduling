@@ -3,6 +3,7 @@ package com.paike.admin.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.paike.admin.entity.TimetableDetail;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface TimetableDetailService extends IService<TimetableDetail> {
@@ -20,4 +21,6 @@ public interface TimetableDetailService extends IService<TimetableDetail> {
     int countConflicts(Long timetableId);
 
     void markConflicts(Long timetableId);
+
+    void markConflictsForSlots(Long timetableId, Collection<String> slotKeys);
 }

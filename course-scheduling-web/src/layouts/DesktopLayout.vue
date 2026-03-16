@@ -301,26 +301,27 @@ onUnmounted(() => {
 .desktop-layout {
   display: flex;
   height: 100%;
-  background: var(--bg-secondary);
-  transition: background-color var(--transition-base);
+  background: transparent;
 }
 
 .icon-button {
-  background: transparent;
-  border: none;
+  background: rgba(255, 250, 243, 0.6);
+  border: 1px solid var(--border-soft);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
   padding: 8px;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  border-radius: 14px;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
 }
 
 .icon-button:hover {
-  background: var(--bg-secondary);
+  background: rgba(255, 250, 243, 0.88);
   color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .icon-button:focus-visible {
@@ -330,14 +331,13 @@ onUnmounted(() => {
 
 .sidebar {
   width: 240px;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: width var(--transition-base), transform var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
   flex-shrink: 0;
   position: relative;
   z-index: 100;
+  margin: 16px 0 16px 16px;
 }
 
 .sidebar.collapsed {
@@ -376,12 +376,12 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
-  height: 64px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--spacing-lg);
-  border-bottom: 1px solid var(--border-light);
+  padding: 0 var(--spacing-xl);
+  border-bottom: 1px dashed var(--border-soft);
   flex-shrink: 0;
   transition: border-color var(--transition-base);
 }
@@ -393,7 +393,7 @@ onUnmounted(() => {
 }
 
 .logo-text {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
@@ -420,7 +420,7 @@ onUnmounted(() => {
 
 .sidebar-nav {
   flex: 1;
-  padding: var(--spacing-lg) 0;
+  padding: var(--spacing-xl) 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -429,15 +429,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin: 0 var(--spacing-md);
-  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin: 0 12px 8px;
+  border-radius: 18px;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-base);
   white-space: nowrap;
   overflow: hidden;
   position: relative;
+  background: transparent;
 }
 
 .nav-item:focus-visible {
@@ -446,27 +447,28 @@ onUnmounted(() => {
 }
 
 .nav-item:hover {
-  background: var(--bg-secondary);
+  background: rgba(255, 250, 243, 0.72);
   color: var(--primary-color);
-  transform: translateX(4px);
+  box-shadow: var(--shadow-xs);
 }
 
 .nav-item.active {
-  background: rgba(81, 202, 186, 0.14);
+  background: rgba(255, 250, 243, 0.86);
   color: var(--text-primary);
-  border: 1px solid rgba(81, 202, 186, 0.25);
+  border: 1px solid rgba(114, 137, 103, 0.26);
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-item.active::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 24px;
+  width: 8px;
+  height: 28px;
   background: var(--primary-color);
-  border-radius: 0 4px 4px 0;
+  border-radius: 999px;
   transition: height var(--transition-fast);
 }
 
@@ -494,7 +496,7 @@ onUnmounted(() => {
 
 .sidebar-footer {
   padding: var(--spacing-lg);
-  border-top: 1px solid var(--border-light);
+  border-top: 1px dashed var(--border-soft);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -517,22 +519,24 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--spacing-sm);
   width: 86%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: rgba(255, 250, 243, 0.72);
+  border-radius: 16px;
   font-size: 13px;
   color: var(--text-secondary);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-xs);
 }
 
 .theme-toggle-collapsed {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: 9999px;
+  border-radius: 16px;
   background: var(--primary-gradient);
   color: #ffffff;
-  border: 1px solid rgba(81, 202, 186, 0.35);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(114, 137, 103, 0.35);
+  box-shadow: var(--shadow-button);
 }
 
 .theme-toggle-collapsed:hover {
@@ -541,13 +545,13 @@ onUnmounted(() => {
 }
 
 .sidebar-footer .expand-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: 9999px;
-  background: var(--bg-secondary);
+  border-radius: 16px;
+  background: rgba(255, 250, 243, 0.72);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 
 .sidebar-footer .expand-icon:hover {
@@ -558,7 +562,7 @@ onUnmounted(() => {
 }
 
 .theme-toggle:hover {
-  background: var(--bg-tertiary);
+  background: rgba(255, 250, 243, 0.96);
   color: var(--primary-color);
 }
 
@@ -590,15 +594,14 @@ onUnmounted(() => {
 }
 
 .top-header {
-  height: 64px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
+  height: 74px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--spacing-xl);
+  padding: 0 24px;
   flex-shrink: 0;
   transition: background-color var(--transition-base), border-color var(--transition-base);
+  margin: 16px 16px 0;
 }
 
 .header-left {
@@ -623,7 +626,7 @@ onUnmounted(() => {
 }
 
 .page-title {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -648,8 +651,8 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--spacing-xl);
-  background: var(--bg-secondary);
+  padding: 20px;
+  background: transparent;
   height: 100%;
 }
 
@@ -706,7 +709,7 @@ onUnmounted(() => {
   }
   
   .content-wrapper {
-    padding: var(--spacing-lg);
+    padding: 18px;
   }
 }
 
@@ -720,8 +723,8 @@ onUnmounted(() => {
   }
   
   .content-wrapper {
-    padding: var(--spacing-2xl);
-    max-width: 95%; /* Use percentage for better adaptation */
+    padding: 24px;
+    max-width: 95%;
     width: var(--content-max-width-wide);
     margin: 0 auto;
   }

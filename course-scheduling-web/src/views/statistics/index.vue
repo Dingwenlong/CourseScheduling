@@ -120,10 +120,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import dayjs from 'dayjs'
 import { useMessage } from 'naive-ui'
 import { getTimetableList } from '@/api/timetable'
-import { getClassroomUtilization, getTeacherWorkload, getConflictReport, getTotalHours, getCourseCount } from '@/api/statistics'
+import { getStatisticsOverview } from '@/api/statistics'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import {
@@ -174,19 +173,13 @@ const loadStatistics = async () => {
 
   loading.value = true
   try {
-    const id = selectedTimetable.value
-    const [hoursRes, countRes, utilizationRes, workloadRes, conflictRes] = await Promise.all([
-      getTotalHours(id),
-      getCourseCount(id),
-      getClassroomUtilization(id),
-      getTeacherWorkload(id),
-      getConflictReport(id)
-    ])
-    totalHours.value = hoursRes.data
-    courseCount.value = countRes.data
-    classroomUtilization.value = utilizationRes.data
-    teacherWorkload.value = workloadRes.data
-    conflictReport.value = conflictRes.data
+    const res = await getStatisticsOverview(selectedTimetable.value)
+    const overview = res.data || {}
+    totalHours.value = overview.totalHours || 0
+    courseCount.value = overview.courseCount || 0
+    classroomUtilization.value = overview.classroomUtilization || []
+    teacherWorkload.value = overview.teacherWorkload || []
+    conflictReport.value = overview.conflictReport || {}
   } catch (e) {
     console.error(e)
     message.error(e.message || '加载统计数据失败')
@@ -219,12 +212,11 @@ onMounted(() => {
 }
 
 .statistics-tabs {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   padding: var(--spacing-sm);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-color);
 }
 
 .section-title {
@@ -247,11 +239,13 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #36cabb 100%);
-  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 32%),
+    linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card);
 }
 
 .stat-card-content {
@@ -279,9 +273,9 @@ onMounted(() => {
 }
 
 .card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -303,8 +297,8 @@ onMounted(() => {
 }
 
 .stat-grid-item:hover {
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255, 251, 245, 0.72);
+  box-shadow: var(--shadow-xs);
 }
 
 .stat-item-name {

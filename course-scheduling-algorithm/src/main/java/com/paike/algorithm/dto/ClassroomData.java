@@ -103,17 +103,14 @@ public class ClassroomData implements Serializable {
                 return false;
             }
         }
-        if ("LAB".equals(roomType) && task.getNeedLab() != null && task.getNeedLab() == 1) {
-            return true;
+        if (task.getNeedLab() != null && task.getNeedLab() == 1) {
+            return "LAB".equals(roomType) || "COMPUTER".equals(roomType);
         }
-        if ("MULTIMEDIA".equals(roomType) && task.getNeedMultimedia() != null && task.getNeedMultimedia() == 1) {
-            return true;
+        if (task.getNeedMultimedia() != null && task.getNeedMultimedia() == 1) {
+            return "MULTIMEDIA".equals(roomType)
+                    || "LECTURE_HALL".equals(roomType)
+                    || (hasProjector != null && hasProjector == 1);
         }
-        if ("GENERAL".equals(roomType)) {
-            if (task.getNeedLab() == null || task.getNeedLab() != 1) {
-                return true;
-            }
-        }
-        return true;
+        return !"LAB".equals(roomType) || "EXPERIMENT".equals(task.getCourseType());
     }
 }

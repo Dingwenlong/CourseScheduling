@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,20 +24,13 @@ public class GreedyScheduler implements SchedulingService {
     @Autowired
     private GreedyAlgorithmConfig config;
 
-    private int daysPerWeek = 5;
-    private int slotsPerDay = 10;
-
     @Override
     public SchedulingResult schedule(SchedulingRequest request, List<TaskData> tasks, List<ClassroomData> classrooms) {
         long startTime = System.currentTimeMillis();
         log.info("开始贪心算法排课，任务数量: {}, 教室数量: {}", tasks.size(), classrooms.size());
 
-        if (request.getDaysPerWeek() != null) {
-            this.daysPerWeek = request.getDaysPerWeek();
-        }
-        if (request.getSlotsPerDay() != null) {
-            this.slotsPerDay = request.getSlotsPerDay();
-        }
+        int daysPerWeek = request.getDaysPerWeek() != null ? request.getDaysPerWeek() : 5;
+        int slotsPerDay = request.getSlotsPerDay() != null ? request.getSlotsPerDay() : 10;
 
         List<TaskData> sortedTasks = sortTasksByPriority(tasks);
         
@@ -48,12 +40,14 @@ public class GreedyScheduler implements SchedulingService {
         
         List<ScheduledTask> scheduledTasks = new ArrayList<>();
         int conflictCount = 0;
+        int scheduledTaskCount = 0;
         
         for (TaskData task : sortedTasks) {
-            ScheduledTask result = scheduleTask(task, classrooms, teacherSchedule, classroomSchedule, classSchedule);
-            if (result != null) {
-                scheduledTasks.add(result);
-                updateSchedules(result, teacherSchedule, classroomSchedule, classSchedule);
+            List<ScheduledTask> result = scheduleTask(task, classrooms, teacherSchedule, classroomSchedule, classSchedule, daysPerWeek, slotsPerDay);
+            if (!result.isEmpty()) {
+                scheduledTasks.addAll(result);
+                result.forEach(item -> updateSchedules(item, teacherSchedule, classroomSchedule, classSchedule));
+                scheduledTaskCount++;
             } else {
                 conflictCount++;
                 log.warn("任务 {} 排课失败，无法找到合适的时间槽", task.getTaskId());
@@ -62,9 +56,9 @@ public class GreedyScheduler implements SchedulingService {
 
         long executionTime = System.currentTimeMillis() - startTime;
         log.info("贪心算法排课完成，成功: {}, 冲突: {}, 耗时: {}ms", 
-                scheduledTasks.size(), conflictCount, executionTime);
+                scheduledTaskCount, conflictCount, executionTime);
 
-        SchedulingResult result = SchedulingResult.success(scheduledTasks, tasks.size(), scheduledTasks.size(), conflictCount);
+        SchedulingResult result = SchedulingResult.success(scheduledTasks, tasks.size(), scheduledTaskCount, conflictCount);
         result.setExecutionTime(executionTime);
         return result;
     }
@@ -84,19 +78,25 @@ public class GreedyScheduler implements SchedulingService {
                 .collect(Collectors.toList());
     }
 
-    private ScheduledTask scheduleTask(TaskData task, List<ClassroomData> classrooms,
-                                       Map<Long, Set<TimeSlot>> teacherSchedule,
-                                       Map<Long, Set<TimeSlot>> classroomSchedule,
-                                       Map<Long, Set<TimeSlot>> classSchedule) {
+    private List<ScheduledTask> scheduleTask(TaskData task,
+                                             List<ClassroomData> classrooms,
+                                             Map<Long, Set<TimeSlot>> teacherSchedule,
+                                             Map<Long, Set<TimeSlot>> classroomSchedule,
+                                             Map<Long, Set<TimeSlot>> classSchedule,
+                                             int daysPerWeek,
+                                             int slotsPerDay) {
         
         List<ClassroomData> suitableClassrooms = findSuitableClassrooms(task, classrooms);
         if (suitableClassrooms.isEmpty()) {
             log.warn("任务 {} 没有找到合适的教室", task.getTaskId());
-            return null;
+            return List.of();
         }
 
         int weeklyHours = task.getWeeklyHours() != null ? task.getWeeklyHours() : 2;
-        int sessions = (weeklyHours + 1) / 2;
+        int sessions = Math.max(1, (weeklyHours + 1) / 2);
+        int maxStartSlot = Math.max(1, slotsPerDay - 1);
+        List<ScheduledTask> selectedSessions = new ArrayList<>();
+        Set<TimeSlot> selectedSlots = new HashSet<>();
 
         for (int session = 0; session < sessions; session++) {
             TimeSlot bestSlot = null;
@@ -104,20 +104,19 @@ public class GreedyScheduler implements SchedulingService {
             int bestScore = Integer.MIN_VALUE;
 
             for (int day = 1; day <= daysPerWeek; day++) {
-                for (int slot = 1; slot <= slotsPerDay - 1; slot++) {
+                for (int slot = 1; slot <= maxStartSlot; slot++) {
                     TimeSlot timeSlot = new TimeSlot(day, slot);
                     
-                    if (isSlotConflict(task, timeSlot, suitableClassrooms.get(0),
-                            teacherSchedule, classroomSchedule, classSchedule)) {
+                    if (isSlotConflict(task, timeSlot, teacherSchedule, classSchedule, selectedSlots)) {
                         continue;
                     }
 
                     for (ClassroomData classroom : suitableClassrooms) {
-                        if (isClassroomConflict(classroom, timeSlot, classroomSchedule)) {
+                        if (isClassroomConflict(classroom, timeSlot, classroomSchedule, selectedSessions)) {
                             continue;
                         }
 
-                        int score = calculateSlotScore(task, timeSlot, classroom);
+                        int score = calculateSlotScore(task, timeSlot, classroom) + calculateDistributionScore(selectedSessions, timeSlot);
                         if (score > bestScore) {
                             bestScore = score;
                             bestSlot = timeSlot;
@@ -128,14 +127,14 @@ public class GreedyScheduler implements SchedulingService {
             }
 
             if (bestSlot == null || bestClassroom == null) {
-                return null;
+                return List.of();
             }
 
-            ScheduledTask scheduledTask = createScheduledTask(task, bestSlot, bestClassroom);
-            return scheduledTask;
+            selectedSessions.add(createScheduledTask(task, bestSlot, bestClassroom));
+            selectedSlots.add(bestSlot);
         }
 
-        return null;
+        return selectedSessions;
     }
 
     private List<ClassroomData> findSuitableClassrooms(TaskData task, List<ClassroomData> classrooms) {
@@ -152,10 +151,14 @@ public class GreedyScheduler implements SchedulingService {
                 .collect(Collectors.toList());
     }
 
-    private boolean isSlotConflict(TaskData task, TimeSlot timeSlot, ClassroomData classroom,
+    private boolean isSlotConflict(TaskData task,
+                                   TimeSlot timeSlot,
                                    Map<Long, Set<TimeSlot>> teacherSchedule,
-                                   Map<Long, Set<TimeSlot>> classroomSchedule,
-                                   Map<Long, Set<TimeSlot>> classSchedule) {
+                                   Map<Long, Set<TimeSlot>> classSchedule,
+                                   Set<TimeSlot> selectedSlots) {
+        if (selectedSlots.contains(timeSlot)) {
+            return true;
+        }
         
         if (task.getTeacherId() != null) {
             Set<TimeSlot> teacherSlots = teacherSchedule.get(task.getTeacherId());
@@ -175,9 +178,23 @@ public class GreedyScheduler implements SchedulingService {
     }
 
     private boolean isClassroomConflict(ClassroomData classroom, TimeSlot timeSlot,
-                                        Map<Long, Set<TimeSlot>> classroomSchedule) {
+                                        Map<Long, Set<TimeSlot>> classroomSchedule,
+                                        List<ScheduledTask> selectedSessions) {
         Set<TimeSlot> classroomSlots = classroomSchedule.get(classroom.getClassroomId());
-        return classroomSlots != null && classroomSlots.contains(timeSlot);
+        if (classroomSlots != null && classroomSlots.contains(timeSlot)) {
+            return true;
+        }
+        return selectedSessions.stream()
+                .anyMatch(task -> classroom.getClassroomId().equals(task.getClassroomId()) && timeSlot.equals(task.getTimeSlot()));
+    }
+
+    private int calculateDistributionScore(List<ScheduledTask> selectedSessions, TimeSlot candidate) {
+        if (selectedSessions.isEmpty()) {
+            return 0;
+        }
+        boolean sameDayAlreadyUsed = selectedSessions.stream()
+                .anyMatch(task -> task.getTimeSlot().getDayOfWeek().equals(candidate.getDayOfWeek()));
+        return sameDayAlreadyUsed ? -5 : 5;
     }
 
     private int calculateSlotScore(TaskData task, TimeSlot timeSlot, ClassroomData classroom) {
@@ -218,6 +235,7 @@ public class GreedyScheduler implements SchedulingService {
         scheduledTask.setClassroomId(classroom.getClassroomId());
         scheduledTask.setClassroomName(classroom.getRoomName());
         scheduledTask.setTimeSlot(timeSlot);
+        scheduledTask.setWeeks(task.getWeeks());
         scheduledTask.setStudentCount(task.getStudentCount());
         scheduledTask.setPriority(task.getPriority());
         return scheduledTask;

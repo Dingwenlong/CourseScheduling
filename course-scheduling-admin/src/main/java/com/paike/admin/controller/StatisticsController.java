@@ -2,6 +2,7 @@ package com.paike.admin.controller;
 
 import com.paike.admin.dto.ClassroomUtilization;
 import com.paike.admin.dto.ConflictReport;
+import com.paike.admin.dto.StatisticsOverview;
 import com.paike.admin.dto.TeacherWorkload;
 import com.paike.admin.service.StatisticsService;
 import com.paike.common.result.Result;
@@ -19,6 +20,13 @@ public class StatisticsController {
 
     @Autowired
     private StatisticsService statisticsService;
+
+    @Operation(summary = "统计概览")
+    @GetMapping("/overview/{timetableId}")
+    public Result<StatisticsOverview> getOverview(@PathVariable Long timetableId) {
+        StatisticsOverview overview = statisticsService.getOverview(timetableId);
+        return Result.success(overview);
+    }
 
     @Operation(summary = "教室利用率统计")
     @GetMapping("/classroom-utilization/{timetableId}")

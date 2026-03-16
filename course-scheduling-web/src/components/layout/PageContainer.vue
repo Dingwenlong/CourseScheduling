@@ -16,29 +16,41 @@ defineProps({
 <style scoped>
 .page-container {
   min-height: 100%;
-  padding: var(--spacing-lg);
-  padding-bottom: var(--spacing-2xl);
-  background-color: var(--bg-secondary);
+  padding: clamp(14px, 2vw, 24px);
+  padding-bottom: var(--spacing-3xl);
+  background: transparent;
   position: relative;
   overflow-x: hidden;
   transition: background-color var(--transition-base);
 }
 
 .page-container.with-tabbar {
-  padding-bottom: 70px;
+  padding-bottom: 92px;
+}
+
+.page-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.35), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(190, 168, 134, 0.12), transparent 24%);
+  pointer-events: none;
+  opacity: 0.7;
 }
 
 @media (min-width: 1024px) {
   .page-container {
-    padding: var(--spacing-xl);
-    padding-bottom: var(--spacing-2xl);
+    padding: clamp(20px, 2vw, 30px);
+    padding-bottom: var(--spacing-3xl);
   }
 }
 
 @media (min-width: 1440px) {
   .page-container {
-    padding: var(--spacing-2xl);
-    padding-bottom: var(--spacing-3xl);
+    padding: clamp(24px, 2.2vw, 38px);
+    padding-bottom: var(--spacing-4xl);
     max-width: var(--content-max-width-wide);
     margin: 0 auto;
   }
@@ -60,15 +72,15 @@ defineProps({
 
 @media (max-width: 767px) {
   .page-container {
-    padding: var(--spacing-md);
-    padding-bottom: var(--spacing-xl);
+    padding: 14px;
+    padding-bottom: var(--spacing-2xl);
   }
 }
 
 @media (max-width: 479px) {
   .page-container {
-    padding: var(--spacing-sm);
-    padding-bottom: var(--spacing-lg);
+    padding: 12px;
+    padding-bottom: var(--spacing-xl);
   }
 }
 </style>

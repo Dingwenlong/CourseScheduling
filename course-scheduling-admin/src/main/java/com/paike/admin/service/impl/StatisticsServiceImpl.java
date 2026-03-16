@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.paike.admin.dto.ClassroomUtilization;
 import com.paike.admin.dto.ConflictDetail;
 import com.paike.admin.dto.ConflictReport;
+import com.paike.admin.dto.StatisticsOverview;
 import com.paike.admin.dto.TeacherWorkload;
 import com.paike.admin.entity.Classroom;
 import com.paike.admin.entity.Timetable;
@@ -20,9 +21,13 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
@@ -36,40 +41,77 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private TimetableMapper timetableMapper;
 
-    private void validateTimetableExists(Long timetableId) {
-        Timetable timetable = timetableMapper.selectById(timetableId);
-        if (timetable == null) {
-            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "课表不存在");
-        }
+    @Override
+    public StatisticsOverview getOverview(Long timetableId) {
+        StatisticsSnapshot snapshot = loadSnapshot(timetableId);
+        StatisticsOverview overview = new StatisticsOverview();
+        overview.setTotalHours(calculateTotalHours(snapshot.getDetails()));
+        overview.setCourseCount(calculateCourseCount(snapshot.getDetails()));
+        overview.setClassroomUtilization(buildClassroomUtilization(snapshot.getDetails(), snapshot.getClassrooms()));
+        overview.setTeacherWorkload(buildTeacherWorkload(snapshot.getDetails()));
+        overview.setConflictReport(buildConflictReport(snapshot.getDetails()));
+        return overview;
     }
 
     @Override
     public List<ClassroomUtilization> getClassroomUtilization(Long timetableId) {
-        validateTimetableExists(timetableId);
+        StatisticsSnapshot snapshot = loadSnapshot(timetableId);
+        return buildClassroomUtilization(snapshot.getDetails(), snapshot.getClassrooms());
+    }
+
+    @Override
+    public List<TeacherWorkload> getTeacherWorkload(Long timetableId) {
+        return buildTeacherWorkload(loadSnapshot(timetableId).getDetails());
+    }
+
+    @Override
+    public ConflictReport getConflictReport(Long timetableId) {
+        return buildConflictReport(loadSnapshot(timetableId).getDetails());
+    }
+
+    @Override
+    public Integer getTotalScheduledHours(Long timetableId) {
+        return calculateTotalHours(loadSnapshot(timetableId).getDetails());
+    }
+
+    @Override
+    public Integer getCourseCount(Long timetableId) {
+        return calculateCourseCount(loadSnapshot(timetableId).getDetails());
+    }
+
+    private StatisticsSnapshot loadSnapshot(Long timetableId) {
+        Timetable timetable = timetableMapper.selectById(timetableId);
+        if (timetable == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "课表不存在");
+        }
+
         List<TimetableDetail> details = timetableDetailMapper.selectList(
                 new LambdaQueryWrapper<TimetableDetail>()
                         .eq(TimetableDetail::getTimetableId, timetableId));
-
-        Map<Long, Integer> classroomUsage = new HashMap<>();
-        for (TimetableDetail detail : details) {
-            classroomUsage.merge(detail.getClassroomId(), 1, Integer::sum);
-        }
-
         List<Classroom> classrooms = classroomMapper.selectList(
                 new LambdaQueryWrapper<Classroom>().eq(Classroom::getStatus, 1));
+        return new StatisticsSnapshot(details, classrooms);
+    }
+
+    private List<ClassroomUtilization> buildClassroomUtilization(List<TimetableDetail> details, List<Classroom> classrooms) {
+        Map<Long, Integer> classroomUsage = new HashMap<>();
+        for (TimetableDetail detail : details) {
+            if (detail.getClassroomId() != null) {
+                classroomUsage.merge(detail.getClassroomId(), 1, Integer::sum);
+            }
+        }
 
         int totalSlots = 5 * 10;
-
         List<ClassroomUtilization> result = new ArrayList<>();
         for (Classroom classroom : classrooms) {
             ClassroomUtilization utilization = new ClassroomUtilization();
             utilization.setClassroomId(classroom.getId());
             utilization.setClassroomName(classroom.getRoomName());
             utilization.setTotalSlots(totalSlots);
-            
+
             Integer usedSlots = classroomUsage.getOrDefault(classroom.getId(), 0);
             utilization.setUsedSlots(usedSlots);
-            
+
             BigDecimal rate = BigDecimal.ZERO;
             if (totalSlots > 0) {
                 rate = BigDecimal.valueOf(usedSlots)
@@ -77,85 +119,79 @@ public class StatisticsServiceImpl implements StatisticsService {
                         .multiply(BigDecimal.valueOf(100));
             }
             utilization.setUtilizationRate(rate);
-            
             result.add(utilization);
         }
 
-        result.sort((a, b) -> b.getUtilizationRate().compareTo(a.getUtilizationRate()));
+        result.sort((left, right) -> right.getUtilizationRate().compareTo(left.getUtilizationRate()));
         return result;
     }
 
-    @Override
-    public List<TeacherWorkload> getTeacherWorkload(Long timetableId) {
-        validateTimetableExists(timetableId);
-        List<TimetableDetail> details = timetableDetailMapper.selectList(
-                new LambdaQueryWrapper<TimetableDetail>()
-                        .eq(TimetableDetail::getTimetableId, timetableId));
-
+    private List<TeacherWorkload> buildTeacherWorkload(List<TimetableDetail> details) {
         Map<Long, TeacherWorkload> workloadMap = new HashMap<>();
-        Map<Long, java.util.Set<Long>> teacherCoursesMap = new HashMap<>();
-        
+        Map<Long, Set<Long>> teacherCoursesMap = new HashMap<>();
+
         for (TimetableDetail detail : details) {
-            if (detail.getTeacherId() == null) continue;
-            
-            TeacherWorkload workload = workloadMap.computeIfAbsent(
-                    detail.getTeacherId(), 
-                    k -> {
-                        TeacherWorkload w = new TeacherWorkload();
-                        w.setTeacherId(k);
-                        w.setTeacherName(detail.getTeacherName());
-                        w.setTotalHours(0);
-                        w.setCourseCount(0);
-                        return w;
-                    });
-            
+            if (detail.getTeacherId() == null) {
+                continue;
+            }
+
+            TeacherWorkload workload = workloadMap.computeIfAbsent(detail.getTeacherId(), key -> {
+                TeacherWorkload item = new TeacherWorkload();
+                item.setTeacherId(key);
+                item.setTeacherName(detail.getTeacherName());
+                item.setTotalHours(0);
+                item.setCourseCount(0);
+                return item;
+            });
             workload.setTotalHours(workload.getTotalHours() + 2);
-            
-            java.util.Set<Long> courses = teacherCoursesMap.computeIfAbsent(
-                    detail.getTeacherId(), 
-                    k -> new java.util.HashSet<>());
+
             if (detail.getCourseId() != null) {
-                courses.add(detail.getCourseId());
+                teacherCoursesMap.computeIfAbsent(detail.getTeacherId(), key -> new HashSet<>())
+                        .add(detail.getCourseId());
             }
         }
 
-        for (TeacherWorkload workload : workloadMap.values()) {
-            java.util.Set<Long> courses = teacherCoursesMap.get(workload.getTeacherId());
-            int courseCount = courses != null ? courses.size() : 0;
+        List<TeacherWorkload> workloads = new ArrayList<>(workloadMap.values());
+        for (TeacherWorkload workload : workloads) {
+            Set<Long> courses = teacherCoursesMap.get(workload.getTeacherId());
+            int courseCount = courses == null ? 0 : courses.size();
             workload.setCourseCount(courseCount);
-            
             if (courseCount > 0) {
-                BigDecimal avg = BigDecimal.valueOf(workload.getTotalHours())
-                        .divide(BigDecimal.valueOf(courseCount), 2, RoundingMode.HALF_UP);
-                workload.setAverageHoursPerCourse(avg);
+                workload.setAverageHoursPerCourse(BigDecimal.valueOf(workload.getTotalHours())
+                        .divide(BigDecimal.valueOf(courseCount), 2, RoundingMode.HALF_UP));
+            } else {
+                workload.setAverageHoursPerCourse(BigDecimal.ZERO);
             }
         }
 
-        return new ArrayList<>(workloadMap.values());
+        workloads.sort(Comparator.comparing(TeacherWorkload::getTotalHours,
+                Comparator.nullsFirst(Integer::compareTo)).reversed());
+        return workloads;
     }
 
-    @Override
-    public ConflictReport getConflictReport(Long timetableId) {
-        validateTimetableExists(timetableId);
-        List<TimetableDetail> conflicts = timetableDetailMapper.selectList(
-                new LambdaQueryWrapper<TimetableDetail>()
-                        .eq(TimetableDetail::getTimetableId, timetableId)
-                        .eq(TimetableDetail::getIsConflict, 1));
-
+    private ConflictReport buildConflictReport(List<TimetableDetail> details) {
         ConflictReport report = new ConflictReport();
-        report.setTotalConflicts(conflicts.size());
-        
+        List<ConflictDetail> conflictDetails = new ArrayList<>();
         int teacherConflicts = 0;
         int classroomConflicts = 0;
         int classConflicts = 0;
-        List<ConflictDetail> conflictDetails = new ArrayList<>();
 
-        for (TimetableDetail detail : conflicts) {
+        for (TimetableDetail detail : details) {
+            if (!Objects.equals(detail.getIsConflict(), 1)) {
+                continue;
+            }
+
             String conflictInfo = detail.getConflictInfo();
             if (conflictInfo != null) {
-                if (conflictInfo.contains("教师冲突")) teacherConflicts++;
-                if (conflictInfo.contains("教室冲突")) classroomConflicts++;
-                if (conflictInfo.contains("班级冲突")) classConflicts++;
+                if (conflictInfo.contains("教师冲突")) {
+                    teacherConflicts++;
+                }
+                if (conflictInfo.contains("教室冲突")) {
+                    classroomConflicts++;
+                }
+                if (conflictInfo.contains("班级冲突")) {
+                    classConflicts++;
+                }
             }
 
             ConflictDetail conflictDetail = new ConflictDetail();
@@ -166,38 +202,78 @@ public class StatisticsServiceImpl implements StatisticsService {
             conflictDetail.setClassroomName(detail.getClassroomName());
             conflictDetail.setDayOfWeek(detail.getDayOfWeek());
             conflictDetail.setSlotNo(detail.getSlotNo());
+            conflictDetail.setConflictType(resolveConflictType(conflictInfo));
             conflictDetail.setConflictDescription(conflictInfo);
             conflictDetails.add(conflictDetail);
         }
 
+        conflictDetails.sort(Comparator.comparing(ConflictDetail::getDayOfWeek,
+                        Comparator.nullsFirst(Integer::compareTo))
+                .thenComparing(ConflictDetail::getSlotNo, Comparator.nullsFirst(Integer::compareTo))
+                .thenComparing(ConflictDetail::getCourseName, Comparator.nullsFirst(String::compareTo)));
+
+        report.setTotalConflicts(conflictDetails.size());
         report.setTeacherConflicts(teacherConflicts);
         report.setClassroomConflicts(classroomConflicts);
         report.setClassConflicts(classConflicts);
         report.setConflictDetails(conflictDetails);
-
         return report;
     }
 
-    @Override
-    public Integer getTotalScheduledHours(Long timetableId) {
-        validateTimetableExists(timetableId);
-        Long count = timetableDetailMapper.selectCount(
-                new LambdaQueryWrapper<TimetableDetail>()
-                        .eq(TimetableDetail::getTimetableId, timetableId));
-        return count.intValue() * 2;
+    private Integer calculateTotalHours(List<TimetableDetail> details) {
+        return details.size() * 2;
     }
 
-    @Override
-    public Integer getCourseCount(Long timetableId) {
-        validateTimetableExists(timetableId);
-        List<TimetableDetail> details = timetableDetailMapper.selectList(
-                new LambdaQueryWrapper<TimetableDetail>()
-                        .eq(TimetableDetail::getTimetableId, timetableId));
-        
-        return (int) details.stream()
-                .map(TimetableDetail::getCourseId)
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .count();
+    private Integer calculateCourseCount(List<TimetableDetail> details) {
+        Set<Long> courseIds = new HashSet<>();
+        for (TimetableDetail detail : details) {
+            if (detail.getCourseId() != null) {
+                courseIds.add(detail.getCourseId());
+            }
+        }
+        return courseIds.size();
+    }
+
+    private String resolveConflictType(String conflictInfo) {
+        if (conflictInfo == null || conflictInfo.trim().isEmpty()) {
+            return "冲突";
+        }
+
+        boolean teacherConflict = conflictInfo.contains("教师冲突");
+        boolean classroomConflict = conflictInfo.contains("教室冲突");
+        boolean classConflict = conflictInfo.contains("班级冲突");
+        int conflictTypeCount = (teacherConflict ? 1 : 0) + (classroomConflict ? 1 : 0) + (classConflict ? 1 : 0);
+
+        if (conflictTypeCount > 1) {
+            return "复合冲突";
+        }
+        if (teacherConflict) {
+            return "教师冲突";
+        }
+        if (classroomConflict) {
+            return "教室冲突";
+        }
+        if (classConflict) {
+            return "班级冲突";
+        }
+        return "冲突";
+    }
+
+    private static class StatisticsSnapshot {
+        private final List<TimetableDetail> details;
+        private final List<Classroom> classrooms;
+
+        private StatisticsSnapshot(List<TimetableDetail> details, List<Classroom> classrooms) {
+            this.details = details;
+            this.classrooms = classrooms;
+        }
+
+        public List<TimetableDetail> getDetails() {
+            return details;
+        }
+
+        public List<Classroom> getClassrooms() {
+            return classrooms;
+        }
     }
 }

@@ -219,6 +219,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useMessage, useDialog } from 'naive-ui'
 import dayjs from 'dayjs'
 import { getTaskList, createTask, updateTask, deleteTask } from '@/api/task'
+import { buildSemesterOptions } from '@/utils/semester'
 import { useLayoutStore } from '@/stores/layout'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -350,7 +351,8 @@ const loadData = async () => {
       current: page.value,
       size: 100,
       semester: filterSemester.value,
-      status: filterStatus.value
+      status: filterStatus.value,
+      keyword: searchText.value?.trim()
     }
     Object.keys(params).forEach(key => {
       if (params[key] === '' || params[key] === null || params[key] === undefined) {
@@ -453,11 +455,8 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  const year = dayjs().year()
-  for (let i = 0; i < 3; i++) {
-    semesterOptions.value.push({ label: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
-    semesterOptions.value.push({ label: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
-  }
+  semesterOptions.value = buildSemesterOptions(dayjs().year(), 3, true)
+  loadData()
 
   layoutStore.setHeaderAction({
     icon: 'plus',
@@ -497,9 +496,9 @@ onUnmounted(() => {
 }
 
 .table-container {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -508,7 +507,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px dashed var(--border-soft);
   flex-wrap: wrap;
   gap: var(--spacing-md);
 }
@@ -587,8 +586,8 @@ onUnmounted(() => {
 }
 
 .task-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .task-card:nth-child(1) { animation-delay: 0.05s; }
@@ -634,7 +633,7 @@ onUnmounted(() => {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border-light);
+  border-top: 1px dashed var(--border-light);
 }
 
 .user-list-wrapper {

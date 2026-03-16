@@ -1,5 +1,9 @@
 import request from '@/utils/request'
 
+export function getStatisticsOverview(timetableId) {
+  return request.get(`/statistics/overview/${timetableId}`)
+}
+
 export function getClassroomUtilization(timetableId) {
   return request.get(`/statistics/classroom-utilization/${timetableId}`)
 }

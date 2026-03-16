@@ -21,6 +21,8 @@
 </template>
 
 <script setup>
+import { NSpin, NEmpty, NButton } from 'naive-ui'
+
 defineProps({
   loading: { type: Boolean, default: false },
   empty: { type: Boolean, default: false },

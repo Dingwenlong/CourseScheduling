@@ -94,8 +94,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
-import dayjs from 'dayjs'
 import { getLatestTimetable, getClassTimetable, getTeacherTimetable, getClassroomTimetable } from '@/api/timetable'
+import { getCurrentSemester } from '@/utils/semester'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import {
@@ -140,8 +140,16 @@ const getPlaceholder = computed(() => {
   return map[queryType.value]
 })
 
+const courseMap = computed(() => {
+  const map = new Map()
+  for (const course of courses.value) {
+    map.set(`${course.dayOfWeek}_${course.slotNo}`, course)
+  }
+  return map
+})
+
 const getCourse = (day, slot) => {
-  return courses.value.find(c => c.dayOfWeek === day && c.slotNo === slot)
+  return courseMap.value.get(`${day}_${slot}`) || null
 }
 
 const showCourseInfo = (day, slot) => {
@@ -161,7 +169,7 @@ const handleSearch = async () => {
   loading.value = true
   try {
     if (!timetableId.value) {
-      const semester = dayjs().format('YYYY') + (dayjs().month() < 7 ? '-1' : '-2')
+      const semester = getCurrentSemester()
       const timetableRes = await getLatestTimetable(semester)
       if (timetableRes.data) {
         timetableId.value = timetableRes.data.id
@@ -191,7 +199,7 @@ const handleSearch = async () => {
 
 onMounted(async () => {
   try {
-    const semester = dayjs().format('YYYY') + (dayjs().month() < 7 ? '-1' : '-2')
+    const semester = getCurrentSemester()
     const res = await getLatestTimetable(semester)
     if (res.data) {
       timetableId.value = res.data.id
@@ -217,9 +225,9 @@ onMounted(async () => {
 }
 
 .card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
@@ -261,7 +269,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 50px repeat(5, 1fr);
   gap: 1px;
-  background: var(--border-light);
+  background: rgba(145, 120, 91, 0.14);
   min-width: 600px;
 }
 

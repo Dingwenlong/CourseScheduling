@@ -367,9 +367,44 @@ CREATE TABLE adj_application (
     UNIQUE KEY uk_application_no (application_no),
     INDEX idx_teacher_id (teacher_id),
     INDEX idx_detail_id (detail_id),
+    INDEX idx_detail_status (detail_id, status),
     INDEX idx_status (status),
     INDEX idx_apply_time (apply_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='调课申请表';
+
+-- 课程交换申请表
+CREATE TABLE adj_swap_application (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    application_no VARCHAR(30) NOT NULL COMMENT '申请编号',
+    semester VARCHAR(20) NOT NULL COMMENT '学期',
+    timetable_id BIGINT NOT NULL COMMENT '课表ID',
+    detail_id1 BIGINT NOT NULL COMMENT '课程明细1',
+    detail_id2 BIGINT NOT NULL COMMENT '课程明细2',
+    teacher_id BIGINT NOT NULL COMMENT '申请教师ID',
+    old_day1 TINYINT NOT NULL COMMENT '课程1原星期',
+    old_slot1 TINYINT NOT NULL COMMENT '课程1原节次',
+    old_classroom1 BIGINT NOT NULL COMMENT '课程1原教室ID',
+    old_day2 TINYINT NOT NULL COMMENT '课程2原星期',
+    old_slot2 TINYINT NOT NULL COMMENT '课程2原节次',
+    old_classroom2 BIGINT NOT NULL COMMENT '课程2原教室ID',
+    reason VARCHAR(500) NOT NULL COMMENT '交换原因',
+    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
+        DEFAULT 'PENDING' COMMENT '状态',
+    apply_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+    auditor_id BIGINT COMMENT '审核人ID',
+    audit_time DATETIME COMMENT '审核时间',
+    audit_remark VARCHAR(500) COMMENT '审核备注',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_swap_application_no (application_no),
+    INDEX idx_swap_teacher_id (teacher_id),
+    INDEX idx_swap_timetable_id (timetable_id),
+    INDEX idx_swap_detail_pair (detail_id1, detail_id2),
+    INDEX idx_swap_detail1_status (detail_id1, status),
+    INDEX idx_swap_detail2_status (detail_id2, status),
+    INDEX idx_swap_status (status),
+    INDEX idx_swap_apply_time (apply_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程交换申请表';
 
 -- ========================================================
 -- 7. 数据同步相关表
@@ -517,22 +552,22 @@ INSERT INTO edu_course (course_code, course_name, course_type, credit, theory_ho
 -- 9. 教学任务数据 (2024-1学期)
 -- ----------------------------
 INSERT INTO edu_teaching_task (semester, course_id, teacher_id, class_id, student_count, weekly_hours, total_weeks, weeks, course_nature, priority_level, status) VALUES
-('2024-1', 1, 1, 1, 45, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 1, 1, 2, 42, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 2, 2, 1, 45, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 2, 2, 2, 42, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 3, 1, 3, 48, 4, 16, '1-16', 'REQUIRED', 2, 'PENDING'),
-('2024-1', 4, 2, 3, 48, 4, 16, '1-16', 'REQUIRED', 2, 'PENDING'),
-('2024-1', 5, 1, 1, 45, 3, 16, '1-16', 'ELECTIVE', 3, 'PENDING'),
-('2024-1', 6, 2, 2, 42, 3, 16, '1-16', 'REQUIRED', 2, 'PENDING'),
-('2024-1', 7, 3, 4, 40, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 7, 3, 5, 44, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 8, 3, 4, 40, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 10, 4, 1, 45, 5, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 10, 4, 2, 42, 5, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 10, 4, 3, 48, 5, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 12, 4, 1, 45, 3, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 12, 4, 4, 40, 3, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 13, 5, 1, 45, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 13, 5, 4, 40, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING'),
-('2024-1', 13, 5, 6, 35, 4, 16, '1-16', 'REQUIRED', 1, 'PENDING');
+('2024-1', 1, 1, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 1, 1, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 2, 2, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 2, 2, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 3, 1, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2024-1', 4, 2, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2024-1', 5, 1, 1, 45, 3, 16, '1-16', 'BOTH', 3, 'PENDING'),
+('2024-1', 6, 2, 2, 42, 3, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2024-1', 7, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 7, 3, 5, 44, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 8, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 10, 4, 1, 45, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2024-1', 10, 4, 2, 42, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2024-1', 10, 4, 3, 48, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2024-1', 12, 4, 1, 45, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2024-1', 12, 4, 4, 40, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2024-1', 13, 5, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 13, 5, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2024-1', 13, 5, 6, 35, 4, 16, '1-16', 'BOTH', 1, 'PENDING');

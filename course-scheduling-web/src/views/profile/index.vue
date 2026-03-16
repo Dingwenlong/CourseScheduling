@@ -98,13 +98,13 @@
             <n-list>
               <n-list-item clickable @click="showPassword = true" class="menu-item">
                 <template #prefix>
-                  <n-icon :component="LockClosedOutline" color="#51caba" />
+                  <n-icon :component="LockClosedOutline" color="var(--primary-color)" />
                 </template>
                 修改密码
               </n-list-item>
               <n-list-item clickable @click="showAbout = true" class="menu-item">
                 <template #prefix>
-                  <n-icon :component="InformationCircleOutline" color="#10b981" />
+                  <n-icon :component="InformationCircleOutline" color="var(--info-color)" />
                 </template>
                 关于系统
               </n-list-item>
@@ -135,10 +135,10 @@
     </n-modal>
 
     <n-modal v-model:show="showAbout" preset="card" title="关于系统" class="about-dialog">
-      <div class="about-content">
-        <div class="about-logo">
-          <n-icon :component="CalendarOutline" size="56" color="#51caba" />
-        </div>
+        <div class="about-content">
+          <div class="about-logo">
+          <n-icon :component="CalendarOutline" size="56" color="var(--primary-color)" />
+          </div>
         <h3 class="about-title">智能排课系统</h3>
         <p class="about-version">版本：1.0.0</p>
         <p class="about-desc mt-16">基于遗传算法和贪心算法的智能排课解决方案，支持多校区、多约束条件下的课程调度优化。</p>
@@ -265,9 +265,9 @@ onMounted(() => {
 }
 
 .sidebar-card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: var(--spacing-xl);
   text-align: center;
 }
@@ -342,9 +342,9 @@ onMounted(() => {
 }
 
 .card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
 }

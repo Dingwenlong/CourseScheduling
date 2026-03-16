@@ -2,12 +2,21 @@ package com.paike.admin.dto;
 
 public class AdjustmentRequest {
 
+    private Long applicationId;
     private Long timetableId;
     private Long detailId;
     private Integer newDayOfWeek;
     private Integer newSlotNo;
     private Long newClassroomId;
     private String reason;
+
+    public Long getApplicationId() {
+        return applicationId;
+    }
+
+    public void setApplicationId(Long applicationId) {
+        this.applicationId = applicationId;
+    }
 
     public Long getTimetableId() {
         return timetableId;

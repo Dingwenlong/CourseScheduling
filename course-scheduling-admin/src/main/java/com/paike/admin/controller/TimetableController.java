@@ -2,10 +2,12 @@ package com.paike.admin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.paike.admin.dto.TimetableGenerationJobStatus;
 import com.paike.admin.entity.Timetable;
 import com.paike.admin.entity.TimetableDetail;
 import com.paike.admin.mapper.TimetableMapper;
 import com.paike.admin.service.TimetableDetailService;
+import com.paike.admin.service.TimetableGenerationJobService;
 import com.paike.admin.service.TimetableService;
 import com.paike.algorithm.dto.SchedulingRequest;
 import com.paike.common.exception.BusinessException;
@@ -35,6 +37,9 @@ public class TimetableController {
     @Autowired
     private TimetableMapper timetableMapper;
 
+    @Autowired
+    private TimetableGenerationJobService timetableGenerationJobService;
+
     @Operation(summary = "生成课表")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/generate")
@@ -47,6 +52,29 @@ public class TimetableController {
         }
         Timetable timetable = timetableService.generateTimetable(request);
         return Result.success(timetable);
+    }
+
+    @Operation(summary = "异步生成课表")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/generate-async")
+    public Result<TimetableGenerationJobStatus> generateAsync(@RequestBody SchedulingRequest request) {
+        if (request == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        if (!StringUtils.hasText(request.getSemester())) {
+            throw new BusinessException("学期不能为空");
+        }
+        return Result.success(timetableGenerationJobService.submit(request));
+    }
+
+    @Operation(summary = "查询异步生成课表任务")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/generate-jobs/{jobId}")
+    public Result<TimetableGenerationJobStatus> getGenerateJob(@PathVariable String jobId) {
+        if (!StringUtils.hasText(jobId)) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        return Result.success(timetableGenerationJobService.getJob(jobId));
     }
 
     @Operation(summary = "发布课表")

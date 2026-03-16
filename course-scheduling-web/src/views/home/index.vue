@@ -1,9 +1,10 @@
 <template>
   <PageContainer with-tabbar class="home-page">
-    <PageHeader title="首页" />
+    <PageHeader title="首页" subtitle="教学排课工作台" />
 
     <div class="stat-card animate-slide-up">
       <div class="stat-card-content">
+        <div class="stat-card-meta">当前学期概览</div>
         <div class="stat-card-title">本学期已排课程</div>
         <div class="stat-card-value">{{ stats.totalCourses }}</div>
         <div class="stat-card-desc">共 {{ stats.totalHours }} 学时</div>
@@ -11,7 +12,7 @@
     </div>
 
     <div class="quick-actions-section">
-      <div class="section-title">快捷操作</div>
+      <div class="section-title">常用入口</div>
       <div class="quick-actions animate-slide-up" style="animation-delay: 0.1s;">
         <n-grid :x-gap="12" :y-gap="12" :cols="gridColumns" class="action-grid">
           <n-grid-item v-for="action in quickActions" :key="action.to">
@@ -73,6 +74,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
+import { getCurrentSemester } from '@/utils/semester'
 import StateView from '@/components/ui/StateView.vue'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -104,16 +106,16 @@ const gridColumns = computed(() => {
 
 const quickActions = computed(() => {
   const actions = [
-    { to: '/timetable', text: '生成课表', icon: CalendarOutline, color: '#51caba' },
-    { to: '/task', text: '教学任务', icon: ClipboardOutline, color: '#10b981' },
-    { to: '/schedule', text: '课表查询', icon: SearchOutline, color: '#f59e0b' },
-    { to: '/adjustment', text: '调课申请', icon: SwapHorizontalOutline, color: '#ef4444' },
-    { to: '/statistics', text: '统计分析', icon: BarChartOutline, color: '#8b5cf6' },
-    { to: '/profile', text: '系统设置', icon: SettingsOutline, color: '#6b7280' }
+    { to: '/timetable', text: '生成课表', icon: CalendarOutline, color: '#728967' },
+    { to: '/task', text: '教学任务', icon: ClipboardOutline, color: '#7d9563' },
+    { to: '/schedule', text: '课表查询', icon: SearchOutline, color: '#c69054' },
+    { to: '/adjustment', text: '调课申请', icon: SwapHorizontalOutline, color: '#b86659' },
+    { to: '/statistics', text: '统计分析', icon: BarChartOutline, color: '#6f89a3' },
+    { to: '/profile', text: '系统设置', icon: SettingsOutline, color: '#7d7064' }
   ]
   
   if (isAdmin.value) {
-    actions.splice(5, 0, { to: '/users', text: '用户管理', icon: PeopleOutline, color: '#f97316' })
+    actions.splice(5, 0, { to: '/users', text: '用户管理', icon: PeopleOutline, color: '#9b7652' })
   }
   
   return actions
@@ -160,7 +162,7 @@ onMounted(async () => {
   window.addEventListener('resize', updateScreenWidth)
   loading.value = true
   try {
-    const semester = dayjs().format('YYYY') + (dayjs().month() < 7 ? '-1' : '-2')
+    const semester = getCurrentSemester()
     const res = await getLatestTimetable(semester)
     latestTimetable.value = res.data
     if (res.data) {
@@ -199,11 +201,8 @@ onUnmounted(() => {
 }
 
 .quick-actions {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-md);
+  padding: 14px;
 }
 
 .action-grid {
@@ -215,17 +214,31 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
+  padding: 18px 14px;
+  border-radius: 20px;
   text-decoration: none;
   color: var(--text-primary);
-  transition: all 0.2s ease;
-  gap: var(--spacing-sm);
-  min-height: 80px;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    background-color var(--transition-base);
+  gap: 10px;
+  min-height: 98px;
+  background: rgba(255, 250, 243, 0.5);
+  border: 1px solid rgba(145, 120, 91, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+@media (hover: hover) {
+  .action-item:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 251, 245, 0.82);
+    box-shadow: var(--shadow-xs);
+  }
 }
 
 .action-item:active {
-  transform: scale(0.95);
+  transform: translateY(1px);
 }
 
 .action-text {
@@ -236,6 +249,7 @@ onUnmounted(() => {
 
 .timetable-card {
   animation: slideUp 0.4s ease-out backwards;
+  padding: 18px;
 }
 
 @keyframes slideUp {
@@ -254,10 +268,10 @@ onUnmounted(() => {
 }
 
 .timetable-name {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
 }
 
 .status-tag-custom {
@@ -265,27 +279,34 @@ onUnmounted(() => {
 }
 
 .info-group {
-  border-radius: var(--radius-md);
+  border-radius: 18px;
   overflow: hidden;
+  background: rgba(255, 250, 243, 0.46);
+  border: 1px solid rgba(145, 120, 91, 0.12);
+  padding: 6px 10px;
 }
 
 .view-btn {
-  height: 48px;
+  height: 46px;
   font-size: 16px;
   font-weight: 600;
-  background: var(--primary-gradient);
-  border: none;
-  box-shadow: 0 4px 12px rgba(81, 202, 186, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.view-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(81, 202, 186, 0.4);
+  letter-spacing: 0.04em;
 }
 
 .view-btn:active {
-  transform: translateY(0);
+  transform: translateY(1px);
+}
+
+.stat-card-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 @media (max-width: 480px) {

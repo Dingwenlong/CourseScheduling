@@ -122,8 +122,7 @@ onUnmounted(() => {
 .main-layout {
   height: 100%;
   overflow-y: hidden;
-  background-color: var(--bg-secondary);
-  transition: background-color var(--transition-base);
+  background: transparent;
   display: flex;
   flex-direction: column;
 }
@@ -132,24 +131,22 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 60px;
+  padding-bottom: 84px;
 }
 
 .custom-tabbar {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
   box-sizing: border-box;
-  padding-right: calc(52px + env(safe-area-inset-right, 0px));
-  padding-left: 4px;
-  padding-right: calc(56px + env(safe-area-inset-right, 0px));
-  padding-top: 6px;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  padding-left: 8px;
+  padding-right: calc(64px + env(safe-area-inset-right, 0px));
+  padding-top: 8px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   transition: background-color var(--transition-base), box-shadow var(--transition-base);
   position: relative;
+  margin: 0 10px 10px;
+  gap: 4px;
 }
 
 .tabbar-item {
@@ -158,25 +155,34 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex: 1;
-  gap: 2px;
+  gap: 3px;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.2s ease;
-  min-height: 44px;
+  transition:
+    color var(--transition-base),
+    transform var(--transition-base),
+    background-color var(--transition-base),
+    box-shadow var(--transition-base);
+  min-height: 48px;
   min-width: 44px;
+  border-radius: 16px;
+  padding: 6px 4px;
 }
 
 .tabbar-item:hover {
   color: var(--text-primary);
+  background: rgba(255, 250, 243, 0.62);
 }
 
 .tabbar-item.active {
   color: var(--primary-color);
-  transform: scale(1.05);
+  background: rgba(255, 250, 243, 0.84);
+  box-shadow: var(--shadow-xs);
 }
 
 .tabbar-text {
   font-size: 11px;
+  font-weight: 600;
 }
 
 .tabbar-item:focus-visible {
@@ -187,26 +193,28 @@ onUnmounted(() => {
 
 .tabbar-theme-toggle {
   position: absolute;
-  right: calc(8px + env(safe-area-inset-right, 0px));
+  right: calc(10px + env(safe-area-inset-right, 0px));
   top: 50%;
   transform: translateY(-50%);
-  background: var(--bg-secondary);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  background: rgba(255, 250, 243, 0.88);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  transition: all var(--transition-base);
   z-index: 2;
+  box-shadow: var(--shadow-button);
 }
 
 .tabbar-theme-toggle:hover {
-  background: var(--bg-tertiary);
+  background: rgba(255, 250, 243, 0.96);
   color: var(--primary-color);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .tabbar-theme-toggle:focus-visible {
@@ -236,11 +244,10 @@ onUnmounted(() => {
 }
 
 [data-theme="dark"] .custom-tabbar {
-  background: rgba(31, 41, 55, 0.95);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(56, 47, 42, 0.95);
 }
 
 [data-theme="dark"] .tabbar-theme-toggle {
-  background: var(--bg-tertiary);
+  background: rgba(77, 66, 58, 0.88);
 }
 </style>

@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Min;
 public class TeachingTaskQueryRequest {
 
     private String semester;
+    private String status;
+    private String keyword;
 
     @Min(value = 1, message = "页码必须大于0")
     private Integer current = 1;
@@ -20,6 +22,22 @@ public class TeachingTaskQueryRequest {
 
     public void setSemester(String semester) {
         this.semester = semester;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getKeyword() {
+        return keyword;
+    }
+
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
     }
 
     public Integer getCurrent() {

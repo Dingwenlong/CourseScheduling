@@ -9,7 +9,7 @@ echo.
 
 cd /d "%~dp0.."
 
-echo [1/8] Checking Docker...
+echo [1/9] Checking Docker...
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Docker is not running, please start Docker Desktop first
@@ -19,7 +19,7 @@ if %errorlevel% neq 0 (
 echo       Docker is ready
 
 echo.
-echo [2/8] Starting MySQL and Redis containers...
+echo [2/9] Starting MySQL and Redis containers...
 docker-compose up -d
 if %errorlevel% neq 0 (
     echo [ERROR] Docker containers failed to start
@@ -28,18 +28,19 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/8] Waiting for MySQL to be ready...
+echo [3/9] Waiting for MySQL to be ready...
 set MAX_WAIT=60
 set WAITED=0
 :wait_mysql
-docker exec course-scheduling-mysql mysqladmin ping -h localhost -uroot -proot123456 --silent 2>nul
+docker exec course-scheduling-mysql mysql -uroot -proot123456 -Nse "SELECT 1;" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo       MySQL is ready
+    echo       MySQL is ready and credentials are valid
     goto mysql_ready
 )
 set /a WAITED+=2
 if %WAITED% geq %MAX_WAIT% (
-    echo [ERROR] MySQL startup timeout
+    echo [ERROR] MySQL startup timeout or root credentials mismatch
+    echo         If this is an old Docker volume, run: docker-compose down -v
     pause
     exit /b 1
 )
@@ -48,7 +49,25 @@ goto wait_mysql
 :mysql_ready
 
 echo.
-echo [4/8] Building backend project...
+echo [4/9] Checking database schema...
+docker exec course-scheduling-mysql mysql -uroot -proot123456 -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'course_scheduling' AND table_name = 'sys_user';" 2>nul | findstr "^1$" >nul
+if %errorlevel% neq 0 (
+    echo       Database schema not found, initializing...
+    docker exec -i course-scheduling-mysql mysql -uroot -proot123456 < database\mysql\init-schema.sql
+    if %errorlevel% neq 0 (
+        echo [ERROR] Database initialization failed
+        echo         If MySQL was initialized with another root password, clear the old volume:
+        echo         docker-compose down -v
+        pause
+        exit /b 1
+    )
+    echo       Database initialized
+) else (
+    echo       Database schema already exists
+)
+
+echo.
+echo [5/9] Building backend project...
 call mvn clean compile -DskipTests -q
 if %errorlevel% neq 0 (
     echo [ERROR] Backend build failed
@@ -58,7 +77,7 @@ if %errorlevel% neq 0 (
 echo       Backend build completed
 
 echo.  
-echo [5/8] Starting backend service...
+echo [6/9] Starting backend service...
 start "CourseScheduling-Backend" /min cmd /c "cd /d "%~dp0..\course-scheduling-admin" && mvn spring-boot:run -q"
 echo       Backend service starting...
 echo       Waiting for backend to initialize (up to 60s)...
@@ -81,7 +100,7 @@ goto wait_backend
 :backend_ready
 
 echo.
-echo [6/8] Checking frontend dependencies...
+echo [7/9] Checking frontend dependencies...
 cd course-scheduling-web
 if not exist "node_modules" (
     echo       Installing frontend dependencies...
@@ -98,7 +117,7 @@ if not exist "node_modules" (
 )
 
 echo.
-echo [7/8] Starting frontend service...
+echo [8/9] Starting frontend service...
 start "CourseScheduling-Frontend" /min cmd /c "npm run dev"
 cd ..
 echo       Frontend service starting...
@@ -122,7 +141,7 @@ goto wait_frontend
 :frontend_ready
 
 echo.
-echo [8/8] Verifying services...
+echo [9/9] Verifying services...
 curl -s http://localhost:8080/doc.html >nul 2>&1
 if %errorlevel% equ 0 (
     echo       Backend API is responding

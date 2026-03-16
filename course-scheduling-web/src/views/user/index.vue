@@ -520,9 +520,9 @@ onMounted(() => {
 }
 
 .table-container {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -531,7 +531,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px dashed var(--border-soft);
   flex-wrap: wrap;
   gap: var(--spacing-md);
 }
@@ -614,7 +614,7 @@ onMounted(() => {
 }
 
 .data-table tbody tr:hover {
-  background: var(--bg-secondary);
+  background: rgba(255, 251, 245, 0.56);
 }
 
 .name-cell {
@@ -657,7 +657,7 @@ onMounted(() => {
 
 .user-item:hover {
   border-color: var(--primary-color);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .user-cell {

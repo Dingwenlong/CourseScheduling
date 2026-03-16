@@ -22,6 +22,28 @@
         </template>
       </PageHeader>
 
+      <div v-if="generationJob" class="job-card">
+        <div class="job-card-header">
+          <div>
+            <div class="job-card-title">{{ getGenerationTitle(generationJob.status) }}</div>
+            <div class="job-card-desc">{{ getGenerationMessage(generationJob) }}</div>
+          </div>
+          <div class="job-card-actions">
+            <n-tag :type="getGenerationTagType(generationJob.status)">
+              {{ generationJob.status }}
+            </n-tag>
+            <n-button
+              v-if="generationJob.status === 'FAILED'"
+              quaternary
+              size="small"
+              @click="clearGenerationJob"
+            >
+              关闭
+            </n-button>
+          </div>
+        </div>
+      </div>
+
       <div class="table-container animate-fade-in">
         <div class="table-header">
           <div class="table-title desktop-only">课表列表</div>
@@ -175,7 +197,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import dayjs from 'dayjs'
-import { getTimetableList, generateTimetable, getAlgorithms } from '@/api/timetable'
+import { getTimetableList, generateTimetableAsync, getTimetableGenerationJob, getAlgorithms } from '@/api/timetable'
+import { buildSemesterOptions, getCurrentSemester } from '@/utils/semester'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useLayoutStore } from '@/stores/layout'
@@ -217,6 +240,8 @@ const pageSize = 10
 const showGenerate = ref(false)
 const generating = ref(false)
 const showAdvanced = ref(false)
+const generationJob = ref(null)
+let generationJobTimer = null
 
 const generateForm = ref({
   semester: '',
@@ -229,15 +254,7 @@ const generateForm = ref({
 
 const algorithmOptions = ref([])
 
-const semesterOptions = computed(() => {
-  const year = dayjs().year()
-  const options = []
-  for (let i = 0; i < 5; i++) {
-    options.push({ label: `${year - i}-${year - i + 1}学年第一学期`, value: `${year - i}-1` })
-    options.push({ label: `${year - i}-${year - i + 1}学年第二学期`, value: `${year - i}-2` })
-  }
-  return options
-})
+const semesterOptions = computed(() => buildSemesterOptions(dayjs().year(), 5))
 
 const loadAlgorithms = async () => {
   try {
@@ -284,6 +301,79 @@ const onRefresh = () => {
   loadData()
 }
 
+const stopGenerationPolling = () => {
+  if (generationJobTimer) {
+    window.clearTimeout(generationJobTimer)
+    generationJobTimer = null
+  }
+}
+
+const clearGenerationJob = () => {
+  stopGenerationPolling()
+  generationJob.value = null
+}
+
+const getGenerationTagType = (status) => {
+  const map = {
+    'SUBMITTED': 'info',
+    'RUNNING': 'warning',
+    'SUCCESS': 'success',
+    'FAILED': 'error'
+  }
+  return map[status] || 'default'
+}
+
+const getGenerationTitle = (status) => {
+  const map = {
+    'SUBMITTED': '课表生成任务已提交',
+    'RUNNING': '课表生成中',
+    'SUCCESS': '课表生成完成',
+    'FAILED': '课表生成失败'
+  }
+  return map[status] || '课表生成任务'
+}
+
+const getGenerationMessage = (job) => {
+  if (!job) return ''
+  if (job.status === 'SUCCESS' && job.timetableName) {
+    return `${job.message}：${job.timetableName}`
+  }
+  return job.message || '正在处理请求'
+}
+
+const pollGenerationJob = async (jobId) => {
+  if (!jobId) return
+
+  stopGenerationPolling()
+
+  const run = async () => {
+    try {
+      const res = await getTimetableGenerationJob(jobId)
+      generationJob.value = res.data
+
+      if (res.data.status === 'SUCCESS') {
+        await loadData()
+        stopGenerationPolling()
+        message.success(res.data.message || '课表生成成功')
+        router.push(`/timetable/detail/${res.data.timetableId}`)
+        return
+      }
+
+      if (res.data.status === 'FAILED') {
+        stopGenerationPolling()
+        message.error(res.data.message || '课表生成失败')
+        return
+      }
+    } catch (e) {
+      console.error('查询课表生成任务失败', e)
+    }
+
+    generationJobTimer = window.setTimeout(run, 2000)
+  }
+
+  await run()
+}
+
 const handleGenerate = async () => {
   if (!generateForm.value.semester) {
     message.warning('请选择学期')
@@ -292,11 +382,11 @@ const handleGenerate = async () => {
 
   generating.value = true
   try {
-    const res = await generateTimetable(generateForm.value)
-    message.success('课表生成成功')
+    const res = await generateTimetableAsync(generateForm.value)
+    generationJob.value = res.data
     showGenerate.value = false
-    onRefresh()
-    router.push(`/timetable/detail/${res.data.id}`)
+    message.success('排课任务已提交')
+    pollGenerationJob(res.data.jobId)
   } catch (e) {
     message.error(e.message || '生成失败')
   } finally {
@@ -309,9 +399,7 @@ const goDetail = (id) => {
 }
 
 onMounted(() => {
-  const year = dayjs().year()
-  const semester = dayjs().month() < 7 ? `${year - 1}-2` : `${year}-1`
-  generateForm.value.semester = semester
+  generateForm.value.semester = getCurrentSemester()
 
   loadAlgorithms()
   loadData()
@@ -324,6 +412,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopGenerationPolling()
   layoutStore.clearHeaderAction()
 })
 </script>
@@ -353,10 +442,43 @@ onUnmounted(() => {
   animation: fadeIn 0.3s ease-out;
 }
 
+.job-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.job-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.job-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.job-card-desc {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.job-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .table-container {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -365,7 +487,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px dashed var(--border-soft);
   flex-wrap: wrap;
   gap: var(--spacing-md);
 }
@@ -425,8 +547,8 @@ onUnmounted(() => {
 }
 
 .timetable-item:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .timetable-item:nth-child(1) { animation-delay: 0.05s; }

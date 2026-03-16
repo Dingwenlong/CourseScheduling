@@ -231,6 +231,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getLatestTimetable } from '@/api/timetable'
+import { getCurrentSemester } from '@/utils/semester'
 import StateView from '@/components/ui/StateView.vue'
 import { NButton, NTag, NIcon } from 'naive-ui'
 import {
@@ -287,7 +288,7 @@ const goToTimetable = () => {
 onMounted(async () => {
   loading.value = true
   try {
-    const semester = dayjs().format('YYYY') + (dayjs().month() < 7 ? '-1' : '-2')
+    const semester = getCurrentSemester()
     const res = await getLatestTimetable(semester)
     latestTimetable.value = res.data
     if (res.data) {

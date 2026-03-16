@@ -1,7 +1,9 @@
 import axios from 'axios'
-import { showToast } from 'vant'
+import { createDiscreteApi } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
+
+const { message } = createDiscreteApi(['message'])
 
 const request = axios.create({
   baseURL: '/api',
@@ -28,7 +30,7 @@ request.interceptors.response.use(
     if (res.code === 200) {
       return res
     } else {
-      showToast(res.message || '请求失败')
+      message.error(res.message || '请求失败')
       if (res.code === 401) {
         const userStore = useUserStore()
         userStore.logout()
@@ -38,7 +40,7 @@ request.interceptors.response.use(
     }
   },
   error => {
-    showToast(error.message || '网络错误')
+    message.error(error.message || '网络错误')
     return Promise.reject(error)
   }
 )

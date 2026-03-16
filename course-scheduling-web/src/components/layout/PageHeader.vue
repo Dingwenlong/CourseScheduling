@@ -34,7 +34,8 @@ defineProps({
 
 <style scoped>
 .page-header {
-  padding: var(--spacing-lg) 0;
+  position: relative;
+  padding: 18px 0 14px;
   margin-bottom: var(--spacing-lg);
 }
 
@@ -59,15 +60,12 @@ defineProps({
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
   transition: color var(--transition-base);
 }
 
@@ -76,7 +74,7 @@ defineProps({
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
-  margin-top: var(--spacing-xs);
+  margin-top: 8px;
   letter-spacing: 0;
 }
 
@@ -84,49 +82,57 @@ defineProps({
   margin-top: var(--spacing-md);
   color: var(--text-secondary);
   font-size: 14px;
+  max-width: 720px;
+  line-height: 1.75;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background:
+    linear-gradient(90deg, transparent, rgba(145, 120, 91, 0.26), transparent);
 }
 
 @media (min-width: 1024px) {
   .page-header {
-    padding: var(--spacing-xl) 0;
+    padding: 22px 0 18px;
     margin-bottom: var(--spacing-xl);
   }
   
   .page-title {
-    font-size: 28px;
+    font-size: 30px;
   }
 }
 
 @media (min-width: 1440px) {
   .page-header {
-    padding: var(--spacing-2xl) 0;
+    padding: 26px 0 22px;
     margin-bottom: var(--spacing-2xl);
   }
   
   .page-title {
-    font-size: 32px;
+    font-size: 34px;
   }
 }
 
 @media (min-width: 2560px) {
-  .page-header {
-    margin-bottom: var(--spacing-2xl);
-  }
-  
   .page-title {
-    font-size: 24px;
-    margin-bottom: var(--spacing-2xl);
+    font-size: 36px;
   }
 }
 
 @media (max-width: 767px) {
   .page-header {
-    padding: var(--spacing-md) 0;
+    padding: 14px 0 12px;
     margin-bottom: var(--spacing-lg);
   }
   
   .page-title {
-    font-size: 20px;
+    font-size: 22px;
   }
   
   .page-header-content {
@@ -142,7 +148,7 @@ defineProps({
 
 @media (max-width: 479px) {
   .page-title {
-    font-size: 18px;
+    font-size: 20px;
   }
 }
 </style>
