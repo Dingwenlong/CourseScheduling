@@ -15,7 +15,7 @@ USE course_scheduling;
 -- ========================================================
 
 -- 用户表
-CREATE TABLE sys_user (
+CREATE TABLE IF NOT EXISTS sys_user (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     username VARCHAR(50) NOT NULL COMMENT '用户名',
     password VARCHAR(100) NOT NULL COMMENT '密码(加密)',
@@ -35,7 +35,7 @@ CREATE TABLE sys_user (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- 操作日志表
-CREATE TABLE sys_operation_log (
+CREATE TABLE IF NOT EXISTS sys_operation_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT COMMENT '操作用户ID',
     username VARCHAR(50) COMMENT '操作用户名',
@@ -62,7 +62,7 @@ CREATE TABLE sys_operation_log (
 -- ========================================================
 
 -- 校区表
-CREATE TABLE sys_campus (
+CREATE TABLE IF NOT EXISTS sys_campus (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     campus_code VARCHAR(20) NOT NULL COMMENT '校区代码',
     campus_name VARCHAR(100) NOT NULL COMMENT '校区名称',
@@ -77,7 +77,7 @@ CREATE TABLE sys_campus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='校区表';
 
 -- 院系表
-CREATE TABLE sys_department (
+CREATE TABLE IF NOT EXISTS sys_department (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     dept_code VARCHAR(20) NOT NULL COMMENT '院系代码',
     dept_name VARCHAR(100) NOT NULL COMMENT '院系名称',
@@ -96,7 +96,7 @@ CREATE TABLE sys_department (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='院系表';
 
 -- 班级表
-CREATE TABLE edu_class (
+CREATE TABLE IF NOT EXISTS edu_class (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     class_code VARCHAR(20) NOT NULL COMMENT '班级代码',
     class_name VARCHAR(100) NOT NULL COMMENT '班级名称',
@@ -115,7 +115,7 @@ CREATE TABLE edu_class (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='班级表';
 
 -- 教师表
-CREATE TABLE edu_teacher (
+CREATE TABLE IF NOT EXISTS edu_teacher (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT NOT NULL COMMENT '关联用户ID',
     teacher_no VARCHAR(20) NOT NULL COMMENT '教师工号',
@@ -136,7 +136,7 @@ CREATE TABLE edu_teacher (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教师表';
 
 -- 学生表
-CREATE TABLE edu_student (
+CREATE TABLE IF NOT EXISTS edu_student (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT NOT NULL COMMENT '关联用户ID',
     student_no VARCHAR(20) NOT NULL COMMENT '学号',
@@ -159,7 +159,7 @@ CREATE TABLE edu_student (
 -- ========================================================
 
 -- 教室表
-CREATE TABLE edu_classroom (
+CREATE TABLE IF NOT EXISTS edu_classroom (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     room_no VARCHAR(20) NOT NULL COMMENT '教室编号',
     room_name VARCHAR(100) COMMENT '教室名称',
@@ -184,7 +184,7 @@ CREATE TABLE edu_classroom (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教室表';
 
 -- 课程表
-CREATE TABLE edu_course (
+CREATE TABLE IF NOT EXISTS edu_course (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     course_code VARCHAR(20) NOT NULL COMMENT '课程代码',
     course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
@@ -216,7 +216,7 @@ CREATE TABLE edu_course (
 -- ========================================================
 
 -- 教学任务表(开课计划)
-CREATE TABLE edu_teaching_task (
+CREATE TABLE IF NOT EXISTS edu_teaching_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     semester VARCHAR(20) NOT NULL COMMENT '学期,如:2024-2025-1',
     course_id BIGINT NOT NULL COMMENT '课程ID',
@@ -245,7 +245,7 @@ CREATE TABLE edu_teaching_task (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教学任务表';
 
 -- 课表主表
-CREATE TABLE sch_timetable (
+CREATE TABLE IF NOT EXISTS sch_timetable (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     semester VARCHAR(20) NOT NULL COMMENT '学期',
     version INT DEFAULT 1 COMMENT '版本号',
@@ -270,7 +270,7 @@ CREATE TABLE sch_timetable (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课表主表';
 
 -- 课表明细表
-CREATE TABLE sch_timetable_detail (
+CREATE TABLE IF NOT EXISTS sch_timetable_detail (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     timetable_id BIGINT NOT NULL COMMENT '课表ID',
     task_id BIGINT NOT NULL COMMENT '教学任务ID',
@@ -304,7 +304,7 @@ CREATE TABLE sch_timetable_detail (
 -- ========================================================
 
 -- 教师时间约束表
-CREATE TABLE con_teacher_time (
+CREATE TABLE IF NOT EXISTS con_teacher_time (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     teacher_id BIGINT NOT NULL COMMENT '教师ID',
     semester VARCHAR(20) NOT NULL COMMENT '学期',
@@ -322,7 +322,7 @@ CREATE TABLE con_teacher_time (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教师时间约束表';
 
 -- 教室时间约束表
-CREATE TABLE con_classroom_time (
+CREATE TABLE IF NOT EXISTS con_classroom_time (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     classroom_id BIGINT NOT NULL COMMENT '教室ID',
     semester VARCHAR(20) NOT NULL COMMENT '学期',
@@ -342,7 +342,7 @@ CREATE TABLE con_classroom_time (
 -- ========================================================
 
 -- 调课申请表
-CREATE TABLE adj_application (
+CREATE TABLE IF NOT EXISTS adj_application (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     application_no VARCHAR(30) NOT NULL COMMENT '申请编号',
     semester VARCHAR(20) NOT NULL COMMENT '学期',
@@ -373,7 +373,7 @@ CREATE TABLE adj_application (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='调课申请表';
 
 -- 课程交换申请表
-CREATE TABLE adj_swap_application (
+CREATE TABLE IF NOT EXISTS adj_swap_application (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     application_no VARCHAR(30) NOT NULL COMMENT '申请编号',
     semester VARCHAR(20) NOT NULL COMMENT '学期',
@@ -411,7 +411,7 @@ CREATE TABLE adj_swap_application (
 -- ========================================================
 
 -- 数据同步配置表
-CREATE TABLE sync_config (
+CREATE TABLE IF NOT EXISTS sync_config (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     system_name VARCHAR(50) NOT NULL COMMENT '系统名称',
     system_code VARCHAR(20) NOT NULL COMMENT '系统代码',
@@ -432,7 +432,7 @@ CREATE TABLE sync_config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据同步配置表';
 
 -- 数据同步日志表
-CREATE TABLE sync_log (
+CREATE TABLE IF NOT EXISTS sync_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     config_id BIGINT NOT NULL COMMENT '配置ID',
     sync_type VARCHAR(50) COMMENT '同步类型',
@@ -456,7 +456,7 @@ CREATE TABLE sync_log (
 -- ----------------------------
 -- 1. 校区数据
 -- ----------------------------
-INSERT INTO sys_campus (campus_code, campus_name, address, commute_time, sort_order, status) VALUES
+INSERT IGNORE INTO sys_campus (campus_code, campus_name, address, commute_time, sort_order, status) VALUES
 ('MAIN', '主校区', '北京市海淀区学院路1号', 0, 1, 1),
 ('EAST', '东校区', '北京市海淀区学院路100号', 15, 2, 1),
 ('SOUTH', '南校区', '北京市海淀区学院路200号', 20, 3, 1);
@@ -464,7 +464,7 @@ INSERT INTO sys_campus (campus_code, campus_name, address, commute_time, sort_or
 -- ----------------------------
 -- 2. 院系数据
 -- ----------------------------
-INSERT INTO sys_department (dept_code, dept_name, campus_id, parent_id, leader_name, leader_phone, sort_order, status) VALUES
+INSERT IGNORE INTO sys_department (dept_code, dept_name, campus_id, parent_id, leader_name, leader_phone, sort_order, status) VALUES
 ('CS', '计算机学院', 1, 0, '张教授', '13800000001', 1, 1),
 ('EE', '电子工程学院', 1, 0, '李教授', '13800000002', 2, 1),
 ('MATH', '数学学院', 1, 0, '王教授', '13800000003', 3, 1),
@@ -472,10 +472,10 @@ INSERT INTO sys_department (dept_code, dept_name, campus_id, parent_id, leader_n
 ('ENG', '外国语学院', 3, 0, '刘教授', '13800000005', 5, 1);
 
 -- ----------------------------
--- 3. 用户数据 (密码都是 123456，使用BCrypt加密)
+-- 3. 用户数据 (admin密码: admin123, 其他密码: 123456，使用BCrypt加密)
 -- ----------------------------
-INSERT INTO sys_user (username, password, real_name, role, phone, email, status) VALUES
-('admin', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
+INSERT IGNORE INTO sys_user (username, password, real_name, role, phone, email, status) VALUES
+('admin', '$2a$10$paVlGooEQpZlYkRAecl4ZOaDU9q6J3ZVPs1cIJk2CA.9IqLgCMBbS', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
 ('teacher001', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '张三', 'TEACHER', '13800000011', 'zhangsan@example.com', 1),
 ('teacher002', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '李四', 'TEACHER', '13800000012', 'lisi@example.com', 1),
 ('teacher003', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '王五', 'TEACHER', '13800000013', 'wangwu@example.com', 1),
@@ -487,7 +487,7 @@ INSERT INTO sys_user (username, password, real_name, role, phone, email, status)
 -- ----------------------------
 -- 4. 教师数据
 -- ----------------------------
-INSERT INTO edu_teacher (user_id, teacher_no, dept_id, title, research_area, office_location, max_hours_per_week, campus_id, status) VALUES
+INSERT IGNORE INTO edu_teacher (user_id, teacher_no, dept_id, title, research_area, office_location, max_hours_per_week, campus_id, status) VALUES
 (2, 'T001', 1, 'PROFESSOR', '人工智能', '计算机楼301', 20, 1, 1),
 (3, 'T002', 1, 'ASSOCIATE_PROFESSOR', '软件工程', '计算机楼302', 18, 1, 1),
 (4, 'T003', 2, 'PROFESSOR', '通信工程', '电子楼201', 20, 1, 1),
@@ -497,7 +497,7 @@ INSERT INTO edu_teacher (user_id, teacher_no, dept_id, title, research_area, off
 -- ----------------------------
 -- 5. 班级数据
 -- ----------------------------
-INSERT INTO edu_class (class_code, class_name, dept_id, grade, student_count, counselor_name, counselor_phone, status) VALUES
+INSERT IGNORE INTO edu_class (class_code, class_name, dept_id, grade, student_count, counselor_name, counselor_phone, status) VALUES
 ('CS202101', '计算机科学2021级1班', 1, '2021', 45, '辅导员A', '13900000001', 1),
 ('CS202102', '计算机科学2021级2班', 1, '2021', 42, '辅导员A', '13900000001', 1),
 ('CS202201', '计算机科学2022级1班', 1, '2022', 48, '辅导员B', '13900000002', 1),
@@ -508,14 +508,14 @@ INSERT INTO edu_class (class_code, class_name, dept_id, grade, student_count, co
 -- ----------------------------
 -- 6. 学生数据
 -- ----------------------------
-INSERT INTO edu_student (user_id, student_no, dept_id, class_id, grade, status) VALUES
+INSERT IGNORE INTO edu_student (user_id, student_no, dept_id, class_id, grade, status) VALUES
 (7, 'S2021001', 1, 1, '2021', 1),
 (8, 'S2021002', 1, 1, '2021', 1);
 
 -- ----------------------------
 -- 7. 教室数据
 -- ----------------------------
-INSERT INTO edu_classroom (room_no, room_name, campus_id, building, floor, capacity, room_type, has_projector, has_microphone, has_air_conditioner, status) VALUES
+INSERT IGNORE INTO edu_classroom (room_no, room_name, campus_id, building, floor, capacity, room_type, has_projector, has_microphone, has_air_conditioner, status) VALUES
 ('A101', '教学楼A101', 1, '教学楼A', 1, 60, 'GENERAL', 1, 1, 1, 1),
 ('A102', '教学楼A102', 1, '教学楼A', 1, 50, 'GENERAL', 1, 0, 1, 1),
 ('A201', '教学楼A201', 1, '教学楼A', 2, 80, 'MULTIMEDIA', 1, 1, 1, 1),
@@ -532,7 +532,7 @@ INSERT INTO edu_classroom (room_no, room_name, campus_id, building, floor, capac
 -- ----------------------------
 -- 8. 课程数据
 -- ----------------------------
-INSERT INTO edu_course (course_code, course_name, course_type, credit, theory_hours, practice_hours, total_hours, dept_id, priority, need_multimedia, need_lab, status) VALUES
+INSERT IGNORE INTO edu_course (course_code, course_name, course_type, credit, theory_hours, practice_hours, total_hours, dept_id, priority, need_multimedia, need_lab, status) VALUES
 ('CS101', '程序设计基础', 'REQUIRED', 4.0, 48, 16, 64, 1, 1, 1, 0, 1),
 ('CS102', '数据结构', 'REQUIRED', 4.0, 48, 16, 64, 1, 1, 1, 0, 1),
 ('CS201', '操作系统', 'REQUIRED', 3.5, 48, 8, 56, 1, 2, 1, 0, 1),
@@ -549,25 +549,25 @@ INSERT INTO edu_course (course_code, course_name, course_type, credit, theory_ho
 ('PHYS102', '大学物理(下)', 'REQUIRED', 4.0, 56, 8, 64, 4, 1, 1, 0, 1);
 
 -- ----------------------------
--- 9. 教学任务数据 (2024-1学期)
+-- 9. 教学任务数据 (2025-2026学年第二学期)
 -- ----------------------------
-INSERT INTO edu_teaching_task (semester, course_id, teacher_id, class_id, student_count, weekly_hours, total_weeks, weeks, course_nature, priority_level, status) VALUES
-('2024-1', 1, 1, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 1, 1, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 2, 2, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 2, 2, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 3, 1, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
-('2024-1', 4, 2, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
-('2024-1', 5, 1, 1, 45, 3, 16, '1-16', 'BOTH', 3, 'PENDING'),
-('2024-1', 6, 2, 2, 42, 3, 16, '1-16', 'BOTH', 2, 'PENDING'),
-('2024-1', 7, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 7, 3, 5, 44, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 8, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 10, 4, 1, 45, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
-('2024-1', 10, 4, 2, 42, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
-('2024-1', 10, 4, 3, 48, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
-('2024-1', 12, 4, 1, 45, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
-('2024-1', 12, 4, 4, 40, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
-('2024-1', 13, 5, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 13, 5, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
-('2024-1', 13, 5, 6, 35, 4, 16, '1-16', 'BOTH', 1, 'PENDING');
+INSERT IGNORE INTO edu_teaching_task (semester, course_id, teacher_id, class_id, student_count, weekly_hours, total_weeks, weeks, course_nature, priority_level, status) VALUES
+('2025-2026-2', 1, 1, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 1, 1, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 2, 2, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 2, 2, 2, 42, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 3, 1, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2025-2026-2', 4, 2, 3, 48, 4, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2025-2026-2', 5, 1, 1, 45, 3, 16, '1-16', 'BOTH', 3, 'PENDING'),
+('2025-2026-2', 6, 2, 2, 42, 3, 16, '1-16', 'BOTH', 2, 'PENDING'),
+('2025-2026-2', 7, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 7, 3, 5, 44, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 8, 3, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 10, 4, 1, 45, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2025-2026-2', 10, 4, 2, 42, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2025-2026-2', 10, 4, 3, 48, 5, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2025-2026-2', 12, 4, 1, 45, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2025-2026-2', 12, 4, 4, 40, 3, 16, '1-16', 'THEORY', 1, 'PENDING'),
+('2025-2026-2', 13, 5, 1, 45, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 13, 5, 4, 40, 4, 16, '1-16', 'BOTH', 1, 'PENDING'),
+('2025-2026-2', 13, 5, 6, 35, 4, 16, '1-16', 'BOTH', 1, 'PENDING');

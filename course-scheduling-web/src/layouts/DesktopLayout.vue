@@ -76,10 +76,23 @@
           </n-icon>
         </button>
         <div v-show="!isCollapsed" class="user-info">
-          <n-icon size="20" aria-hidden="true">
-            <PersonOutline />
-          </n-icon>
-          <span class="user-name">{{ userStore.userInfo?.realName || '用户' }}</span>
+          <div class="user-info-main">
+            <n-icon size="20" aria-hidden="true">
+              <PersonOutline />
+            </n-icon>
+            <span class="user-name">{{ userStore.userInfo?.realName || '用户' }}</span>
+          </div>
+          <button
+            class="logout-btn touch-target icon-button"
+            @click="handleLogout"
+            aria-label="退出登录"
+            type="button"
+            title="退出登录"
+          >
+            <n-icon size="18" aria-hidden="true">
+              <LogOutOutline />
+            </n-icon>
+          </button>
         </div>
         <button 
           v-if="isCollapsed && !isMobile" 
@@ -159,11 +172,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useLayoutStore } from '@/stores/layout'
 import { useUserStore } from '@/stores/user'
-import { NIcon, NButton } from 'naive-ui'
+import { NIcon, NButton, useMessage, useDialog } from 'naive-ui'
 import {
   CalendarOutline,
   ArrowBackOutline,
@@ -175,13 +188,17 @@ import {
   MenuOutline,
   MoonOutline,
   SunnyOutline,
-  ClipboardOutline
+  ClipboardOutline,
+  LogOutOutline
 } from '@vicons/ionicons5'
 
 const route = useRoute()
+const router = useRouter()
 const themeStore = useThemeStore()
 const layoutStore = useLayoutStore()
 const userStore = useUserStore()
+const message = useMessage()
+const dialog = useDialog()
 const isCollapsed = ref(false)
 const isMobile = ref(false)
 const showOverlay = ref(false)
@@ -264,6 +281,22 @@ const toggleTheme = () => {
   themeStore.toggleTheme()
 }
 
+const handleLogout = async () => {
+  await new Promise((resolve, reject) => {
+    dialog.warning({
+      title: '确认退出',
+      content: '确定要退出登录吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: resolve,
+      onNegativeClick: reject
+    })
+  })
+  await userStore.logout()
+  message.success('已退出登录')
+  router.push('/login')
+}
+
 const handleKeydown = (event) => {
   if (event.key === 'Escape' && showOverlay.value) {
     closeSidebar()
@@ -335,9 +368,13 @@ onUnmounted(() => {
   flex-direction: column;
   transition: width var(--transition-base), transform var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
   flex-shrink: 0;
-  position: relative;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
   z-index: 100;
-  margin: 16px 0 16px 16px;
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
 }
 
 .sidebar.collapsed {
@@ -348,7 +385,9 @@ onUnmounted(() => {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100%;
+  bottom: 0;
+  height: 100vh;
+  max-height: 100vh;
   transform: translateX(-100%);
   z-index: 1000;
   width: 280px;
@@ -518,7 +557,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  width: 86%;
+  width: 100%;
   padding: 10px 14px;
   background: rgba(255, 250, 243, 0.72);
   border-radius: 16px;
@@ -573,9 +612,18 @@ onUnmounted(() => {
 .user-info {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-sm);
   color: var(--text-secondary);
   width: 100%;
+}
+
+.user-info-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
 }
 
 .user-name {
@@ -583,6 +631,29 @@ onUnmounted(() => {
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  transform: scale(1.05);
+}
+
+.logout-btn:active {
+  transform: scale(0.95);
 }
 
 .main-content {
@@ -591,6 +662,12 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  margin-left: calc(240px + 16px + 16px);
+  transition: margin-left var(--transition-base);
+}
+
+.sidebar.collapsed ~ .main-content {
+  margin-left: calc(64px + 16px + 16px);
 }
 
 .top-header {
@@ -703,11 +780,19 @@ onUnmounted(() => {
   .sidebar {
     width: 200px;
   }
-  
+
   .sidebar.collapsed {
     width: 64px;
   }
-  
+
+  .main-content {
+    margin-left: calc(200px + 16px + 16px);
+  }
+
+  .sidebar.collapsed ~ .main-content {
+    margin-left: calc(64px + 16px + 16px);
+  }
+
   .content-wrapper {
     padding: 18px;
   }
@@ -717,11 +802,19 @@ onUnmounted(() => {
   .sidebar {
     width: 260px;
   }
-  
+
   .sidebar.collapsed {
     width: 72px;
   }
-  
+
+  .main-content {
+    margin-left: calc(260px + 16px + 16px);
+  }
+
+  .sidebar.collapsed ~ .main-content {
+    margin-left: calc(72px + 16px + 16px);
+  }
+
   .content-wrapper {
     padding: 24px;
     max-width: 95%;
@@ -734,21 +827,29 @@ onUnmounted(() => {
   .sidebar {
     width: 300px;
   }
-  
+
   .sidebar.collapsed {
     width: 80px;
   }
-  
+
+  .main-content {
+    margin-left: calc(300px + 16px + 16px);
+  }
+
+  .sidebar.collapsed ~ .main-content {
+    margin-left: calc(80px + 16px + 16px);
+  }
+
   .content-wrapper {
     padding: var(--spacing-3xl);
     max-width: 92%;
     width: var(--content-max-width-ultra);
   }
-  
+
   .page-title {
     font-size: 22px;
   }
-  
+
   .nav-text {
     font-size: 16px;
   }
@@ -758,21 +859,29 @@ onUnmounted(() => {
   .sidebar {
     width: 360px;
   }
-  
+
   .sidebar.collapsed {
     width: 90px;
   }
-  
+
+  .main-content {
+    margin-left: calc(360px + 16px + 16px);
+  }
+
+  .sidebar.collapsed ~ .main-content {
+    margin-left: calc(90px + 16px + 16px);
+  }
+
   .content-wrapper {
     padding: var(--spacing-4xl);
     max-width: 90%;
     width: var(--content-max-width-super);
   }
-  
+
   .page-title {
     font-size: 26px;
   }
-  
+
   .nav-text {
     font-size: 18px;
   }

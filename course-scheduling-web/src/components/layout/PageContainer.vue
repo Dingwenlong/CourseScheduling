@@ -25,7 +25,7 @@ defineProps({
 }
 
 .page-container.with-tabbar {
-  padding-bottom: 92px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 20px);
 }
 
 .page-container::before {

@@ -50,10 +50,12 @@ goto wait_mysql
 
 echo.
 echo [4/9] Checking database schema...
-docker exec course-scheduling-mysql mysql -uroot -proot123456 -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'course_scheduling' AND table_name = 'sys_user';" 2>nul | findstr "^1$" >nul
-if %errorlevel% neq 0 (
+docker exec course-scheduling-mysql mysql -uroot -proot123456 -e "USE course_scheduling; SELECT 1 FROM sys_user LIMIT 1;" 2>nul >nul
+if %errorlevel% equ 0 (
+    echo       Database schema already exists
+) else (
     echo       Database schema not found, initializing...
-    docker exec -i course-scheduling-mysql mysql -uroot -proot123456 < database\mysql\init-schema.sql
+    type database\mysql\init-schema.sql | docker exec -i course-scheduling-mysql mysql -uroot -proot123456
     if %errorlevel% neq 0 (
         echo [ERROR] Database initialization failed
         echo         If MySQL was initialized with another root password, clear the old volume:
@@ -62,8 +64,6 @@ if %errorlevel% neq 0 (
         exit /b 1
     )
     echo       Database initialized
-) else (
-    echo       Database schema already exists
 )
 
 echo.

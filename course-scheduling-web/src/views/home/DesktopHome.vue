@@ -5,52 +5,70 @@
       <p class="page-subtitle">欢迎回来，管理员</p>
     </div>
 
-    <div class="stats-grid grid-adaptive stagger-animation" role="region" aria-label="统计数据">
-      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="已排课程统计">
-        <div class="stat-icon" style="background: #eff6ff;">
-          <n-icon size="32" color="#51caba">
-            <CalendarOutline />
-          </n-icon>
+    <div class="semester-overview-section animate-fade-in-up" role="region" aria-label="学期概览">
+      <div class="semester-info-bar">
+        <div class="semester-title-group">
+          <div class="semester-badge-large">
+            <n-icon size="20" color="#fff"><CalendarOutline /></n-icon>
+            <span>{{ currentSemester }}</span>
+          </div>
+          <span class="semester-subtitle">当前学期概览</span>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.totalCourses }}</div>
-          <div class="stat-label">已排课程</div>
-        </div>
+        <n-tag type="success" size="medium" round>进行中</n-tag>
       </div>
 
-      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="总学时统计">
-        <div class="stat-icon" style="background: #ecfdf5;">
-          <n-icon size="32" color="#10b981">
-            <TimeOutline />
-          </n-icon>
+      <div class="stats-grid grid-adaptive stagger-animation" role="region" aria-label="统计数据">
+        <div class="stat-card-desktop stat-card-primary" tabindex="0" role="article" aria-label="已排课程统计">
+          <div class="stat-icon" style="background: rgba(114, 137, 103, 0.12);">
+            <n-icon size="32" color="#728967">
+              <CalendarOutline />
+            </n-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.totalCourses }}</div>
+            <div class="stat-label">已排课程</div>
+          </div>
+          <div class="stat-trend" v-if="stats.totalCourses > 0">
+            <n-icon size="14" color="#10b981"><TrendingUpOutline /></n-icon>
+            <span>正常</span>
+          </div>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.totalHours }}</div>
-          <div class="stat-label">总学时</div>
-        </div>
-      </div>
 
-      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="教学任务统计">
-        <div class="stat-icon" style="background: #fef3c7;">
-          <n-icon size="32" color="#f59e0b">
-            <ClipboardOutline />
-          </n-icon>
+        <div class="stat-card-desktop" tabindex="0" role="article" aria-label="总学时统计">
+          <div class="stat-icon" style="background: rgba(81, 202, 186, 0.12);">
+            <n-icon size="32" color="#51caba">
+              <TimeOutline />
+            </n-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.totalHours }}</div>
+            <div class="stat-label">总学时</div>
+          </div>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.totalTasks }}</div>
-          <div class="stat-label">教学任务</div>
-        </div>
-      </div>
 
-      <div class="stat-card-desktop" tabindex="0" role="article" aria-label="冲突数量统计">
-        <div class="stat-icon" style="background: #fef2f2;">
-          <n-icon size="32" color="#ef4444">
-            <WarningOutline />
-          </n-icon>
+        <div class="stat-card-desktop" tabindex="0" role="article" aria-label="教学任务统计">
+          <div class="stat-icon" style="background: rgba(245, 158, 11, 0.12);">
+            <n-icon size="32" color="#f59e0b">
+              <ClipboardOutline />
+            </n-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.totalTasks }}</div>
+            <div class="stat-label">教学任务</div>
+          </div>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.conflicts }}</div>
-          <div class="stat-label">冲突数量</div>
+
+        <div class="stat-card-desktop" tabindex="0" role="article" aria-label="冲突数量统计" :class="{ 'stat-card-warning': stats.conflicts > 0 }">
+          <div class="stat-icon" :style="{ background: stats.conflicts > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)' }">
+            <n-icon size="32" :color="stats.conflicts > 0 ? '#ef4444' : '#10b981'">
+              <WarningOutline v-if="stats.conflicts > 0" />
+              <CheckmarkCircleOutline v-else />
+            </n-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" :class="{ 'text-danger': stats.conflicts > 0 }">{{ stats.conflicts }}</div>
+            <div class="stat-label">{{ stats.conflicts > 0 ? '待处理冲突' : '无冲突' }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -245,7 +263,8 @@ import {
   SettingsOutline,
   CheckmarkCircleOutline,
   AddOutline,
-  CreateOutline
+  CreateOutline,
+  TrendingUpOutline
 } from '@vicons/ionicons5'
 
 const router = useRouter()
@@ -258,6 +277,8 @@ const stats = ref({
   totalTasks: 0,
   conflicts: 0
 })
+
+const currentSemester = ref('')
 
 const getStatusType = (status) => {
   const map = {
@@ -289,6 +310,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const semester = getCurrentSemester()
+    currentSemester.value = semester
     const res = await getLatestTimetable(semester)
     latestTimetable.value = res.data
     if (res.data) {
@@ -357,25 +379,93 @@ onMounted(async () => {
   margin: 0;
 }
 
-.stats-grid {
+.semester-overview-section {
+  background: linear-gradient(135deg, #728967 0%, #5a6e52 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
   margin-bottom: var(--spacing-xl);
-  --grid-min-width: 260px;
+  box-shadow: 0 8px 32px rgba(114, 137, 103, 0.25);
+}
+
+.semester-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.semester-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.semester-badge-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+.semester-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.stats-grid {
+  --grid-min-width: 220px;
+  gap: var(--spacing-lg);
 }
 
 .stat-card-desktop {
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
 }
 
 .stat-card-desktop:hover {
-  box-shadow: 0 6px 16px rgba(81, 202, 186, 0.4);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  background: #fff;
+}
+
+.stat-card-primary {
+  border-left: 4px solid #728967;
+}
+
+.stat-card-warning {
+  border-left: 4px solid #ef4444;
+}
+
+.stat-trend {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 8px;
+  border-radius: 999px;
 }
 
 .stat-icon {

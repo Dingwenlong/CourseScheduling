@@ -441,7 +441,7 @@ a:hover {
 }
 
 .page-with-tabbar {
-  padding-bottom: 88px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 20px);
 }
 
 .card,

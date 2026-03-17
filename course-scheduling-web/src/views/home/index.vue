@@ -2,12 +2,29 @@
   <PageContainer with-tabbar class="home-page">
     <PageHeader title="首页" subtitle="教学排课工作台" />
 
-    <div class="stat-card animate-slide-up">
-      <div class="stat-card-content">
-        <div class="stat-card-meta">当前学期概览</div>
-        <div class="stat-card-title">本学期已排课程</div>
-        <div class="stat-card-value">{{ stats.totalCourses }}</div>
-        <div class="stat-card-desc">共 {{ stats.totalHours }} 学时</div>
+    <div class="semester-overview-card animate-slide-up">
+      <div class="semester-header">
+        <div class="semester-badge">
+          <n-icon size="14" color="#fff"><CalendarOutline /></n-icon>
+          <span>{{ currentSemester }}</span>
+        </div>
+        <span class="semester-label">当前学期</span>
+      </div>
+      <div class="semester-stats">
+        <div class="semester-stat-item">
+          <div class="semester-stat-value">{{ stats.totalCourses }}</div>
+          <div class="semester-stat-label">已排课程</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="semester-stat-item">
+          <div class="semester-stat-value">{{ stats.totalHours }}</div>
+          <div class="semester-stat-label">总学时</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="semester-stat-item">
+          <div class="semester-stat-value">{{ stats.totalTasks }}</div>
+          <div class="semester-stat-label">教学任务</div>
+        </div>
       </div>
     </div>
 
@@ -127,8 +144,11 @@ const updateScreenWidth = () => {
 
 const stats = ref({
   totalCourses: 0,
-  totalHours: 0
+  totalHours: 0,
+  totalTasks: 0
 })
+
+const currentSemester = ref('')
 
 const getStatusType = (status) => {
   const map = {
@@ -163,11 +183,13 @@ onMounted(async () => {
   loading.value = true
   try {
     const semester = getCurrentSemester()
+    currentSemester.value = semester
     const res = await getLatestTimetable(semester)
     latestTimetable.value = res.data
     if (res.data) {
       stats.value.totalCourses = res.data.scheduledCount || 0
       stats.value.totalHours = (res.data.scheduledCount || 0) * 2
+      stats.value.totalTasks = res.data.taskCount || 0
     }
   } catch (e) {
     console.error(e)
@@ -297,26 +319,98 @@ onUnmounted(() => {
   transform: translateY(1px);
 }
 
-.stat-card-meta {
+.semester-overview-card {
+  background: linear-gradient(135deg, #728967 0%, #5a6e52 100%);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: var(--spacing-lg);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(114, 137, 103, 0.25);
+}
+
+.semester-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.semester-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  margin-bottom: 12px;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 14px;
   font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.semester-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.semester-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px 16px;
+  backdrop-filter: blur(4px);
+}
+
+.semester-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.semester-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.semester-stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @media (max-width: 480px) {
   .timetable-name {
     font-size: 16px;
   }
-  
+
   .view-btn {
     height: 44px;
     font-size: 15px;
+  }
+
+  .semester-overview-card {
+    padding: 16px;
+  }
+
+  .semester-stat-value {
+    font-size: 24px;
+  }
+
+  .semester-stats {
+    padding: 16px 12px;
   }
 }
 </style>

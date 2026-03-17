@@ -35,63 +35,85 @@
             </div>
           </div>
         </div>
-
-        <n-button block type="error" @click="handleLogout" class="logout-btn-desktop">
-          退出登录
-        </n-button>
       </div>
 
       <div class="profile-content">
-        <div class="mobile-profile-header mobile-only">
-          <div class="header-bg"></div>
-          <div class="header-content">
-            <n-image round width="90" height="90" :src="avatar" class="profile-avatar" />
-            <div class="profile-name">{{ userStore.userInfo?.realName || '用户' }}</div>
-            <div class="profile-role">
-              <n-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" size="small">
-                {{ getRoleName(userStore.userInfo?.role) }}
-              </n-tag>
-            </div>
-          </div>
-        </div>
 
         <div class="profile-content-grid">
           <div class="card info-card">
-            <div class="section-title desktop-only">基本信息</div>
-            <div class="card-header mobile-only">
-              <h3 class="card-title">基本信息</h3>
+            <div class="info-card-header">
+              <div class="section-title">基本信息</div>
+              <n-button type="primary" size="small" class="edit-btn" @click="showEditProfile = true">
+                <template #icon>
+                  <n-icon :component="CreateOutline" />
+                </template>
+                编辑资料
+              </n-button>
             </div>
-            <n-descriptions bordered column="1" class="info-group">
-              <n-descriptions-item label="用户名">
-                {{ userStore.userInfo?.username }}
-              </n-descriptions-item>
-              <n-descriptions-item label="真实姓名">
-                {{ userStore.userInfo?.realName }}
-              </n-descriptions-item>
-              <n-descriptions-item label="角色">
-                <n-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" size="small">
-                  {{ getRoleName(userStore.userInfo?.role) }}
-                </n-tag>
-              </n-descriptions-item>
-              <n-descriptions-item label="联系电话">
-                <template #label>
-                  <span style="display: flex; align-items: center; gap: 6px;">
-                    <n-icon :component="CallOutline" />
-                    联系电话
-                  </span>
-                </template>
-                {{ userStore.userInfo?.phone || '-' }}
-              </n-descriptions-item>
-              <n-descriptions-item label="电子邮箱">
-                <template #label>
-                  <span style="display: flex; align-items: center; gap: 6px;">
-                    <n-icon :component="MailOutline" />
-                    电子邮箱
-                  </span>
-                </template>
-                {{ userStore.userInfo?.email || '-' }}
-              </n-descriptions-item>
-            </n-descriptions>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(114, 137, 103, 0.12);">
+                  <n-icon :component="PersonOutline" size="20" color="#728967" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">用户名</div>
+                  <div class="info-value">{{ userStore.userInfo?.username }}</div>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(81, 202, 186, 0.12);">
+                  <n-icon :component="IdCardOutline" size="20" color="#51caba" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">真实姓名</div>
+                  <div class="info-value">{{ userStore.userInfo?.realName }}</div>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(245, 158, 11, 0.12);">
+                  <n-icon :component="ShieldCheckmarkOutline" size="20" color="#f59e0b" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">角色权限</div>
+                  <n-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" size="small">
+                    {{ getRoleName(userStore.userInfo?.role) }}
+                  </n-tag>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(111, 137, 163, 0.12);">
+                  <n-icon :component="CallOutline" size="20" color="#6f89a3" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">联系电话</div>
+                  <div class="info-value">{{ userStore.userInfo?.phone || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(184, 102, 89, 0.12);">
+                  <n-icon :component="MailOutline" size="20" color="#b86659" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">电子邮箱</div>
+                  <div class="info-value">{{ userStore.userInfo?.email || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(139, 92, 246, 0.12);">
+                  <n-icon :component="TimeOutline" size="20" color="#8b5cf6" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">注册时间</div>
+                  <div class="info-value">{{ formatDate(userStore.userInfo?.createTime) }}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="card menu-card mobile-only">
@@ -155,12 +177,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMessage, useDialog } from 'naive-ui'
+import { useMessage, useDialog, NButton, NModal, NInput, NForm, NFormItem, NImage, NTag, NIcon, NList, NListItem, NDescriptions, NDescriptionsItem } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import { changePassword } from '@/api/auth'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
-import { CalendarOutline, PersonOutline, LockClosedOutline, InformationCircleOutline, CallOutline, MailOutline } from '@vicons/ionicons5'
+import { CalendarOutline, PersonOutline, LockClosedOutline, InformationCircleOutline, CallOutline, MailOutline, CreateOutline, IdCardOutline, ShieldCheckmarkOutline, TimeOutline } from '@vicons/ionicons5'
+import dayjs from 'dayjs'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -170,6 +193,7 @@ const dialog = useDialog()
 const avatar = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
 const showPassword = ref(false)
 const showAbout = ref(false)
+const showEditProfile = ref(false)
 
 const passwordForm = ref({
   oldPassword: '',
@@ -193,6 +217,10 @@ const getRoleName = (role) => {
 const getRoleClass = (role) => {
   const map = { 'ADMIN': 'tag-danger', 'TEACHER': 'tag-primary', 'STUDENT': 'tag-success' }
   return map[role] || 'tag-default'
+}
+
+const formatDate = (date) => {
+  return date ? dayjs(date).format('YYYY-MM-DD') : '-'
 }
 
 const handleLogout = async () => {
@@ -256,12 +284,39 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: var(--spacing-xl);
+  align-items: start;
 }
 
 .profile-sidebar {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+}
+
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.profile-content-grid {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.info-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+  align-content: start;
 }
 
 .sidebar-card {
@@ -331,12 +386,6 @@ onMounted(() => {
   border-left: 3px solid var(--primary-color);
 }
 
-.logout-btn-desktop {
-  height: 48px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .profile-content {
   flex: 1;
 }
@@ -346,11 +395,65 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
   padding: var(--spacing-xl);
-  margin-bottom: var(--spacing-lg);
 }
 
-.card:last-child {
+.info-card {
   margin-bottom: 0;
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px dashed var(--border-soft);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+.info-item:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.info-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-header {
@@ -481,6 +584,19 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
+  .profile-content {
+    height: auto;
+  }
+
+  .info-card {
+    flex: none;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    flex: none;
+  }
+
   .profile-sidebar {
     flex-direction: row;
   }
@@ -493,9 +609,88 @@ onMounted(() => {
     padding: var(--spacing-md);
   }
 
-  .logout-btn-desktop {
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-profile-header {
+    position: relative;
+    padding: var(--spacing-lg);
+    overflow: hidden;
+    margin: calc(-1 * var(--spacing-lg));
+    margin-bottom: var(--spacing-lg);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-profile-header .header-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-gradient);
+  }
+
+  .mobile-profile-header .header-bg::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -5%;
+    width: 50%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+  }
+
+  .mobile-profile-header .header-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    color: #fff;
+    width: 100%;
+  }
+
+  .mobile-profile-header .profile-avatar {
+    width: 64px;
+    height: 64px;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     flex-shrink: 0;
-    width: 120px;
+  }
+
+  .mobile-profile-header .header-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-profile-header .profile-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-profile-header .profile-role {
+    display: inline-flex;
+  }
+
+  .mobile-profile-header .profile-role .status-tag {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    font-size: 12px;
   }
 }
 
@@ -518,17 +713,50 @@ onMounted(() => {
 
   .card {
     padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .card:last-child {
+    margin-bottom: 0;
+  }
+
+  .info-card {
+    padding: var(--spacing-lg);
+    margin-bottom: 0;
+  }
+
+  .info-card-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .info-item {
+    padding: var(--spacing-md);
+  }
+
+  .info-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .info-value {
+    font-size: 14px;
   }
 
   .mobile-profile-header {
     position: relative;
-    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-2xl);
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
     overflow: hidden;
-    margin-top: calc(-1 * var(--spacing-xl));
+    margin-top: calc(-1 * var(--spacing-lg));
     margin-left: calc(-1 * var(--spacing-lg));
     margin-right: calc(-1 * var(--spacing-lg));
     margin-bottom: var(--spacing-lg);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   }
 
   .header-bg {
@@ -543,41 +771,75 @@ onMounted(() => {
   .header-bg::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 80%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
-    animation: float 8s ease-in-out infinite;
+    top: -30%;
+    right: -10%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .header-bg::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: -10%;
+    width: 50%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+    animation: float 8s ease-in-out infinite reverse;
   }
 
   @keyframes float {
     0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(5deg); }
+    50% { transform: translateY(-15px) rotate(3deg); }
   }
 
   .header-content {
     position: relative;
     z-index: 1;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
     color: #fff;
     animation: slideUp 0.5s ease-out;
+    text-align: left;
   }
 
   .profile-avatar {
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+  }
+
+  .profile-avatar :deep(img) {
+    object-fit: cover;
+  }
+
+  .header-info {
+    flex: 1;
+    min-width: 0;
   }
 
   .profile-name {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
-    margin-top: var(--spacing-lg);
-    letter-spacing: -0.02em;
+    margin-bottom: var(--spacing-xs);
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .profile-role {
-    margin-top: var(--spacing-sm);
+    display: inline-flex;
+  }
+
+  .profile-role .status-tag {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    backdrop-filter: blur(4px);
   }
 
   .info-card,
@@ -595,15 +857,28 @@ onMounted(() => {
 
   .logout-wrapper {
     margin-top: var(--spacing-xl);
+    padding: 0 var(--spacing-lg);
     animation: slideUp 0.4s ease-out 0.2s backwards;
   }
 
   .logout-btn {
-    height: 50px;
+    height: 52px;
     font-size: 16px;
     font-weight: 600;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border: none;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow:
+      0 6px 16px rgba(239, 68, 68, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all var(--transition-base);
+  }
+
+  .logout-btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      0 2px 8px rgba(239, 68, 68, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 }
 </style>

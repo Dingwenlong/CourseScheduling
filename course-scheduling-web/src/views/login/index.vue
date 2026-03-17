@@ -134,7 +134,7 @@
           </n-form>
 
           <footer class="card-footer">
-            <div class="test-account">测试账号：admin / 123456</div>
+            <div class="test-account">测试账号：admin / admin123</div>
           </footer>
         </div>
       </section>
@@ -178,7 +178,7 @@ const errorMessage = ref('')
 const errorAlertRef = ref(null)
 const demoCredentials = {
   username: 'admin',
-  password: '123456'
+  password: 'admin123'
 }
 
 const normalizeUsername = () => {

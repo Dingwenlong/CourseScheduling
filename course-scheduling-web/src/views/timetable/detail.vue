@@ -183,7 +183,7 @@
       </div>
     </n-spin>
 
-    <n-modal v-model:show="showCoursePopup" preset="card" title="课程详情" :style="{ width: '500px' }" class="course-dialog">
+    <n-modal v-model:show="showCoursePopup" preset="card" title="课程详情" :style="{ width: isMobile ? 'calc(100% - 32px)' : '500px', maxWidth: '100%' }" class="course-dialog">
       <div v-if="currentCourse" class="course-details">
         <n-descriptions :column="1" bordered>
           <n-descriptions-item label="课程名称">{{ currentCourse.courseName }}</n-descriptions-item>
@@ -253,20 +253,27 @@ const conflicts = ref([])
 const activeTab = ref('timetable')
 const showCoursePopup = ref(false)
 const currentCourse = ref(null)
+const isMobile = ref(window.innerWidth < 768)
 
-const dropdownOptions = computed(() => {
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+const dropdownOptions = ref([])
+
+const updateDropdownOptions = () => {
   const options = []
   if (timetable.value?.status === 'DRAFT') {
-    options.push({ label: '发布课表', value: 'publish' })
+    options.push({ label: '发布课表', key: 'publish' })
   }
   if (timetable.value?.status !== 'ARCHIVED') {
-    options.push({ label: '归档课表', value: 'archive' })
+    options.push({ label: '归档课表', key: 'archive' })
   }
   if (timetable.value?.status === 'DRAFT') {
-    options.push({ label: '删除课表', value: 'delete' })
+    options.push({ label: '删除课表', key: 'delete' })
   }
-  return options.length > 0 ? options : [{ label: '无操作', value: 'none' }]
-})
+  dropdownOptions.value = options.length > 0 ? options : [{ label: '无操作', key: 'none' }]
+}
 
 const getStatusText = (status) => {
   const map = { 'DRAFT': '草稿', 'PUBLISHED': '已发布', 'ARCHIVED': '已归档' }
@@ -386,6 +393,7 @@ const loadData = async () => {
     timetable.value = timetableRes.data
     details.value = detailsRes.data
     conflicts.value = conflictsRes.data
+    updateDropdownOptions()
   } catch (e) {
     console.error(e)
     message.error(e.message || '加载失败')
@@ -396,10 +404,12 @@ const loadData = async () => {
 
 onMounted(() => {
   loadData()
+  window.addEventListener('resize', updateIsMobile)
 })
 
 onUnmounted(() => {
   layoutStore.clearHeaderAction()
+  window.removeEventListener('resize', updateIsMobile)
 })
 </script>
 
@@ -761,6 +771,191 @@ onUnmounted(() => {
   .header-right {
     width: 100%;
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-detail-page {
+    padding-bottom: 20px;
+  }
+
+  .page-header {
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-md);
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .header-right {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .back-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .stat-card-desktop {
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .content-tabs {
+    border-radius: var(--radius-lg);
+  }
+
+  .timetable-card {
+    padding: var(--spacing-md);
+    overflow-x: auto;
+  }
+
+  .timetable-grid {
+    grid-template-columns: 50px repeat(5, minmax(60px, 1fr));
+    min-width: 350px;
+  }
+
+  .timetable-header {
+    padding: 8px 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .timetable-cell {
+    min-height: 60px;
+    padding: 4px;
+  }
+
+  .course-block {
+    padding: 4px 2px;
+  }
+
+  .course-block-name {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .course-block-info {
+    font-size: 9px;
+  }
+
+  .table-wrapper {
+    padding: var(--spacing-md);
+    margin: 0 calc(-1 * var(--spacing-md));
+    width: calc(100% + var(--spacing-md) * 2);
+  }
+
+  .data-table {
+    font-size: 13px;
+    min-width: 600px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .name-cell {
+    font-size: 13px;
+  }
+
+  .empty-container {
+    padding: var(--spacing-2xl) var(--spacing-lg);
+  }
+
+  .course-dialog {
+    margin: var(--spacing-sm);
+    width: calc(100% - var(--spacing-sm) * 2) !important;
+    max-width: 100%;
+  }
+
+  .course-details {
+    padding: var(--spacing-sm) 0;
+  }
+}
+
+@media (max-width: 479px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  .stat-card-desktop {
+    padding: var(--spacing-sm);
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-icon .n-icon {
+    font-size: 20px !important;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .timetable-grid {
+    grid-template-columns: 40px repeat(5, minmax(50px, 1fr));
+    min-width: 290px;
+  }
+
+  .timetable-header {
+    padding: 6px 2px;
+    font-size: 10px;
+  }
+
+  .timetable-cell {
+    min-height: 50px;
+  }
+
+  .course-block-name {
+    font-size: 9px;
+  }
+
+  .course-block-info {
+    font-size: 8px;
+  }
+
+  .data-table {
+    font-size: 12px;
+    min-width: 500px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px var(--spacing-sm);
   }
 }
 </style>

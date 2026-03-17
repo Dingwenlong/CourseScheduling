@@ -131,7 +131,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 84px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 20px);
 }
 
 .custom-tabbar {
@@ -144,9 +144,15 @@ onUnmounted(() => {
   padding-top: 8px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   transition: background-color var(--transition-base), box-shadow var(--transition-base);
-  position: relative;
-  margin: 0 10px 10px;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
   gap: 4px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-lg);
 }
 
 .tabbar-item {
