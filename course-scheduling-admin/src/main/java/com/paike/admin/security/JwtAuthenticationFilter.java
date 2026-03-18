@@ -1,5 +1,8 @@
 package com.paike.admin.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paike.common.result.Result;
+import com.paike.common.result.ResultCode;
 import com.paike.common.utils.JwtUtils;
 import com.paike.common.utils.RedisUtils;
 import jakarta.servlet.FilterChain;
@@ -9,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token)) {
             if (Boolean.TRUE.equals(redisUtils.hasKey(TOKEN_BLACKLIST_PREFIX + token))) {
                 log.warn("Token已在黑名单中，拒绝访问");
-                filterChain.doFilter(request, response);
+                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, ResultCode.FORBIDDEN);
                 return;
             }
 
@@ -55,10 +59,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
+            } else {
+                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, ResultCode.TOKEN_INVALID);
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int status, ResultCode resultCode) throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        Result<?> result = Result.fail(resultCode);
+        response.getWriter().write(new ObjectMapper().writeValueAsString(result));
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {

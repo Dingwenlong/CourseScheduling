@@ -1,6 +1,10 @@
 package com.paike.admin.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paike.common.result.Result;
+import com.paike.common.result.ResultCode;
 import com.paike.admin.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -12,9 +16,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.CharacterEncodingFilter;
+
+import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
@@ -62,8 +70,32 @@ public class SecurityConfig {
                         .requestMatchers("/student/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            Result<?> result = Result.fail(ResultCode.UNAUTHORIZED);
+            response.getWriter().write(new ObjectMapper().writeValueAsString(result));
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+            Result<?> result = Result.fail(ResultCode.FORBIDDEN);
+            response.getWriter().write(new ObjectMapper().writeValueAsString(result));
+        };
     }
 }

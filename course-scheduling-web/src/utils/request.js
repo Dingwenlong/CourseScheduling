@@ -31,7 +31,7 @@ request.interceptors.response.use(
       return res
     } else {
       message.error(res.message || '请求失败')
-      if (res.code === 401) {
+      if (res.code === 401 || res.code === 403) {
         const userStore = useUserStore()
         userStore.logout()
         router.push('/login')
