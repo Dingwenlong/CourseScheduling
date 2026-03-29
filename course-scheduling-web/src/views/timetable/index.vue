@@ -11,14 +11,6 @@
             </template>
             刷新
           </n-button>
-          <n-button type="primary" @click="showGenerate = true">
-            <template #icon>
-              <n-icon>
-                <AddOutline />
-              </n-icon>
-            </template>
-            新建
-          </n-button>
         </template>
       </PageHeader>
 
@@ -688,8 +680,22 @@ onUnmounted(() => {
 
   .stat-label {
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-top: 4px;
+  }
+
+  .add-btn-mobile {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary-gradient);
+    border: none;
+    box-shadow: 0 4px 12px rgba(114, 137, 103, 0.35);
+  }
+
+  .add-btn-mobile .n-icon {
+    color: #fff;
   }
 }
 </style>
