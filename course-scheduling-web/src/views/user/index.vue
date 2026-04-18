@@ -111,14 +111,14 @@
                   <td>{{ user.username }}</td>
                   <td class="name-cell">{{ user.realName || '-' }}</td>
                   <td>
-                    <n-tag :type="getRoleTagType(user.role)" size="small">
+                    <n-tag :type="getRoleTagType(user.role)" size="small" :class="['semantic-tag', getRoleTagClass(user.role)]">
                       {{ getRoleName(user.role) }}
                     </n-tag>
                   </td>
                   <td>{{ user.phone || '-' }}</td>
                   <td>{{ user.email || '-' }}</td>
                   <td>
-                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small">
+                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small" :class="['semantic-tag', getUserStatusTagClass(user.status)]">
                       {{ user.status === 1 ? '启用' : '禁用' }}
                     </n-tag>
                   </td>
@@ -151,10 +151,10 @@
                 <template #header>
                   <div class="user-title">
                     <span class="user-name">{{ user.realName || user.username }}</span>
-                    <n-tag :type="getRoleTagType(user.role)" size="small" class="role-tag">
+                    <n-tag :type="getRoleTagType(user.role)" size="small" :class="['role-tag', 'semantic-tag', getRoleTagClass(user.role)]">
                       {{ getRoleName(user.role) }}
                     </n-tag>
-                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small">
+                    <n-tag :type="user.status === 1 ? 'success' : 'error'" size="small" :class="['semantic-tag', getUserStatusTagClass(user.status)]">
                       {{ user.status === 1 ? '启用' : '禁用' }}
                     </n-tag>
                   </div>
@@ -349,6 +349,19 @@ const getRoleTagType = (role) => {
   return map[role] || 'default'
 }
 
+const getRoleTagClass = (role) => {
+  const map = {
+    'ADMIN': 'semantic-tag--danger',
+    'TEACHER': 'semantic-tag--info',
+    'STUDENT': 'semantic-tag--success'
+  }
+  return map[role] || ''
+}
+
+const getUserStatusTagClass = (status) => {
+  return status === 1 ? 'semantic-tag--success' : 'semantic-tag--danger'
+}
+
 const resetForm = () => {
   form.id = null
   form.username = ''
@@ -520,8 +533,10 @@ onMounted(() => {
 }
 
 .table-container {
-  border: 1px solid var(--border-color);
+  position: relative;
+  border: 1px solid rgba(145, 120, 91, 0.18);
   border-radius: var(--radius-xl);
+  background: var(--fabric-surface), rgba(255, 250, 243, 0.76);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
@@ -537,9 +552,10 @@ onMounted(() => {
 }
 
 .table-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .table-filters {
@@ -548,13 +564,18 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 0;
+  width: 100%;
+  padding: var(--spacing-sm);
+  border-radius: calc(var(--radius-lg) - 4px);
+  background: rgba(255, 252, 247, 0.72);
+  border: 1px solid rgba(145, 120, 91, 0.1);
 }
 
 .search-inputs {
   display: flex;
   gap: var(--spacing-sm);
   flex: 1;
-  max-width: 500px;
+  max-width: 520px;
 }
 
 .search-input {
@@ -568,7 +589,7 @@ onMounted(() => {
 }
 
 .add-btn-desktop {
-  height: 36px;
+  height: 40px;
 }
 
 .mobile-actions {
@@ -589,11 +610,13 @@ onMounted(() => {
 
 .table-wrapper {
   overflow-x: auto;
+  padding: var(--spacing-lg);
 }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 14px;
   min-width: 900px;
 }
@@ -605,16 +628,23 @@ onMounted(() => {
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
+  background: var(--bg-secondary);
+  background-image: var(--fabric-inset);
 }
 
 .data-table td {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
+  background: rgba(255, 251, 245, 0.34);
 }
 
 .data-table tbody tr:hover {
-  background: rgba(255, 251, 245, 0.56);
+  background: transparent;
+}
+
+.data-table tbody tr:hover td {
+  background: rgba(255, 251, 245, 0.68);
 }
 
 .name-cell {
@@ -625,6 +655,7 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .desktop-only {
@@ -644,7 +675,7 @@ onMounted(() => {
 }
 
 .user-list-wrapper {
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .user-item {
@@ -772,6 +803,18 @@ onMounted(() => {
 
   .table-container {
     margin-top: var(--spacing-md);
+  }
+
+  .table-filters,
+  .user-list-wrapper,
+  .table-wrapper {
+    padding: var(--spacing-md);
+  }
+
+  .search-inputs {
+    max-width: none;
+    width: 100%;
+    flex-direction: column;
   }
 }
 </style>

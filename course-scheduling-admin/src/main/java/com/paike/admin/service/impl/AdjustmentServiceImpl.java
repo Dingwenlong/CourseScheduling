@@ -602,6 +602,7 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         if (!Objects.equals(detail.getTimetableId(), timetableId)) {
             throw new BusinessException("课程明细不属于当前课表");
         }
+        checkDetailAccess(detail);
         return detail;
     }
 
@@ -673,12 +674,19 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         return isAdmin(currentUser) || Objects.equals(currentUser.getId(), ownerId);
     }
 
-    private User requireCurrentUser() {
-        User currentUser = securityUtils.getCurrentUser();
-        if (currentUser == null) {
-            throw new BusinessException(ResultCode.USER_NOT_LOGIN);
+    private void checkDetailAccess(TimetableDetail detail) {
+        User currentUser = requireCurrentUser();
+        if (isAdmin(currentUser)) {
+            return;
         }
-        return currentUser;
+        if (securityUtils.isTeacher() && Objects.equals(detail.getTeacherId(), securityUtils.requireCurrentTeacherId())) {
+            return;
+        }
+        throw new BusinessException(ResultCode.FORBIDDEN, "无权操作该课程明细");
+    }
+
+    private User requireCurrentUser() {
+        return securityUtils.requireCurrentUser();
     }
 
     private Long getCurrentUserId() {

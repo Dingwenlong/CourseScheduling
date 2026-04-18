@@ -1,6 +1,7 @@
 package com.paike.admin.controller;
 
 import com.paike.admin.dto.ChangePasswordRequest;
+import com.paike.admin.dto.CurrentUserInfoResponse;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
 import com.paike.admin.dto.ResetPasswordRequest;
@@ -54,12 +55,9 @@ public class AuthController {
 
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/info")
-    public Result<User> info() {
+    public Result<CurrentUserInfoResponse> info() {
         User user = securityUtils.getCurrentUser();
-        if (user != null) {
-            user.setPassword(null);
-        }
-        return Result.success(user);
+        return Result.success(userService.buildCurrentUserInfo(user));
     }
 
     @Operation(summary = "退出登录")

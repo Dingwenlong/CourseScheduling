@@ -1,6 +1,6 @@
 <template>
   <PageContainer with-tabbar class="profile-page">
-    <PageHeader title="个人中心" />
+    <PageHeader :title="pageTitle" :subtitle="pageSubtitle" />
 
     <div class="profile-layout">
       <div class="profile-sidebar">
@@ -15,7 +15,7 @@
             </n-tag>
           </div>
           <div class="profile-username">
-            <n-icon :component="PersonOutline" /> {{ userStore.userInfo?.username }}
+            <n-icon :component="PersonOutline" /> {{ profileIdentityText }}
           </div>
         </div>
 
@@ -57,7 +57,7 @@
                   <n-icon :component="PersonOutline" size="20" color="#728967" />
                 </div>
                 <div class="info-content">
-                  <div class="info-label">用户名</div>
+                  <div class="info-label">登录账号</div>
                   <div class="info-value">{{ userStore.userInfo?.username }}</div>
                 </div>
               </div>
@@ -77,10 +77,20 @@
                   <n-icon :component="ShieldCheckmarkOutline" size="20" color="#f59e0b" />
                 </div>
                 <div class="info-content">
-                  <div class="info-label">角色权限</div>
+                  <div class="info-label">当前身份</div>
                   <n-tag :class="['status-tag', getRoleClass(userStore.userInfo?.role)]" size="small">
                     {{ getRoleName(userStore.userInfo?.role) }}
                   </n-tag>
+                </div>
+              </div>
+
+              <div v-if="identityLabel" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(114, 137, 103, 0.12);">
+                  <n-icon :component="CalendarOutline" size="20" color="#728967" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">{{ identityLabel }}</div>
+                  <div class="info-value">{{ identityValue }}</div>
                 </div>
               </div>
 
@@ -163,7 +173,7 @@
           </div>
         <h3 class="about-title">智能排课系统</h3>
         <p class="about-version">版本：1.0.0</p>
-        <p class="about-desc mt-16">基于遗传算法和贪心算法的智能排课解决方案，支持多校区、多约束条件下的课程调度优化。</p>
+        <p class="about-desc mt-16">{{ aboutDescription }}</p>
         <n-descriptions bordered column="1" class="mt-16 about-details">
           <n-descriptions-item label="技术栈">Vue 3 + Spring Boot</n-descriptions-item>
           <n-descriptions-item label="算法支持">贪心算法 / 遗传算法</n-descriptions-item>
@@ -175,7 +185,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage, useDialog, NButton, NModal, NInput, NForm, NFormItem, NImage, NTag, NIcon, NList, NListItem, NDescriptions, NDescriptionsItem } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
@@ -194,6 +204,58 @@ const avatar = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
 const showPassword = ref(false)
 const showAbout = ref(false)
 const showEditProfile = ref(false)
+const userRole = computed(() => userStore.userInfo?.role)
+const pageTitle = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '我的资料'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '个人资料'
+  }
+  return '个人中心'
+})
+const pageSubtitle = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '查看授课身份、联系方式和账号安全设置'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '查看班级身份、联系方式和账号安全设置'
+  }
+  return '查看账号资料与安全设置'
+})
+const identityLabel = computed(() => {
+  if (userRole.value === 'TEACHER' && userStore.userInfo?.teacherId) {
+    return '教师编号'
+  }
+  if (userRole.value === 'STUDENT' && userStore.userInfo?.classId) {
+    return '班级编号'
+  }
+  return ''
+})
+const identityValue = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return userStore.userInfo?.teacherId || '-'
+  }
+  if (userRole.value === 'STUDENT') {
+    return userStore.userInfo?.classId || '-'
+  }
+  return '-'
+})
+const profileIdentityText = computed(() => {
+  if (identityLabel.value) {
+    return `${identityLabel.value}：${identityValue.value}`
+  }
+  return userStore.userInfo?.username || '-'
+})
+const aboutDescription = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '用于查看你的授课安排、处理调课申请和关注冲突提醒，让日常排课沟通更直接。'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '用于查看本班课表、关注学习安排和确认上课时间地点，减少临时找课的成本。'
+  }
+  return '用于统筹排课、维护教学任务、查看统计并管理系统用户。'
+})
 
 const passwordForm = ref({
   oldPassword: '',

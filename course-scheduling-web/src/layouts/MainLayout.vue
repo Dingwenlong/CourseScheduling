@@ -43,15 +43,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { useUserStore } from '@/stores/user'
 import { NIcon } from 'naive-ui'
 import {
   HomeOutline,
   CalendarOutline,
   ClipboardOutline,
   SearchOutline,
+  SwapHorizontalOutline,
   BarChartOutline,
   PersonOutline,
   MoonOutline,
@@ -61,35 +63,45 @@ import {
 const route = useRoute()
 const router = useRouter()
 const themeStore = useThemeStore()
-const active = ref(0)
+const userStore = useUserStore()
 
 const isDarkMode = computed(() => themeStore.isDark())
+const userRole = computed(() => userStore.userInfo?.role)
 
-const tabItems = [
-  { path: '/home', icon: HomeOutline, text: '首页' },
-  { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
-  { path: '/task', icon: ClipboardOutline, text: '教学任务' },
-  { path: '/schedule', icon: SearchOutline, text: '排课查询' },
-  { path: '/statistics', icon: BarChartOutline, text: '统计分析' },
-  { path: '/profile', icon: PersonOutline, text: '个人中心' }
-]
+const tabItems = computed(() => {
+  if (userRole.value === 'STUDENT') {
+    return [
+      { path: '/home', icon: HomeOutline, text: '首页' },
+      { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
+      { path: '/schedule', icon: SearchOutline, text: '课表查询' },
+      { path: '/profile', icon: PersonOutline, text: '个人中心' }
+    ]
+  }
 
-const tabMap = {
-  '/home': 0,
-  '/timetable': 1,
-  '/task': 2,
-  '/schedule': 3,
-  '/statistics': 4,
-  '/profile': 5
-}
+  if (userRole.value === 'TEACHER') {
+    return [
+      { path: '/home', icon: HomeOutline, text: '首页' },
+      { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+      { path: '/schedule', icon: SearchOutline, text: '课表查询' },
+      { path: '/adjustment', icon: SwapHorizontalOutline, text: '调课管理' },
+      { path: '/profile', icon: PersonOutline, text: '个人中心' }
+    ]
+  }
+
+  return [
+    { path: '/home', icon: HomeOutline, text: '首页' },
+    { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
+    { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+    { path: '/schedule', icon: SearchOutline, text: '课表查询' },
+    { path: '/adjustment', icon: SwapHorizontalOutline, text: '调课管理' },
+    { path: '/statistics', icon: BarChartOutline, text: '统计分析' },
+    { path: '/profile', icon: PersonOutline, text: '个人中心' }
+  ]
+})
 
 const isActive = (path) => {
   return route.path === path || route.path.startsWith(path + '/')
 }
-
-watch(() => route.path, (path) => {
-  active.value = tabMap[path] || 0
-}, { immediate: true })
 
 const toggleTheme = () => {
   themeStore.toggleTheme()

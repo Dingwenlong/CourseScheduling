@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,9 +30,11 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException e) {
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
-        return Result.fail(e.getCode(), e.getMessage());
+        return ResponseEntity
+                .status(resolveStatus(e.getCode()))
+                .body(Result.fail(e.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -118,5 +121,37 @@ public class GlobalExceptionHandler {
     public Result<Void> handleException(Exception e) {
         log.error("系统异常: ", e);
         return Result.fail(ResultCode.SYSTEM_ERROR.getCode(), "系统异常，请稍后重试");
+    }
+
+    private HttpStatus resolveStatus(Integer code) {
+        if (code == null) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        if (ResultCode.PARAM_ERROR.getCode().equals(code)) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        if (ResultCode.UNAUTHORIZED.getCode().equals(code)
+                || ResultCode.USER_NOT_LOGIN.getCode().equals(code)
+                || ResultCode.USER_PASSWORD_ERROR.getCode().equals(code)
+                || ResultCode.TOKEN_EXPIRED.getCode().equals(code)) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+        if (ResultCode.FORBIDDEN.getCode().equals(code)
+                || ResultCode.USER_DISABLED.getCode().equals(code)
+                || ResultCode.TOKEN_INVALID.getCode().equals(code)) {
+            return HttpStatus.FORBIDDEN;
+        }
+        if (ResultCode.NOT_FOUND.getCode().equals(code)
+                || ResultCode.DATA_NOT_FOUND.getCode().equals(code)
+                || ResultCode.USER_NOT_FOUND.getCode().equals(code)) {
+            return HttpStatus.NOT_FOUND;
+        }
+        if (ResultCode.METHOD_NOT_ALLOWED.getCode().equals(code)) {
+            return HttpStatus.METHOD_NOT_ALLOWED;
+        }
+        if (ResultCode.SERVICE_UNAVAILABLE.getCode().equals(code)) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

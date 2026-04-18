@@ -20,21 +20,60 @@
             <h3 class="card-title">申请调课</h3>
             <n-tag v-if="pendingApplication" type="warning">调整中</n-tag>
           </div>
+          <div class="form-hint">
+            默认优先带出当前学期最新课表，课程和教室支持直接搜索选择，不需要手动记忆编号。
+          </div>
           <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="100px">
-            <n-form-item label="课表ID" path="timetableId">
-              <n-input-number v-model:value="form.timetableId" placeholder="请输入课表ID" style="width: 100%" :min="1" />
+            <n-form-item label="当前课表" path="timetableId">
+              <n-input
+                :value="currentTimetableText"
+                placeholder="系统会自动带入当前课表"
+                readonly
+              />
+              <div class="field-hint">
+                调课会默认作用于当前打开的课表；如需切换课表，请先从课表页进入对应版本。
+              </div>
             </n-form-item>
-            <n-form-item label="课程明细ID" path="detailId">
-              <n-input-number v-model:value="form.detailId" placeholder="请输入课程明细ID" style="width: 100%" :min="1" />
+            <n-form-item label="要调整的课程" path="detailId">
+              <n-select
+                v-model:value="form.detailId"
+                filterable
+                clearable
+                :options="detailOptions"
+                :loading="detailOptionsLoading"
+                :disabled="!form.timetableId"
+                placeholder="从当前课表中选择要调整的课程"
+              />
+              <div v-if="detailOptions.length > 0" class="field-hint">
+                已加载 {{ detailOptions.length }} 门课程，列表已按星期和节次排序。
+              </div>
             </n-form-item>
-            <n-form-item label="新星期" path="newDayOfWeek">
-              <n-input-number v-model:value="form.newDayOfWeek" placeholder="1-5" style="width: 100%" :min="1" :max="5" />
+            <n-form-item label="调整到哪一天" path="newDayOfWeek">
+              <n-select
+                v-model:value="form.newDayOfWeek"
+                :options="weekdayOptions"
+                placeholder="选择新的上课日期"
+              />
             </n-form-item>
-            <n-form-item label="新节次" path="newSlotNo">
-              <n-input-number v-model:value="form.newSlotNo" placeholder="1-10" style="width: 100%" :min="1" :max="10" />
+            <n-form-item label="调整到哪个时段" path="newSlotNo">
+              <n-select
+                v-model:value="form.newSlotNo"
+                :options="slotOptions"
+                placeholder="选择新的上课时段"
+              />
             </n-form-item>
-            <n-form-item label="新教室ID">
-              <n-input-number v-model:value="form.newClassroomId" placeholder="可选" style="width: 100%" :min="1" />
+            <n-form-item label="新教室">
+              <n-select
+                v-model:value="form.newClassroomId"
+                filterable
+                remote
+                clearable
+                :options="classroomOptions"
+                :loading="classroomLookupLoading"
+                placeholder="可选，搜索教室名称或编号"
+                @search="searchClassroomOptions"
+                @focus="loadClassroomOptions"
+              />
             </n-form-item>
             <n-form-item label="调课原因" path="reason">
               <n-input v-model:value="form.reason" type="textarea" placeholder="请输入调课原因" :rows="3" />
@@ -58,14 +97,39 @@
             <n-tag v-if="pendingSwapApplication" type="warning">调整中</n-tag>
           </div>
           <n-form ref="swapFormRef" :model="swapForm" :rules="swapRules" label-placement="left" label-width="100px">
-            <n-form-item label="课表ID" path="timetableId">
-              <n-input-number v-model:value="swapForm.timetableId" placeholder="请输入课表ID" style="width: 100%" :min="1" />
+            <n-form-item label="当前课表" path="timetableId">
+              <n-input
+                :value="currentTimetableText"
+                placeholder="系统会自动带入当前课表"
+                readonly
+              />
             </n-form-item>
-            <n-form-item label="课程1 ID" path="detailId1">
-              <n-input-number v-model:value="swapForm.detailId1" placeholder="请输入课程明细ID" style="width: 100%" :min="1" />
+            <n-form-item label="第一门课" path="detailId1">
+              <n-select
+                v-model:value="swapForm.detailId1"
+                filterable
+                clearable
+                :options="swapDetailOptions1"
+                :loading="detailOptionsLoading"
+                :disabled="!swapForm.timetableId"
+                placeholder="选择要交换的第一门课程"
+                @update:value="handleSwapDetailChange('detailId1', $event)"
+              />
             </n-form-item>
-            <n-form-item label="课程2 ID" path="detailId2">
-              <n-input-number v-model:value="swapForm.detailId2" placeholder="请输入课程明细ID" style="width: 100%" :min="1" />
+            <n-form-item label="第二门课" path="detailId2">
+              <n-select
+                v-model:value="swapForm.detailId2"
+                filterable
+                clearable
+                :options="swapDetailOptions2"
+                :loading="detailOptionsLoading"
+                :disabled="!swapForm.timetableId"
+                placeholder="选择要交换的第二门课程"
+                @update:value="handleSwapDetailChange('detailId2', $event)"
+              />
+              <div v-if="swapForm.detailId1 || swapForm.detailId2" class="field-hint">
+                课程交换必须选择两门不同课程，另一侧列表会自动排除当前已选项。
+              </div>
             </n-form-item>
             <n-form-item label="交换原因" path="reason">
               <n-input v-model:value="swapForm.reason" type="textarea" placeholder="请输入交换原因" :rows="3" />
@@ -202,7 +266,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMessage, useDialog } from 'naive-ui'
 import {
@@ -217,9 +281,12 @@ import {
   cancelSwapAdjustment,
   executeSwapAdjustment as doExecuteSwapAdjustment
 } from '@/api/adjustment'
+import { getLatestTimetable, getTimetableDetails } from '@/api/timetable'
+import { searchClassrooms } from '@/api/lookup'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useLayoutStore } from '@/stores/layout'
+import { getCurrentSemester } from '@/utils/semester'
 import {
   NButton,
   NIcon,
@@ -227,6 +294,7 @@ import {
   NFormItem,
   NInputNumber,
   NInput,
+  NSelect,
   NTag,
   NDescriptions,
   NDescriptionsItem,
@@ -259,6 +327,24 @@ const pendingApplication = ref(null)
 const pendingSwapApplication = ref(null)
 const formRef = ref(null)
 const swapFormRef = ref(null)
+const detailOptions = ref([])
+const detailOptionsLoading = ref(false)
+const classroomOptions = ref([])
+const classroomLookupLoading = ref(false)
+const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
+const currentTimetableMeta = ref(null)
+const slotMeta = {
+  1: { label: '上午1', time: '08:00-08:45' },
+  2: { label: '上午2', time: '08:55-09:40' },
+  3: { label: '上午3', time: '10:10-10:55' },
+  4: { label: '上午4', time: '11:05-11:50' },
+  5: { label: '下午1', time: '14:00-14:45' },
+  6: { label: '下午2', time: '14:55-15:40' },
+  7: { label: '下午3', time: '16:10-16:55' },
+  8: { label: '下午4', time: '17:05-17:50' },
+  9: { label: '晚上1', time: '19:00-19:45' },
+  10: { label: '晚上2', time: '19:55-20:40' }
+}
 
 const form = reactive({
   applicationId: null,
@@ -278,26 +364,53 @@ const swapForm = reactive({
   reason: ''
 })
 
+const currentTimetableText = computed(() => {
+  if (currentTimetableMeta.value?.name) {
+    return `${currentTimetableMeta.value.name}（${currentTimetableMeta.value.semester} · 第${currentTimetableMeta.value.version}版）`
+  }
+  const currentId = form.timetableId || swapForm.timetableId
+  return currentId ? `课表 #${currentId}` : ''
+})
+
+const weekdayOptions = computed(() => weekdayLabels.slice(0, 5).map((label, index) => ({
+  label: `周${label}`,
+  value: index + 1
+})))
+
+const slotOptions = computed(() => Object.entries(slotMeta).map(([value, meta]) => ({
+  value: Number(value),
+  label: `${meta.label} · ${meta.time}`
+})))
+
+const slotLabel = (slotNo) => slotMeta[slotNo]?.label || `第${slotNo}节`
+const slotTimeRange = (slotNo) => slotMeta[slotNo]?.time || ''
+const courseTimeText = (detail) => {
+  const weekday = weekdayLabels[(detail.dayOfWeek || 1) - 1] || detail.dayOfWeek
+  const slot = slotLabel(detail.slotNo)
+  const time = slotTimeRange(detail.slotNo)
+  return time ? `周${weekday} ${slot} · ${time}` : `周${weekday} ${slot}`
+}
+
 const rules = {
   timetableId: {
     required: true,
-    message: '请输入课表ID',
+    message: '当前课表不能为空',
     trigger: 'blur'
   },
   detailId: {
     required: true,
-    message: '请输入课程明细ID',
-    trigger: 'blur'
+    message: '请选择要调整的课程',
+    trigger: 'change'
   },
   newDayOfWeek: {
     required: true,
-    message: '请输入新星期',
-    trigger: 'blur'
+    message: '请选择新的上课日期',
+    trigger: 'change'
   },
   newSlotNo: {
     required: true,
-    message: '请输入新节次',
-    trigger: 'blur'
+    message: '请选择新的上课时段',
+    trigger: 'change'
   },
   reason: {
     required: true,
@@ -309,18 +422,18 @@ const rules = {
 const swapRules = {
   timetableId: {
     required: true,
-    message: '请输入课表ID',
+    message: '当前课表不能为空',
     trigger: 'blur'
   },
   detailId1: {
     required: true,
-    message: '请输入课程1 ID',
-    trigger: 'blur'
+    message: '请选择第一门课程',
+    trigger: 'change'
   },
   detailId2: {
     required: true,
-    message: '请输入课程2 ID',
-    trigger: 'blur'
+    message: '请选择第二门课程',
+    trigger: 'change'
   },
   reason: {
     required: true,
@@ -329,9 +442,10 @@ const swapRules = {
   }
 }
 
-const resetForm = () => {
+const resetForm = ({ keepTimetableId = false } = {}) => {
+  const timetableId = keepTimetableId ? form.timetableId : null
   form.applicationId = null
-  form.timetableId = null
+  form.timetableId = timetableId
   form.detailId = null
   form.newDayOfWeek = null
   form.newSlotNo = null
@@ -339,12 +453,131 @@ const resetForm = () => {
   form.reason = ''
 }
 
-const resetSwapForm = () => {
+const resetSwapForm = ({ keepTimetableId = false } = {}) => {
+  const timetableId = keepTimetableId ? swapForm.timetableId : null
   swapForm.applicationId = null
-  swapForm.timetableId = null
+  swapForm.timetableId = timetableId
   swapForm.detailId1 = null
   swapForm.detailId2 = null
   swapForm.reason = ''
+}
+
+const swapDetailOptions1 = computed(() =>
+  detailOptions.value.filter(option => option.value !== Number(swapForm.detailId2 || 0))
+)
+
+const swapDetailOptions2 = computed(() =>
+  detailOptions.value.filter(option => option.value !== Number(swapForm.detailId1 || 0))
+)
+
+const buildDetailLabel = (detail) => {
+  const segments = [
+    courseTimeText(detail),
+    detail.courseName || `课程 #${detail.id}`
+  ]
+  if (detail.className) {
+    segments.push(detail.className)
+  }
+  if (detail.classroomName) {
+    segments.push(detail.classroomName)
+  }
+  return segments.join(' · ')
+}
+
+const ensureOption = (targetRef, value, label) => {
+  if (!value) {
+    return
+  }
+  const normalizedValue = Number(value)
+  if (!targetRef.value.some(option => option.value === normalizedValue)) {
+    targetRef.value = [{ value: normalizedValue, label: label || String(value) }, ...targetRef.value]
+  }
+}
+
+const loadClassroomOptions = async (keyword = '') => {
+  classroomLookupLoading.value = true
+  try {
+    const res = await searchClassrooms({ keyword, limit: 20 })
+    classroomOptions.value = res.data || []
+  } catch (e) {
+    classroomOptions.value = []
+  } finally {
+    classroomLookupLoading.value = false
+  }
+}
+
+const searchClassroomOptions = async (keyword) => {
+  await loadClassroomOptions(keyword)
+}
+
+const loadDetailOptions = async (timetableId) => {
+  if (!timetableId) {
+    detailOptions.value = []
+    return
+  }
+
+  detailOptionsLoading.value = true
+  try {
+    const res = await getTimetableDetails(timetableId)
+    detailOptions.value = [...(res.data || [])]
+      .sort((a, b) => {
+        const dayDiff = (a.dayOfWeek || 0) - (b.dayOfWeek || 0)
+        if (dayDiff !== 0) {
+          return dayDiff
+        }
+        const slotDiff = (a.slotNo || 0) - (b.slotNo || 0)
+        if (slotDiff !== 0) {
+          return slotDiff
+        }
+        return String(a.courseName || '').localeCompare(String(b.courseName || ''), 'zh-Hans-CN')
+      })
+      .map(detail => ({
+      value: detail.id,
+      label: buildDetailLabel(detail)
+    }))
+    ensureOption(detailOptions, form.detailId, `课程明细 #${form.detailId}`)
+    ensureOption(detailOptions, swapForm.detailId1, `课程明细 #${swapForm.detailId1}`)
+    ensureOption(detailOptions, swapForm.detailId2, `课程明细 #${swapForm.detailId2}`)
+  } catch (e) {
+    detailOptions.value = []
+  } finally {
+    detailOptionsLoading.value = false
+  }
+}
+
+const handleSwapDetailChange = (field, value) => {
+  swapForm[field] = value
+  if (swapForm.detailId1 && swapForm.detailId2 && swapForm.detailId1 === swapForm.detailId2) {
+    if (field === 'detailId1') {
+      swapForm.detailId2 = null
+    } else {
+      swapForm.detailId1 = null
+    }
+    message.warning('课程交换需要选择两门不同课程')
+  }
+}
+
+const handleTimetableChange = async (value) => {
+  const normalizedValue = value ? Number(value) : null
+  const previousValue = form.timetableId || swapForm.timetableId || null
+  form.timetableId = normalizedValue
+  swapForm.timetableId = normalizedValue
+
+  if (normalizedValue === previousValue) {
+    return
+  }
+
+  pendingApplication.value = null
+  pendingSwapApplication.value = null
+  checkResult.value = null
+  swapCheckResult.value = null
+  form.applicationId = null
+  swapForm.applicationId = null
+  form.detailId = null
+  swapForm.detailId1 = null
+  swapForm.detailId2 = null
+
+  await loadDetailOptions(normalizedValue)
 }
 
 const loadPendingApplication = async ({ hydrate = true } = {}) => {
@@ -370,6 +603,7 @@ const loadPendingApplication = async ({ hydrate = true } = {}) => {
       form.newDayOfWeek = pendingApplication.value.newDay
       form.newSlotNo = pendingApplication.value.newSlot
       form.newClassroomId = pendingApplication.value.newClassroom
+      ensureOption(classroomOptions, pendingApplication.value.newClassroom, `教室 #${pendingApplication.value.newClassroom}`)
       form.reason = pendingApplication.value.reason || ''
       checkResult.value = {
         success: true,
@@ -486,7 +720,7 @@ const executeAdjustment = async () => {
         message.success('调课成功')
         pendingApplication.value = null
         checkResult.value = null
-        resetForm()
+        resetForm({ keepTimetableId: true })
       } catch (e) {
         message.error(e.message || '调课失败')
       } finally {
@@ -563,7 +797,7 @@ const executeSwapCourse = async () => {
         message.success('课程交换成功')
         pendingSwapApplication.value = null
         swapCheckResult.value = null
-        resetSwapForm()
+        resetSwapForm({ keepTimetableId: true })
       } catch (e) {
         message.error(e.message || '课程交换失败')
       } finally {
@@ -574,12 +808,13 @@ const executeSwapCourse = async () => {
 }
 
 const resetState = () => {
+  const currentTimetableId = form.timetableId || swapForm.timetableId || null
   pendingApplication.value = null
   pendingSwapApplication.value = null
   checkResult.value = null
   swapCheckResult.value = null
-  resetForm()
-  resetSwapForm()
+  resetForm({ keepTimetableId: Boolean(currentTimetableId) })
+  resetSwapForm({ keepTimetableId: Boolean(currentTimetableId) })
 }
 
 const onReset = () => {
@@ -626,6 +861,25 @@ onMounted(async () => {
     const timetableId = Number(route.query.timetableId)
     form.timetableId = timetableId
     swapForm.timetableId = timetableId
+  } else {
+    try {
+      const res = await getLatestTimetable(getCurrentSemester())
+      if (res.data?.id) {
+        form.timetableId = res.data.id
+        swapForm.timetableId = res.data.id
+        currentTimetableMeta.value = res.data
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  if (!currentTimetableMeta.value && form.timetableId) {
+    currentTimetableMeta.value = {
+      id: form.timetableId,
+      name: `课表 #${form.timetableId}`,
+      semester: '当前学期',
+      version: '-'
+    }
   }
   if (route.query.detailId) {
     form.detailId = Number(route.query.detailId)
@@ -635,6 +889,10 @@ onMounted(async () => {
   }
   if (route.query.detailId2) {
     swapForm.detailId2 = Number(route.query.detailId2)
+  }
+
+  if (form.timetableId) {
+    await loadDetailOptions(form.timetableId)
   }
 
   if (form.timetableId && form.detailId) {
@@ -652,7 +910,21 @@ onUnmounted(() => {
 
 <style scoped>
 .desktop-adjustment-page {
+  position: relative;
   animation: fadeIn 0.3s ease-out;
+  padding-bottom: var(--spacing-xl);
+}
+
+.desktop-adjustment-page::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 240px;
+  background:
+    radial-gradient(circle at top left, rgba(184, 102, 89, 0.16), transparent 40%),
+    radial-gradient(circle at top right, rgba(130, 151, 118, 0.14), transparent 32%);
+  opacity: 0.86;
+  pointer-events: none;
 }
 
 @keyframes fadeIn {
@@ -689,10 +961,22 @@ onUnmounted(() => {
 }
 
 .card {
-  border: 1px solid var(--border-color);
+  position: relative;
+  border: 1px solid rgba(145, 120, 91, 0.18);
   border-radius: var(--radius-xl);
+  background: var(--fabric-surface), rgba(255, 250, 243, 0.78);
+  backdrop-filter: blur(14px);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  pointer-events: none;
 }
 
 .card-header {
@@ -705,11 +989,32 @@ onUnmounted(() => {
   gap: var(--spacing-md);
 }
 
+.form-hint {
+  margin: var(--spacing-lg) var(--spacing-xl) 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(184, 102, 89, 0.12), rgba(184, 102, 89, 0.04)),
+    rgba(255, 250, 243, 0.72);
+  border: 1px solid rgba(184, 102, 89, 0.14);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.field-hint {
+  margin-top: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .card-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: 0.01em;
 }
 
 .form-actions {
@@ -717,6 +1022,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-md);
+  border-top: 1px dashed rgba(145, 120, 91, 0.12);
 }
 
 .result-card + .result-card {
@@ -739,14 +1045,17 @@ onUnmounted(() => {
 
 .confirm-section {
   padding: var(--spacing-lg) var(--spacing-xl);
+  border-top: 1px dashed rgba(145, 120, 91, 0.12);
 }
 
 .application-summary {
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
   border-radius: 18px;
-  background: rgba(255, 250, 243, 0.54);
-  border: 1px solid var(--border-light);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.2)),
+    rgba(255, 250, 243, 0.62);
+  border: 1px solid rgba(145, 120, 91, 0.12);
 }
 
 .summary-line {
@@ -772,6 +1081,25 @@ onUnmounted(() => {
 
 .mt-8 {
   margin-top: 8px;
+}
+
+:deep(.desktop-adjustment-page .n-form) {
+  padding: var(--spacing-lg) var(--spacing-xl) 0;
+}
+
+:deep(.desktop-adjustment-page .n-form-item) {
+  margin-bottom: var(--spacing-lg);
+}
+
+:deep(.desktop-adjustment-page .n-base-selection),
+:deep(.desktop-adjustment-page .n-input),
+:deep(.desktop-adjustment-page .n-input-number),
+:deep(.desktop-adjustment-page .n-button) {
+  border-radius: var(--radius-md);
+}
+
+:deep(.desktop-adjustment-page .n-list-item) {
+  padding: var(--spacing-sm) 0;
 }
 
 @media (min-width: 1440px) {
@@ -826,6 +1154,10 @@ onUnmounted(() => {
   .header-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  :deep(.desktop-adjustment-page .n-form) {
+    padding: var(--spacing-md) var(--spacing-lg) 0;
   }
 }
 </style>

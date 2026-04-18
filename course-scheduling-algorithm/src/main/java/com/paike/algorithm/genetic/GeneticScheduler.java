@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 public class GeneticScheduler implements SchedulingService {
 
     private static final Logger log = LoggerFactory.getLogger(GeneticScheduler.class);
+    private static final int SESSION_SLOT_SPAN = 2;
 
     @Autowired
     private GeneticAlgorithmConfig config;
@@ -118,11 +120,11 @@ public class GeneticScheduler implements SchedulingService {
 
         for (TaskData task : context.tasks) {
             int sessions = context.sessionCountByTaskId.getOrDefault(task.getTaskId(), 1);
-            Set<TimeSlot> selectedSlots = new LinkedHashSet<>();
+            Set<TimeSlot> selectedOccupiedSlots = new LinkedHashSet<>();
             Set<Integer> selectedDays = new LinkedHashSet<>();
 
             for (int sessionIndex = 0; sessionIndex < sessions; sessionIndex++) {
-                TimeSlot randomSlot = getRandomTimeSlot(context, random, selectedSlots, selectedDays);
+                TimeSlot randomSlot = getRandomTimeSlot(context, random, selectedOccupiedSlots, selectedDays);
                 ClassroomData randomClassroom = getRandomClassroom(context, task, random);
                 if (randomClassroom == null) {
                     continue;
@@ -135,7 +137,7 @@ public class GeneticScheduler implements SchedulingService {
                 gene.setProperty("sessionIndex", sessionIndex);
                 chromosome.addGene(gene);
 
-                selectedSlots.add(randomSlot);
+                selectedOccupiedSlots.addAll(getOccupiedSlots(randomSlot));
                 selectedDays.add(randomSlot.getDayOfWeek());
             }
         }
@@ -145,19 +147,19 @@ public class GeneticScheduler implements SchedulingService {
 
     private TimeSlot getRandomTimeSlot(ExecutionContext context, Random random) {
         int day = random.nextInt(context.daysPerWeek) + 1;
-        int slot = random.nextInt(Math.max(1, context.slotsPerDay - 1)) + 1;
+        int slot = random.nextInt(Math.max(1, context.slotsPerDay - SESSION_SLOT_SPAN + 1)) + 1;
         return new TimeSlot(day, slot);
     }
 
     private TimeSlot getRandomTimeSlot(ExecutionContext context,
                                        Random random,
-                                       Set<TimeSlot> selectedSlots,
+                                       Set<TimeSlot> selectedOccupiedSlots,
                                        Set<Integer> selectedDays) {
         TimeSlot fallback = getRandomTimeSlot(context, random);
         int attempts = Math.max(10, context.daysPerWeek * context.slotsPerDay);
         for (int attempt = 0; attempt < attempts; attempt++) {
             TimeSlot candidate = getRandomTimeSlot(context, random);
-            if (selectedSlots.contains(candidate)) {
+            if (hasOccupiedSlotConflict(candidate, selectedOccupiedSlots)) {
                 continue;
             }
             fallback = candidate;
@@ -199,7 +201,7 @@ public class GeneticScheduler implements SchedulingService {
                 Gene left = genes.get(i);
                 Gene right = genes.get(j);
 
-                if (!left.getTimeSlot().equals(right.getTimeSlot())) {
+                if (!isOverlapping(left.getTimeSlot(), right.getTimeSlot())) {
                     continue;
                 }
                 if (left.getClassroomId().equals(right.getClassroomId())) {
@@ -269,6 +271,32 @@ public class GeneticScheduler implements SchedulingService {
         }
 
         return score;
+    }
+
+    private List<TimeSlot> getOccupiedSlots(TimeSlot startSlot) {
+        List<TimeSlot> occupiedSlots = new ArrayList<>(SESSION_SLOT_SPAN);
+        for (int offset = 0; offset < SESSION_SLOT_SPAN; offset++) {
+            occupiedSlots.add(new TimeSlot(startSlot.getDayOfWeek(), startSlot.getSlotNo() + offset));
+        }
+        return occupiedSlots;
+    }
+
+    private boolean hasOccupiedSlotConflict(TimeSlot candidate, Set<TimeSlot> selectedOccupiedSlots) {
+        for (TimeSlot occupiedSlot : getOccupiedSlots(candidate)) {
+            if (selectedOccupiedSlots.contains(occupiedSlot)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isOverlapping(TimeSlot left, TimeSlot right) {
+        if (!Objects.equals(left.getDayOfWeek(), right.getDayOfWeek())) {
+            return false;
+        }
+        int leftEnd = left.getSlotNo() + SESSION_SLOT_SPAN - 1;
+        int rightEnd = right.getSlotNo() + SESSION_SLOT_SPAN - 1;
+        return left.getSlotNo() <= rightEnd && right.getSlotNo() <= leftEnd;
     }
 
     private Population evolve(Population population, ExecutionContext context, Random random) {

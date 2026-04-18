@@ -21,7 +21,7 @@
             <div class="job-card-desc">{{ getGenerationMessage(generationJob) }}</div>
           </div>
           <div class="job-card-actions">
-            <n-tag :type="getGenerationTagType(generationJob.status)">
+            <n-tag :type="getGenerationTagType(generationJob.status)" :class="['semantic-tag', getGenerationTagClass(generationJob.status)]">
               {{ generationJob.status }}
             </n-tag>
             <n-button
@@ -61,7 +61,7 @@
                     <div class="timetable-title">{{ item.name }}</div>
                     <div class="text-muted mt-8">{{ item.semester }}</div>
                   </div>
-                  <n-tag :type="getStatusTagType(item.status)" size="small">
+                  <n-tag :type="getStatusTagType(item.status)" size="small" :class="['semantic-tag', getStatusTagClass(item.status)]">
                     {{ getStatusText(item.status) }}
                   </n-tag>
                 </div>
@@ -74,19 +74,19 @@
                   </n-grid-item>
                   <n-grid-item>
                     <div class="stat-item">
-                      <div class="stat-value text-success">{{ item.scheduledCount }}</div>
+                      <div class="stat-value semantic-number semantic-number--success">{{ item.scheduledCount }}</div>
                       <div class="stat-label">已排课</div>
                     </div>
                   </n-grid-item>
                   <n-grid-item>
                     <div class="stat-item">
-                      <div class="stat-value text-danger">{{ item.conflictCount }}</div>
+                      <div class="stat-value semantic-number semantic-number--danger">{{ item.conflictCount }}</div>
                       <div class="stat-label">冲突</div>
                     </div>
                   </n-grid-item>
                   <n-grid-item>
                     <div class="stat-item">
-                      <div class="stat-value text-primary">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
+                      <div class="stat-value semantic-number semantic-number--info">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
                       <div class="stat-label">利用率</div>
                     </div>
                   </n-grid-item>
@@ -111,7 +111,7 @@
                   <template #header>
                     <div class="flex-between">
                       <div class="timetable-title">{{ item.name }}</div>
-                      <n-tag :type="getStatusTagType(item.status)" size="small">
+                      <n-tag :type="getStatusTagType(item.status)" size="small" :class="['semantic-tag', getStatusTagClass(item.status)]">
                         {{ getStatusText(item.status) }}
                       </n-tag>
                     </div>
@@ -126,19 +126,19 @@
                     </n-grid-item>
                     <n-grid-item>
                       <div class="stat-item">
-                        <div class="stat-value text-success">{{ item.scheduledCount }}</div>
+                        <div class="stat-value semantic-number semantic-number--success">{{ item.scheduledCount }}</div>
                         <div class="stat-label">已排课</div>
                       </div>
                     </n-grid-item>
                     <n-grid-item>
                       <div class="stat-item">
-                        <div class="stat-value text-danger">{{ item.conflictCount }}</div>
+                        <div class="stat-value semantic-number semantic-number--danger">{{ item.conflictCount }}</div>
                         <div class="stat-label">冲突</div>
                       </div>
                     </n-grid-item>
                     <n-grid-item>
                       <div class="stat-item">
-                        <div class="stat-value text-primary">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
+                        <div class="stat-value semantic-number semantic-number--info">{{ item.utilizationRate ? item.utilizationRate.toFixed(1) : 0 }}%</div>
                         <div class="stat-label">利用率</div>
                       </div>
                     </n-grid-item>
@@ -274,6 +274,15 @@ const getStatusTagType = (status) => {
   return map[status] || 'default'
 }
 
+const getStatusTagClass = (status) => {
+  const map = {
+    'DRAFT': 'semantic-tag--warning',
+    'PUBLISHED': 'semantic-tag--success',
+    'ARCHIVED': 'semantic-tag--info'
+  }
+  return map[status] || ''
+}
+
 const formatTime = (time) => time ? dayjs(time).format('MM-DD HH:mm') : '-'
 
 const loadData = async () => {
@@ -313,6 +322,16 @@ const getGenerationTagType = (status) => {
     'FAILED': 'error'
   }
   return map[status] || 'default'
+}
+
+const getGenerationTagClass = (status) => {
+  const map = {
+    'SUBMITTED': 'semantic-tag--info',
+    'RUNNING': 'semantic-tag--warning',
+    'SUCCESS': 'semantic-tag--success',
+    'FAILED': 'semantic-tag--danger'
+  }
+  return map[status] || ''
 }
 
 const getGenerationTitle = (status) => {
@@ -468,8 +487,10 @@ onUnmounted(() => {
 }
 
 .table-container {
-  border: 1px solid var(--border-color);
+  position: relative;
+  border: 1px solid rgba(145, 120, 91, 0.18);
   border-radius: var(--radius-xl);
+  background: var(--fabric-surface), rgba(255, 250, 243, 0.76);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
@@ -485,9 +506,10 @@ onUnmounted(() => {
 }
 
 .table-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .mobile-actions {
@@ -509,7 +531,7 @@ onUnmounted(() => {
 
 .desktop-content {
   display: block;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .mobile-content {
@@ -527,20 +549,25 @@ onUnmounted(() => {
 .timetable-list.grid-layout {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  gap: var(--spacing-lg);
+  padding: 0;
 }
 
 .timetable-item {
   cursor: pointer;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
   animation: slideUp 0.3s ease-out backwards;
   transition: all var(--transition-base);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.16)),
+    rgba(255, 250, 243, 0.7);
+  border: 1px solid rgba(145, 120, 91, 0.12);
+  border-radius: var(--radius-lg);
 }
 
 .timetable-item:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .timetable-item:nth-child(1) { animation-delay: 0.05s; }
@@ -561,7 +588,7 @@ onUnmounted(() => {
 }
 
 .timetable-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -584,18 +611,22 @@ onUnmounted(() => {
 }
 
 .stat-grid {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08)),
+    rgba(244, 237, 222, 0.82);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  border: 1px solid rgba(145, 120, 91, 0.1);
 }
 
 .stat-item {
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
   text-align: center;
+  border-radius: var(--radius-md);
 }
 
 .stat-value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -608,7 +639,7 @@ onUnmounted(() => {
 }
 
 .user-list-wrapper {
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .generate-dialog {
@@ -627,7 +658,6 @@ onUnmounted(() => {
   .timetable-list.grid-layout {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-xl);
-    padding: var(--spacing-xl);
   }
 
   .timetable-item {
@@ -696,6 +726,11 @@ onUnmounted(() => {
 
   .add-btn-mobile .n-icon {
     color: #fff;
+  }
+
+  .desktop-content,
+  .user-list-wrapper {
+    padding: var(--spacing-md);
   }
 }
 </style>

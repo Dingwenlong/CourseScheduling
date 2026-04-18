@@ -13,7 +13,9 @@ export const useUserStore = defineStore('user', () => {
       userId: res.data.userId,
       username: res.data.username,
       realName: res.data.realName,
-      role: res.data.role
+      role: res.data.role,
+      teacherId: res.data.teacherId,
+      classId: res.data.classId
     }
     localStorage.setItem('token', res.data.token)
     return res
@@ -39,7 +41,9 @@ export const useUserStore = defineStore('user', () => {
       phone: info.phone,
       email: info.email,
       avatar: info.avatar,
-      status: info.status
+      status: info.status,
+      teacherId: info.teacherId,
+      classId: info.classId
     }
   }
 

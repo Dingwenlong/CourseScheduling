@@ -9,6 +9,7 @@ import com.paike.admin.mapper.TimetableMapper;
 import com.paike.admin.service.TimetableDetailService;
 import com.paike.admin.service.TimetableGenerationJobService;
 import com.paike.admin.service.TimetableService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.algorithm.dto.SchedulingRequest;
 import com.paike.common.exception.BusinessException;
 import com.paike.common.result.PageResult;
@@ -39,6 +40,9 @@ public class TimetableController {
 
     @Autowired
     private TimetableGenerationJobService timetableGenerationJobService;
+
+    @Autowired
+    private SecurityUtils securityUtils;
 
     @Operation(summary = "生成课表")
     @PreAuthorize("hasRole('ADMIN')")
@@ -153,7 +157,7 @@ public class TimetableController {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
         List<TimetableDetail> details = timetableDetailService.listByTimetableId(id);
-        return Result.success(details);
+        return Result.success(securityUtils.filterTimetableDetails(details));
     }
 
     @Operation(summary = "查询班级课表")
@@ -165,6 +169,7 @@ public class TimetableController {
         if (id == null || classId == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
+        securityUtils.checkClassAccess(classId);
         List<TimetableDetail> details = timetableDetailService.listByClassId(id, classId);
         return Result.success(details);
     }
@@ -178,6 +183,7 @@ public class TimetableController {
         if (id == null || teacherId == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
+        securityUtils.checkTeacherAccess(teacherId);
         List<TimetableDetail> details = timetableDetailService.listByTeacherId(id, teacherId);
         return Result.success(details);
     }
@@ -191,6 +197,7 @@ public class TimetableController {
         if (id == null || classroomId == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
+        securityUtils.checkClassroomAccess();
         List<TimetableDetail> details = timetableDetailService.listByClassroomId(id, classroomId);
         return Result.success(details);
     }
@@ -216,6 +223,6 @@ public class TimetableController {
         List<TimetableDetail> conflicts = timetableDetailService.list(new LambdaQueryWrapper<TimetableDetail>()
                 .eq(TimetableDetail::getTimetableId, id)
                 .eq(TimetableDetail::getIsConflict, 1));
-        return Result.success(conflicts);
+        return Result.success(securityUtils.filterTimetableDetails(conflicts));
     }
 }

@@ -3,9 +3,14 @@ package com.paike.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.paike.admin.dto.ChangePasswordRequest;
+import com.paike.admin.dto.CurrentUserInfoResponse;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
+import com.paike.admin.entity.Student;
+import com.paike.admin.entity.Teacher;
 import com.paike.admin.entity.User;
+import com.paike.admin.mapper.StudentMapper;
+import com.paike.admin.mapper.TeacherMapper;
 import com.paike.admin.mapper.UserMapper;
 import com.paike.admin.service.UserService;
 import com.paike.admin.utils.SecurityUtils;
@@ -32,6 +37,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private SecurityUtils securityUtils;
 
+    @Autowired
+    private TeacherMapper teacherMapper;
+
+    @Autowired
+    private StudentMapper studentMapper;
+
     @Override
     public LoginResponse login(LoginRequest request) {
         User user = getByUsername(request.getUsername());
@@ -51,12 +62,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         updateLoginInfo(user.getId(), ServletUtils.getClientIp());
 
-        return LoginResponse.of(token, user.getId(), user.getUsername(), user.getRealName(), user.getRole());
+        Teacher teacher = teacherMapper.selectOne(new LambdaQueryWrapper<Teacher>()
+                .eq(Teacher::getUserId, user.getId())
+                .last("LIMIT 1"));
+        Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>()
+                .eq(Student::getUserId, user.getId())
+                .last("LIMIT 1"));
+
+        return LoginResponse.of(
+                token,
+                user.getId(),
+                user.getUsername(),
+                user.getRealName(),
+                user.getRole(),
+                teacher != null ? teacher.getId() : null,
+                student != null ? student.getClassId() : null
+        );
     }
 
     @Override
     public User getByUsername(String username) {
         return getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+    }
+
+    @Override
+    public CurrentUserInfoResponse buildCurrentUserInfo(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        Teacher teacher = teacherMapper.selectOne(new LambdaQueryWrapper<Teacher>()
+                .eq(Teacher::getUserId, user.getId())
+                .last("LIMIT 1"));
+        Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>()
+                .eq(Student::getUserId, user.getId())
+                .last("LIMIT 1"));
+
+        CurrentUserInfoResponse response = new CurrentUserInfoResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setRealName(user.getRealName());
+        response.setRole(user.getRole());
+        response.setPhone(user.getPhone());
+        response.setEmail(user.getEmail());
+        response.setAvatar(user.getAvatar());
+        response.setStatus(user.getStatus());
+        response.setTeacherId(teacher != null ? teacher.getId() : null);
+        response.setClassId(student != null ? student.getClassId() : null);
+        return response;
     }
 
     @Override

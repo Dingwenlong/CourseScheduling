@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { createDiscreteApi } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import ResponsiveLayout from '@/layouts/ResponsiveLayout.vue'
+
+const { message } = createDiscreteApi(['message'])
 
 const routes = [
   {
@@ -35,7 +38,7 @@ const routes = [
         path: 'task',
         name: 'Task',
         component: () => import('@/views/task/index.vue'),
-        meta: { title: '教学任务' }
+        meta: { title: '教学任务', allowedRoles: ['ADMIN', 'TEACHER'] }
       },
       {
         path: 'schedule',
@@ -47,13 +50,13 @@ const routes = [
         path: 'adjustment',
         name: 'Adjustment',
         component: () => import('@/views/adjustment/index.vue'),
-        meta: { title: '调课管理' }
+        meta: { title: '调课管理', allowedRoles: ['ADMIN', 'TEACHER'] }
       },
       {
         path: 'statistics',
         name: 'Statistics',
         component: () => import('@/views/statistics/index.vue'),
-        meta: { title: '统计分析' }
+        meta: { title: '统计分析', allowedRoles: ['ADMIN', 'TEACHER'] }
       },
       {
         path: 'profile',
@@ -101,7 +104,20 @@ router.beforeEach(async (to, from, next) => {
         await userStore.fetchUserInfo()
       } catch (e) {
         console.error('获取用户信息失败', e)
+        await userStore.logout()
+        next('/login')
+        return
       }
+    }
+    if (to.meta.requiresAdmin && userStore.userInfo?.role !== 'ADMIN') {
+      message.warning(`当前账号无权访问${to.meta.title || '该页面'}`)
+      next('/home')
+      return
+    }
+    if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userStore.userInfo?.role)) {
+      message.warning(`当前账号无权访问${to.meta.title || '该页面'}`)
+      next('/home')
+      return
     }
     next()
   }

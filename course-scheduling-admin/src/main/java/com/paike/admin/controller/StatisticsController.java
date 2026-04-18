@@ -9,6 +9,7 @@ import com.paike.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 @Tag(name = "统计分析", description = "统计相关接口")
 @RestController
 @RequestMapping("/statistics")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
 public class StatisticsController {
 
     @Autowired

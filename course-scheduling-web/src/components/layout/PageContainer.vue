@@ -22,6 +22,7 @@ defineProps({
   position: relative;
   overflow-x: hidden;
   transition: background-color var(--transition-base);
+  isolation: isolate;
 }
 
 .page-container.with-tabbar {
@@ -32,17 +33,28 @@ defineProps({
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 32px;
+  border-radius: 36px;
   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)),
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.35), transparent 24%),
     radial-gradient(circle at bottom right, rgba(190, 168, 134, 0.12), transparent 24%);
   pointer-events: none;
   opacity: 0.7;
 }
 
+.page-container::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 30px;
+  border: 1px dashed rgba(145, 120, 91, 0.08);
+  pointer-events: none;
+  opacity: 0.64;
+}
+
 @media (min-width: 1024px) {
   .page-container {
-    padding: clamp(20px, 2vw, 30px);
+    padding: clamp(22px, 2vw, 32px);
     padding-bottom: var(--spacing-3xl);
   }
 }
@@ -74,6 +86,11 @@ defineProps({
   .page-container {
     padding: 14px;
     padding-bottom: var(--spacing-2xl);
+  }
+
+  .page-container::after {
+    inset: 4px;
+    border-radius: 24px;
   }
 }
 

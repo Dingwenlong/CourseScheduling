@@ -1,8 +1,8 @@
 <template>
   <div class="desktop-home-page" role="main" aria-label="仪表盘">
     <div class="page-header animate-fade-in-up">
-      <h2 class="page-title">仪表盘</h2>
-      <p class="page-subtitle">欢迎回来，管理员</p>
+      <h2 class="page-title">{{ dashboardTitle }}</h2>
+      <p class="page-subtitle">{{ welcomeSubtitle }}</p>
     </div>
 
     <div class="semester-overview-section animate-fade-in-up" role="region" aria-label="学期概览">
@@ -12,10 +12,11 @@
             <n-icon size="20" color="#fff"><CalendarOutline /></n-icon>
             <span>{{ currentSemester }}</span>
           </div>
-          <span class="semester-subtitle">当前学期概览</span>
+          <span class="semester-subtitle">{{ semesterSubtitle }}</span>
         </div>
         <n-tag type="success" size="medium" round>进行中</n-tag>
       </div>
+      <div class="semester-guide">{{ semesterGuide }}</div>
 
       <div class="stats-grid grid-adaptive stagger-animation" role="region" aria-label="统计数据">
         <div class="stat-card-desktop stat-card-primary" tabindex="0" role="article" aria-label="已排课程统计">
@@ -25,12 +26,12 @@
             </n-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-value">{{ stats.totalCourses }}</div>
-            <div class="stat-label">已排课程</div>
+            <div class="stat-value">{{ overviewStats.primaryValue }}</div>
+            <div class="stat-label">{{ overviewStats.primaryLabel }}</div>
           </div>
           <div class="stat-trend" v-if="stats.totalCourses > 0">
             <n-icon size="14" color="#10b981"><TrendingUpOutline /></n-icon>
-            <span>正常</span>
+            <span>{{ overviewStats.primaryHint }}</span>
           </div>
         </div>
 
@@ -42,7 +43,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-value">{{ stats.totalHours }}</div>
-            <div class="stat-label">总学时</div>
+            <div class="stat-label">{{ overviewStats.secondaryLabel }}</div>
           </div>
         </div>
 
@@ -53,8 +54,8 @@
             </n-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-value">{{ stats.totalTasks }}</div>
-            <div class="stat-label">教学任务</div>
+            <div class="stat-value">{{ overviewStats.tertiaryValue }}</div>
+            <div class="stat-label">{{ overviewStats.tertiaryLabel }}</div>
           </div>
         </div>
 
@@ -67,7 +68,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-value" :class="{ 'text-danger': stats.conflicts > 0 }">{{ stats.conflicts }}</div>
-            <div class="stat-label">{{ stats.conflicts > 0 ? '待处理冲突' : '无冲突' }}</div>
+            <div class="stat-label">{{ stats.conflicts > 0 ? overviewStats.conflictLabel : '无冲突' }}</div>
           </div>
         </div>
       </div>
@@ -77,9 +78,9 @@
       <div class="main-section">
         <div class="card desktop-card animate-slide-in-left" role="region" aria-label="最新课表">
           <div class="card-header">
-            <h3 class="card-title">最新课表</h3>
-            <n-button type="primary" size="small" class="touch-target" @click="goToTimetable" aria-label="查看全部课表">
-              查看全部
+            <h3 class="card-title">{{ timetableCardTitle }}</h3>
+            <n-button type="primary" size="small" class="touch-target" @click="goToTimetable" :aria-label="timetableActionText">
+              {{ timetableActionText }}
             </n-button>
           </div>
           <StateView
@@ -92,6 +93,8 @@
                 <div>
                   <div class="timetable-name">{{ latestTimetable.name }}</div>
                   <div class="timetable-meta">{{ latestTimetable.semester }} · 第{{ latestTimetable.version }}版</div>
+                  <div class="timetable-meta">{{ timetableScopeHint }}</div>
+                  <div v-if="todayScheduleTip" class="timetable-meta timetable-meta--strong">{{ todayScheduleTip }}</div>
                 </div>
                 <n-tag :type="getStatusType(latestTimetable.status)" size="large">
                   {{ getStatusText(latestTimetable.status) }}
@@ -99,20 +102,20 @@
               </div>
               <div class="timetable-stats">
                 <div class="stat-item">
-                  <span class="stat-num">{{ latestTimetable.taskCount }}</span>
-                  <span class="stat-text">任务数</span>
+                  <span class="stat-num">{{ detailStats.primaryValue }}</span>
+                  <span class="stat-text">{{ detailStats.primaryLabel }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-num text-success">{{ latestTimetable.scheduledCount }}</span>
-                  <span class="stat-text">已排课</span>
+                  <span class="stat-num text-success">{{ detailStats.secondaryValue }}</span>
+                  <span class="stat-text">{{ detailStats.secondaryLabel }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-num text-danger">{{ latestTimetable.conflictCount }}</span>
-                  <span class="stat-text">冲突</span>
+                  <span class="stat-num text-danger">{{ detailStats.conflictValue }}</span>
+                  <span class="stat-text">{{ detailStats.conflictLabel }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-num text-primary">{{ latestTimetable.utilizationRate ? latestTimetable.utilizationRate.toFixed(1) : 0 }}%</span>
-                  <span class="stat-text">利用率</span>
+                  <span class="stat-num text-primary">{{ detailStats.extraValue }}</span>
+                  <span class="stat-text">{{ detailStats.extraLabel }}</span>
                 </div>
               </div>
               <div class="timetable-footer">
@@ -132,109 +135,75 @@
             <h3 class="card-title">快捷操作</h3>
           </div>
           <div class="quick-actions-desktop grid-adaptive">
-            <router-link to="/timetable" class="quick-action touch-target" aria-label="生成课表">
+            <router-link to="/timetable" class="quick-action touch-target" :aria-label="quickActionLabels.timetable">
               <n-icon size="28" color="#51caba">
                 <CalendarOutline />
               </n-icon>
-              <span>生成课表</span>
+              <span>{{ quickActionLabels.timetable }}</span>
             </router-link>
-            <router-link to="/task" class="quick-action touch-target" aria-label="教学任务">
+            <router-link v-if="canAccessTeacherFeatures" to="/task" class="quick-action touch-target" :aria-label="quickActionLabels.task">
               <n-icon size="28" color="#10b981">
                 <ClipboardOutline />
               </n-icon>
-              <span>教学任务</span>
+              <span>{{ quickActionLabels.task }}</span>
             </router-link>
-            <router-link to="/schedule" class="quick-action touch-target" aria-label="课表查询">
+            <router-link to="/schedule" class="quick-action touch-target" :aria-label="quickActionLabels.schedule">
               <n-icon size="28" color="#f59e0b">
                 <SearchOutline />
               </n-icon>
-              <span>课表查询</span>
+              <span>{{ quickActionLabels.schedule }}</span>
             </router-link>
-            <router-link to="/adjustment" class="quick-action touch-target" aria-label="调课申请">
+            <router-link v-if="canAccessTeacherFeatures" to="/adjustment" class="quick-action touch-target" :aria-label="quickActionLabels.adjustment">
               <n-icon size="28" color="#ef4444">
                 <SwapHorizontalOutline />
               </n-icon>
-              <span>调课申请</span>
+              <span>{{ quickActionLabels.adjustment }}</span>
             </router-link>
-            <router-link to="/statistics" class="quick-action touch-target" aria-label="统计分析">
+            <router-link v-if="canAccessTeacherFeatures" to="/statistics" class="quick-action touch-target" :aria-label="quickActionLabels.statistics">
               <n-icon size="28" color="#8b5cf6">
                 <BarChartOutline />
               </n-icon>
-              <span>统计分析</span>
+              <span>{{ quickActionLabels.statistics }}</span>
             </router-link>
-            <router-link to="/profile" class="quick-action touch-target" aria-label="系统设置">
+            <router-link to="/profile" class="quick-action touch-target" aria-label="个人中心">
               <n-icon size="28" color="#6b7280">
                 <SettingsOutline />
               </n-icon>
-              <span>系统设置</span>
+              <span>个人中心</span>
             </router-link>
           </div>
         </div>
       </div>
 
       <div class="side-section">
-        <div class="card desktop-card animate-slide-in-right" role="region" aria-label="系统状态">
+        <div class="card desktop-card animate-slide-in-right" role="region" :aria-label="sidePanelTitle">
           <div class="card-header">
-            <h3 class="card-title">系统状态</h3>
+            <h3 class="card-title">{{ sidePanelTitle }}</h3>
           </div>
           <div class="system-status">
-            <div class="status-item">
+            <div v-for="item in sidePanelItems" :key="item.text" class="status-item">
               <n-icon size="20" color="#10b981">
                 <CheckmarkCircleOutline />
               </n-icon>
-              <span>数据库连接正常</span>
-            </div>
-            <div class="status-item">
-              <n-icon size="20" color="#10b981">
-                <CheckmarkCircleOutline />
-              </n-icon>
-              <span>算法服务运行中</span>
-            </div>
-            <div class="status-item">
-              <n-icon size="20" color="#10b981">
-                <CheckmarkCircleOutline />
-              </n-icon>
-              <span>缓存服务正常</span>
+              <span>{{ item.text }}</span>
             </div>
           </div>
         </div>
 
-        <div class="card desktop-card animate-slide-in-right" style="animation-delay: 0.1s;" role="region" aria-label="最近活动">
+        <div class="card desktop-card animate-slide-in-right" style="animation-delay: 0.1s;" role="region" :aria-label="activityTitle">
           <div class="card-header">
-            <h3 class="card-title">最近活动</h3>
+            <h3 class="card-title">{{ activityTitle }}</h3>
           </div>
           <div class="activity-list">
-            <div class="activity-item">
+            <div v-for="item in activityItems" :key="item.text" class="activity-item">
               <div class="activity-icon" style="background: #eff6ff;">
                 <n-icon size="16" color="#51caba">
-                  <AddOutline />
+                  <component :is="item.icon" />
                 </n-icon>
               </div>
               <div class="activity-content">
-                <div class="activity-text">新增教学任务</div>
-                <div class="activity-time">10分钟前</div>
-              </div>
-            </div>
-            <div class="activity-item">
-              <div class="activity-icon" style="background: #ecfdf5;">
-                <n-icon size="16" color="#10b981">
-                  <CheckmarkCircleOutline />
-                </n-icon>
-              </div>
-              <div class="activity-content">
-                <div class="activity-text">课表生成成功</div>
-                <div class="activity-time">30分钟前</div>
-              </div>
-            </div>
-            <div class="activity-item">
-              <div class="activity-icon" style="background: #fef3c7;">
-                <n-icon size="16" color="#f59e0b">
-                  <CreateOutline />
-                </n-icon>
-              </div>
-              <div class="activity-content">
-                <div class="activity-text">更新课程信息</div>
-                <div class="activity-time">1小时前</div>
+                <div class="activity-text">{{ item.text }}</div>
+                <div class="activity-time">{{ item.time }}</div>
               </div>
             </div>
           </div>
@@ -245,10 +214,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
-import { getLatestTimetable } from '@/api/timetable'
+import { getLatestTimetable, getClassTimetable, getTeacherTimetable } from '@/api/timetable'
 import { getCurrentSemester } from '@/utils/semester'
 import StateView from '@/components/ui/StateView.vue'
 import { NButton, NTag, NIcon } from 'naive-ui'
@@ -268,17 +238,200 @@ import {
 } from '@vicons/ionicons5'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const latestTimetable = ref(null)
+const scopedDetails = ref([])
+const userRole = computed(() => userStore.userInfo?.role)
+const canAccessTeacherFeatures = computed(() => ['ADMIN', 'TEACHER'].includes(userStore.userInfo?.role))
+const dashboardTitle = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '我的工作台'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '我的学习首页'
+  }
+  return '仪表盘'
+})
+const welcomeSubtitle = computed(() => {
+  const roleMap = {
+    ADMIN: '管理员',
+    TEACHER: '教师',
+    STUDENT: '学生'
+  }
+  const roleText = roleMap[userStore.userInfo?.role] || '用户'
+  const name = userStore.userInfo?.realName || '你好'
+  return `${name}，欢迎回来。当前身份：${roleText}`
+})
 
 const stats = ref({
   totalCourses: 0,
   totalHours: 0,
   totalTasks: 0,
-  conflicts: 0
+  conflicts: 0,
+  activeDays: 0
 })
 
 const currentSemester = ref('')
+const timetableScopeName = ref('全部班级')
+const semesterSubtitle = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '本周授课概览'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '本周学习概览'
+  }
+  return '当前学期概览'
+})
+const timetableCardTitle = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return '我的课表'
+  }
+  if (userRole.value === 'STUDENT') {
+    return '我的课程'
+  }
+  return '最新课表'
+})
+const quickActionLabels = computed(() => ({
+  timetable: userRole.value === 'ADMIN' ? '课表管理' : '课表总览',
+  task: userRole.value === 'TEACHER' ? '我的课程任务' : '教学任务',
+  schedule: userRole.value === 'TEACHER' ? '我的授课表' : userRole.value === 'STUDENT' ? '我的课表' : '课表查询',
+  adjustment: userRole.value === 'TEACHER' ? '申请调课' : '调课管理',
+  statistics: userRole.value === 'TEACHER' ? '授课统计' : '统计分析'
+}))
+
+const timetableActionText = computed(() => userRole.value === 'ADMIN' ? '查看全部' : '查看课表')
+
+const timetableScopeHint = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return `当前教师：${timetableScopeName.value}，这里只展示你自己的授课安排`
+  }
+  if (userRole.value === 'STUDENT') {
+    return `当前班级：${timetableScopeName.value}，这里只展示本班课程安排`
+  }
+  return '当前学期全局排课概览'
+})
+const todayScheduleTip = computed(() => {
+  const today = dayjs().day()
+  if (today < 1 || today > 5 || !scopedDetails.value.length) {
+    return ''
+  }
+  const count = scopedDetails.value.filter(item => item.dayOfWeek === today).length
+  const weekday = ['一', '二', '三', '四', '五'][today - 1]
+  if (userRole.value === 'TEACHER') {
+    return count > 0 ? `今天周${weekday}，你有 ${count} 节课要上` : `今天周${weekday}，你今天没有课`
+  }
+  if (userRole.value === 'STUDENT') {
+    return count > 0 ? `今天周${weekday}，本班有 ${count} 节课` : `今天周${weekday}，本班今天没有课`
+  }
+  return ''
+})
+const semesterGuide = computed(() => {
+  if (userRole.value === 'TEACHER' || userRole.value === 'STUDENT') {
+    return `当前查看范围：${timetableScopeName.value}${todayScheduleTip.value ? `，${todayScheduleTip.value}` : ''}`
+  }
+  return '当前展示的是本学期最新课表的整体概览与关键状态'
+})
+const overviewStats = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return {
+      primaryValue: stats.value.totalCourses,
+      primaryLabel: '授课门数',
+      primaryHint: '正常',
+      secondaryLabel: '总学时',
+      tertiaryValue: stats.value.activeDays,
+      tertiaryLabel: '上课天数',
+      conflictLabel: '待处理冲突'
+    }
+  }
+  if (userRole.value === 'STUDENT') {
+    return {
+      primaryValue: stats.value.totalCourses,
+      primaryLabel: '课程门数',
+      primaryHint: '正常',
+      secondaryLabel: '总学时',
+      tertiaryValue: stats.value.activeDays,
+      tertiaryLabel: '上课天数',
+      conflictLabel: '课程冲突'
+    }
+  }
+  return {
+    primaryValue: stats.value.totalCourses,
+    primaryLabel: '已排课程',
+    primaryHint: '正常',
+    secondaryLabel: '总学时',
+    tertiaryValue: stats.value.totalTasks,
+    tertiaryLabel: '教学任务',
+    conflictLabel: '待处理冲突'
+  }
+})
+
+const detailStats = computed(() => {
+  if (userRole.value === 'TEACHER') {
+    return {
+      primaryValue: stats.value.totalTasks,
+      primaryLabel: '本周课次',
+      secondaryValue: stats.value.totalCourses,
+      secondaryLabel: '授课门数',
+      conflictValue: stats.value.conflicts,
+      conflictLabel: '冲突',
+      extraValue: `${stats.value.totalHours}h`,
+      extraLabel: '总学时'
+    }
+  }
+  if (userRole.value === 'STUDENT') {
+    return {
+      primaryValue: stats.value.totalTasks,
+      primaryLabel: '本周课次',
+      secondaryValue: stats.value.totalCourses,
+      secondaryLabel: '课程门数',
+      conflictValue: stats.value.conflicts,
+      conflictLabel: '冲突',
+      extraValue: `${stats.value.totalHours}h`,
+      extraLabel: '总学时'
+    }
+  }
+  return {
+    primaryValue: latestTimetable.value?.taskCount || 0,
+    primaryLabel: '任务数',
+    secondaryValue: latestTimetable.value?.scheduledCount || 0,
+    secondaryLabel: '已排课',
+    conflictValue: latestTimetable.value?.conflictCount || 0,
+    conflictLabel: '冲突',
+    extraValue: `${latestTimetable.value?.utilizationRate ? latestTimetable.value.utilizationRate.toFixed(1) : 0}%`,
+    extraLabel: '利用率'
+  }
+})
+const sidePanelTitle = computed(() => userRole.value === 'ADMIN' ? '系统状态' : '使用提醒')
+const sidePanelItems = computed(() => {
+  if (userRole.value === 'ADMIN') {
+    return [
+      { text: '数据库连接正常' },
+      { text: '算法服务运行中' },
+      { text: '缓存服务正常' }
+    ]
+  }
+  return [
+    { text: '绿色课表卡片表示当前课表范围已自动按你的身份过滤' },
+    { text: '如需看完整周安排，可直接打开“我的授课表”或“我的课表”' },
+    { text: '发现冲突时可先到“申请调课”或“授课统计”继续处理' }
+  ]
+})
+const activityTitle = computed(() => userRole.value === 'ADMIN' ? '最近活动' : '今日提醒')
+const activityItems = computed(() => {
+  if (userRole.value === 'ADMIN') {
+    return [
+      { icon: AddOutline, text: '新增教学任务', time: '10分钟前' },
+      { icon: CheckmarkCircleOutline, text: '课表生成成功', time: '30分钟前' },
+      { icon: CreateOutline, text: '更新课程信息', time: '1小时前' }
+    ]
+  }
+  return [
+    { icon: CalendarOutline, text: todayScheduleTip.value || '今天暂无课程安排', time: '今日概览' },
+    { icon: WarningOutline, text: stats.value.conflicts > 0 ? `当前还有 ${stats.value.conflicts} 个冲突需要关注` : '当前课表没有待处理冲突', time: '冲突提醒' },
+    { icon: ClipboardOutline, text: `当前课表共 ${stats.value.totalTasks} 个课次，覆盖 ${stats.value.activeDays} 个上课日`, time: '本周节奏' }
+  ]
+})
 
 const getStatusType = (status) => {
   const map = {
@@ -303,7 +456,67 @@ const formatTime = (time) => {
 }
 
 const goToTimetable = () => {
-  router.push('/timetable')
+  router.push(userRole.value === 'ADMIN' ? '/timetable' : '/schedule')
+}
+
+const resetStats = () => {
+  stats.value = {
+    totalCourses: 0,
+    totalHours: 0,
+    totalTasks: 0,
+    conflicts: 0,
+    activeDays: 0
+  }
+  timetableScopeName.value = '全部班级'
+  scopedDetails.value = []
+}
+
+const applyAdminSummary = (timetable) => {
+  timetableScopeName.value = '全部班级'
+  scopedDetails.value = []
+  stats.value.totalCourses = timetable?.scheduledCount || 0
+  stats.value.totalHours = (timetable?.scheduledCount || 0) * 2
+  stats.value.totalTasks = timetable?.taskCount || 0
+  stats.value.conflicts = timetable?.conflictCount || 0
+  stats.value.activeDays = 5
+}
+
+const applyScopedSummary = (details, scopeName) => {
+  const scopedCourses = Array.isArray(details) ? details : []
+  const uniqueCourseCount = new Set(
+    scopedCourses.map(item => item?.courseName || item?.teachingTaskId || item?.id).filter(Boolean)
+  ).size
+  const activeDayCount = new Set(scopedCourses.map(item => item?.dayOfWeek).filter(Boolean)).size
+  timetableScopeName.value = scopeName || '-'
+  scopedDetails.value = scopedCourses
+  stats.value.totalCourses = uniqueCourseCount
+  stats.value.totalHours = scopedCourses.length * 2
+  stats.value.totalTasks = scopedCourses.length
+  stats.value.conflicts = scopedCourses.filter(item => Number(item?.isConflict) === 1).length
+  stats.value.activeDays = activeDayCount
+}
+
+const loadScopedHomeSummary = async (timetable) => {
+  if (!timetable?.id) {
+    resetStats()
+    return
+  }
+
+  if (userRole.value === 'TEACHER' && userStore.userInfo?.teacherId) {
+    const res = await getTeacherTimetable(timetable.id, userStore.userInfo.teacherId)
+    const details = res.data || []
+    applyScopedSummary(details, details[0]?.teacherName || userStore.userInfo?.realName || '当前教师')
+    return
+  }
+
+  if (userRole.value === 'STUDENT' && userStore.userInfo?.classId) {
+    const res = await getClassTimetable(timetable.id, userStore.userInfo.classId)
+    const details = res.data || []
+    applyScopedSummary(details, details[0]?.className || '当前班级')
+    return
+  }
+
+  applyAdminSummary(timetable)
 }
 
 onMounted(async () => {
@@ -314,13 +527,13 @@ onMounted(async () => {
     const res = await getLatestTimetable(semester)
     latestTimetable.value = res.data
     if (res.data) {
-      stats.value.totalCourses = res.data.scheduledCount || 0
-      stats.value.totalHours = (res.data.scheduledCount || 0) * 2
-      stats.value.totalTasks = res.data.taskCount || 0
-      stats.value.conflicts = res.data.conflictCount || 0
+      await loadScopedHomeSummary(res.data)
+    } else {
+      resetStats()
     }
   } catch (e) {
     console.error(e)
+    resetStats()
   } finally {
     loading.value = false
   }
@@ -419,6 +632,13 @@ onMounted(async () => {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+}
+
+.semester-guide {
+  margin-bottom: var(--spacing-lg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .stats-grid {
@@ -544,6 +764,11 @@ onMounted(async () => {
 .timetable-meta {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.timetable-meta--strong {
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .timetable-stats {

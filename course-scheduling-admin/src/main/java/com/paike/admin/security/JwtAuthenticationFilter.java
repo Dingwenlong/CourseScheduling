@@ -1,6 +1,8 @@
 package com.paike.admin.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paike.admin.entity.User;
+import com.paike.admin.mapper.UserMapper;
 import com.paike.common.result.Result;
 import com.paike.common.result.ResultCode;
 import com.paike.common.utils.JwtUtils;
@@ -35,6 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private RedisUtils redisUtils;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -53,6 +58,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtUtils.getRoleFromToken(token);
 
                 if (userId != null && username != null && role != null) {
+                    User user = userMapper.selectById(userId);
+                    if (user == null) {
+                        sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, ResultCode.TOKEN_INVALID);
+                        return;
+                    }
+                    if (!Integer.valueOf(1).equals(user.getStatus())) {
+                        sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, ResultCode.USER_DISABLED);
+                        return;
+                    }
+                    if (!username.equals(user.getUsername()) || !role.equals(user.getRole())) {
+                        sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, ResultCode.TOKEN_INVALID);
+                        return;
+                    }
+
                     SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userId, null, Collections.singletonList(authority));

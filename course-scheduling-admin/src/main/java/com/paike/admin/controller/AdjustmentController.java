@@ -22,6 +22,7 @@ public class AdjustmentController {
     private AdjustmentService adjustmentService;
 
     @Operation(summary = "检测调课冲突")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @PostMapping("/check")
     public Result<AdjustmentResult> checkAdjustment(@RequestBody AdjustmentRequest request) {
         AdjustmentResult result = adjustmentService.checkAdjustment(request);
@@ -53,6 +54,7 @@ public class AdjustmentController {
     }
 
     @Operation(summary = "检测课程交换冲突")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @PostMapping("/swap/check")
     public Result<AdjustmentResult> checkSwap(@RequestBody SwapAdjustmentRequest request) {
         AdjustmentResult result = adjustmentService.checkSwap(request);

@@ -30,8 +30,9 @@
           </header>
 
           <div class="form-toolbar">
-            <span class="toolbar-text">统一身份认证入口</span>
+            <span class="toolbar-text">{{ showDemoAccess ? '演示环境快捷登录' : '校园账号登录' }}</span>
             <n-button
+              v-if="showDemoAccess"
               quaternary
               size="small"
               class="demo-btn"
@@ -130,10 +131,10 @@
               </n-button>
             </div>
 
-            <div class="login-note">若需体验系统，请先使用管理员测试账号登录。</div>
+            <div v-if="showDemoAccess" class="login-note">演示环境可使用管理员测试账号快速进入系统。</div>
           </n-form>
 
-          <footer class="card-footer">
+          <footer v-if="showDemoAccess" class="card-footer">
             <div class="test-account">测试账号：admin / admin123</div>
           </footer>
         </div>
@@ -176,6 +177,7 @@ const rules = {
 const loading = ref(false)
 const errorMessage = ref('')
 const errorAlertRef = ref(null)
+const showDemoAccess = import.meta.env.DEV
 const demoCredentials = {
   username: 'admin',
   password: 'admin123'

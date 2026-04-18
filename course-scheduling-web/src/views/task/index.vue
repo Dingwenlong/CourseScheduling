@@ -11,7 +11,7 @@
             </template>
             刷新
           </n-button>
-          <n-button type="primary" @click="showAdd = true">
+          <n-button v-if="isAdmin" type="primary" @click="showAdd = true">
             <template #icon>
               <n-icon>
                 <AddOutline />
@@ -21,6 +21,15 @@
           </n-button>
         </template>
       </PageHeader>
+
+      <n-alert
+        v-if="!isAdmin"
+        type="info"
+        :bordered="false"
+        class="readonly-alert"
+      >
+        当前为教师只读视图，你可以查看自己的教学任务，新增、编辑、删除仅管理员可用。
+      </n-alert>
 
       <div class="table-container animate-fade-in">
         <div class="table-header">
@@ -57,7 +66,7 @@
           </div>
         </div>
 
-        <div class="mobile-actions mobile-only">
+        <div v-if="isAdmin" class="mobile-actions mobile-only">
           <n-button type="primary" block @click="showAdd = true" class="add-btn-mobile">
             <template #icon>
               <n-icon>
@@ -100,7 +109,7 @@
                     {{ getStatusText(item.status) }}
                   </n-tag>
                 </div>
-                <div class="task-actions desktop-only">
+                <div v-if="isAdmin" class="task-actions desktop-only">
                   <n-button size="small" type="primary" @click.stop="editTask(item)">编辑</n-button>
                   <n-button size="small" type="error" @click.stop="deleteTaskConfirm(item)">删除</n-button>
                 </div>
@@ -143,7 +152,7 @@
                       优先级: {{ item.priorityLevel || '-' }}
                     </span>
                   </div>
-                  <template #action>
+                  <template v-if="isAdmin" #action>
                     <div class="task-actions-mobile">
                       <n-button type="primary" size="small" @click="editTask(item)">编辑</n-button>
                       <n-button type="error" size="small" @click="deleteTaskConfirm(item)">删除</n-button>
@@ -159,19 +168,49 @@
     </div>
 
     <n-modal v-model:show="showAdd" preset="card" :title="editingTask ? '编辑任务' : '新增任务'" :style="{ width: '500px' }" class="task-dialog">
-      <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="100px">
-        <n-form-item label="学期" path="semester">
-          <n-select v-model:value="form.semester" :options="semesterOptions.slice(1)" placeholder="请选择学期" />
-        </n-form-item>
-        <n-form-item label="课程ID" path="courseId">
-          <n-input-number v-model:value="form.courseId" placeholder="请输入课程ID" style="width: 100%" :min="1" />
-        </n-form-item>
-        <n-form-item label="教师ID" path="teacherId">
-          <n-input-number v-model:value="form.teacherId" placeholder="请输入教师ID" style="width: 100%" :min="1" />
-        </n-form-item>
-        <n-form-item label="班级ID" path="classId">
-          <n-input-number v-model:value="form.classId" placeholder="请输入班级ID" style="width: 100%" :min="1" />
-        </n-form-item>
+        <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="100px">
+          <n-form-item label="学期" path="semester">
+            <n-select v-model:value="form.semester" :options="semesterOptions.slice(1)" placeholder="请选择学期" />
+          </n-form-item>
+          <n-form-item label="课程" path="courseId">
+            <n-select
+              v-model:value="form.courseId"
+              filterable
+              remote
+              clearable
+              :options="courseOptions"
+              :loading="courseLookupLoading"
+              placeholder="搜索课程名称或课程编号"
+              @search="searchCourseOptions"
+              @focus="loadCourseOptions"
+            />
+          </n-form-item>
+          <n-form-item label="教师" path="teacherId">
+            <n-select
+              v-model:value="form.teacherId"
+              filterable
+              remote
+              clearable
+              :options="teacherOptions"
+              :loading="teacherLookupLoading"
+              placeholder="搜索教师姓名或教师编号"
+              @search="searchTeacherOptions"
+              @focus="loadTeacherOptions"
+            />
+          </n-form-item>
+          <n-form-item label="班级" path="classId">
+            <n-select
+              v-model:value="form.classId"
+              filterable
+              remote
+              clearable
+              :options="classOptions"
+              :loading="classLookupLoading"
+              placeholder="搜索班级名称或班级编号"
+              @search="searchClassOptions"
+              @focus="loadClassOptions"
+            />
+          </n-form-item>
         <n-form-item label="学生人数">
           <n-input-number v-model:value="form.studentCount" placeholder="请输入学生人数" style="width: 100%" :min="0" />
         </n-form-item>
@@ -199,9 +238,15 @@
       <div v-if="currentTask" class="detail-content">
         <n-descriptions :column="1" bordered>
           <n-descriptions-item label="学期">{{ currentTask.semester }}</n-descriptions-item>
-          <n-descriptions-item label="课程ID">{{ currentTask.courseId }}</n-descriptions-item>
-          <n-descriptions-item label="教师ID">{{ currentTask.teacherId }}</n-descriptions-item>
-          <n-descriptions-item label="班级ID">{{ currentTask.classId }}</n-descriptions-item>
+          <n-descriptions-item label="课程">
+            {{ currentTask.courseName || `课程 #${currentTask.courseId}` }}
+          </n-descriptions-item>
+          <n-descriptions-item label="教师">
+            {{ currentTask.teacherName || `教师 #${currentTask.teacherId}` }}
+          </n-descriptions-item>
+          <n-descriptions-item label="班级">
+            {{ currentTask.className || `班级 #${currentTask.classId}` }}
+          </n-descriptions-item>
           <n-descriptions-item label="学生人数">{{ currentTask.studentCount }}</n-descriptions-item>
           <n-descriptions-item label="周学时">{{ currentTask.weeklyHours }}</n-descriptions-item>
           <n-descriptions-item label="优先级">{{ currentTask.priorityLevel }}</n-descriptions-item>
@@ -215,15 +260,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useMessage, useDialog } from 'naive-ui'
 import dayjs from 'dayjs'
 import { getTaskList, createTask, updateTask, deleteTask } from '@/api/task'
+import { searchCourses, searchTeachers, searchClasses } from '@/api/lookup'
 import { buildSemesterOptions } from '@/utils/semester'
 import { useLayoutStore } from '@/stores/layout'
+import { useUserStore } from '@/stores/user'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import {
+  NAlert,
   NButton,
   NIcon,
   NInput,
@@ -253,6 +301,8 @@ import {
 const message = useMessage()
 const dialog = useDialog()
 const layoutStore = useLayoutStore()
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -282,6 +332,12 @@ const form = reactive({
   priorityLevel: null,
   totalWeeks: null
 })
+const courseOptions = ref([])
+const teacherOptions = ref([])
+const classOptions = ref([])
+const courseLookupLoading = ref(false)
+const teacherLookupLoading = ref(false)
+const classLookupLoading = ref(false)
 
 const rules = {
   semester: {
@@ -291,17 +347,17 @@ const rules = {
   },
   courseId: {
     required: true,
-    message: '请输入课程ID',
+    message: '请选择课程',
     trigger: 'blur'
   },
   teacherId: {
     required: true,
-    message: '请输入教师ID',
+    message: '请选择教师',
     trigger: 'blur'
   },
   classId: {
     required: true,
-    message: '请输入班级ID',
+    message: '请选择班级',
     trigger: 'blur'
   },
   totalWeeks: {
@@ -342,6 +398,58 @@ const resetForm = () => {
   form.weeklyHours = null
   form.priorityLevel = null
   form.totalWeeks = null
+}
+
+const loadLookupOptions = async (searcher, targetRef, loadingRef, keyword = '') => {
+  loadingRef.value = true
+  try {
+    const res = await searcher({ keyword, limit: 20 })
+    targetRef.value = res.data || []
+  } catch (error) {
+    targetRef.value = []
+  } finally {
+    loadingRef.value = false
+  }
+}
+
+const loadCourseOptions = async () => {
+  if (!courseOptions.value.length) {
+    await loadLookupOptions(searchCourses, courseOptions, courseLookupLoading)
+  }
+}
+
+const loadTeacherOptions = async () => {
+  if (!teacherOptions.value.length) {
+    await loadLookupOptions(searchTeachers, teacherOptions, teacherLookupLoading)
+  }
+}
+
+const loadClassOptions = async () => {
+  if (!classOptions.value.length) {
+    await loadLookupOptions(searchClasses, classOptions, classLookupLoading)
+  }
+}
+
+const searchCourseOptions = async (keyword) => {
+  await loadLookupOptions(searchCourses, courseOptions, courseLookupLoading, keyword)
+}
+
+const searchTeacherOptions = async (keyword) => {
+  await loadLookupOptions(searchTeachers, teacherOptions, teacherLookupLoading, keyword)
+}
+
+const searchClassOptions = async (keyword) => {
+  await loadLookupOptions(searchClasses, classOptions, classLookupLoading, keyword)
+}
+
+const ensureOption = (targetRef, value, label) => {
+  if (!value) {
+    return
+  }
+  const normalizedValue = Number(value)
+  if (!targetRef.value.some(option => option.value === normalizedValue)) {
+    targetRef.value = [{ value: normalizedValue, label: label || String(value) }, ...targetRef.value]
+  }
 }
 
 const loadData = async () => {
@@ -387,6 +495,10 @@ const showTaskDetail = (item) => {
 }
 
 const editTask = (item) => {
+  if (!isAdmin.value) {
+    message.warning('当前账号仅支持查看教学任务')
+    return
+  }
   editingTask.value = item
   form.semester = item.semester
   form.courseId = item.courseId
@@ -396,10 +508,17 @@ const editTask = (item) => {
   form.weeklyHours = item.weeklyHours
   form.priorityLevel = item.priorityLevel
   form.totalWeeks = item.totalWeeks
+  ensureOption(courseOptions, item.courseId, item.courseName ? `${item.courseName} (${item.courseId})` : `课程 #${item.courseId}`)
+  ensureOption(teacherOptions, item.teacherId, item.teacherName ? `${item.teacherName} (${item.teacherId})` : `教师 #${item.teacherId}`)
+  ensureOption(classOptions, item.classId, item.className ? `${item.className} (${item.classId})` : `班级 #${item.classId}`)
   showAdd.value = true
 }
 
 const deleteTaskConfirm = async (item) => {
+  if (!isAdmin.value) {
+    message.warning('当前账号仅支持查看教学任务')
+    return
+  }
   dialog.warning({
     title: '确认删除',
     content: '删除后数据将无法恢复，确定删除吗？',
@@ -418,6 +537,10 @@ const deleteTaskConfirm = async (item) => {
 }
 
 const handleSubmit = async () => {
+  if (!isAdmin.value) {
+    message.warning('当前账号仅支持查看教学任务')
+    return
+  }
   try {
     await formRef.value?.validate()
   } catch (e) {
@@ -458,11 +581,15 @@ onMounted(() => {
   semesterOptions.value = buildSemesterOptions(dayjs().year(), 3, true)
   loadData()
 
-  layoutStore.setHeaderAction({
-    icon: 'plus',
-    text: '新增',
-    onClick: () => { showAdd.value = true }
-  })
+  if (isAdmin.value) {
+    layoutStore.setHeaderAction({
+      icon: 'plus',
+      text: '新增',
+      onClick: () => { showAdd.value = true }
+    })
+  } else {
+    layoutStore.clearHeaderAction()
+  }
 })
 
 onUnmounted(() => {
@@ -492,14 +619,48 @@ onUnmounted(() => {
 }
 
 .task-page-content {
+  position: relative;
   animation: fadeIn 0.3s ease-out;
+  padding-bottom: var(--spacing-xl);
+}
+
+.task-page-content::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 220px;
+  background:
+    radial-gradient(circle at top left, rgba(126, 149, 99, 0.14), transparent 40%),
+    radial-gradient(circle at top right, rgba(184, 102, 89, 0.12), transparent 32%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.readonly-alert {
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 250, 243, 0.8);
+  border: 1px solid rgba(145, 120, 91, 0.14);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-container {
-  border: 1px solid var(--border-color);
+  position: relative;
+  border: 1px solid rgba(145, 120, 91, 0.18);
   border-radius: var(--radius-xl);
+  background: var(--fabric-surface), rgba(255, 250, 243, 0.76);
+  backdrop-filter: blur(14px);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+}
+
+.table-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  pointer-events: none;
 }
 
 .table-header {
@@ -513,9 +674,10 @@ onUnmounted(() => {
 }
 
 .table-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .table-filters {
@@ -525,6 +687,10 @@ onUnmounted(() => {
   flex: 1;
   justify-content: flex-end;
   flex-wrap: wrap;
+  padding: var(--spacing-sm);
+  border-radius: calc(var(--radius-lg) - 6px);
+  background: rgba(255, 252, 247, 0.72);
+  border: 1px solid rgba(145, 120, 91, 0.1);
 }
 
 .search-input {
@@ -555,7 +721,7 @@ onUnmounted(() => {
 
 .desktop-content {
   display: block;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .mobile-content {
@@ -573,21 +739,27 @@ onUnmounted(() => {
 .task-list.grid-layout {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  gap: var(--spacing-lg);
+  padding: 0;
 }
 
 .task-card {
   margin: 0;
   cursor: pointer;
-  padding: var(--spacing-lg);
+  position: relative;
+  padding: var(--spacing-xl);
   animation: slideUp 0.3s ease-out backwards;
   transition: all var(--transition-base);
+  border: 1px solid rgba(145, 120, 91, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.2)),
+    rgba(255, 250, 243, 0.68);
+  border-radius: var(--radius-lg);
 }
 
 .task-card:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .task-card:nth-child(1) { animation-delay: 0.05s; }
@@ -607,7 +779,7 @@ onUnmounted(() => {
 }
 
 .task-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -625,7 +797,11 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--spacing-xs);
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 238, 0.72);
+  border: 1px solid rgba(145, 120, 91, 0.1);
 }
 
 .task-actions {
@@ -637,7 +813,7 @@ onUnmounted(() => {
 }
 
 .user-list-wrapper {
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .task-actions-mobile {
@@ -659,6 +835,20 @@ onUnmounted(() => {
 
 .mt-8 {
   margin-top: 8px;
+}
+
+:deep(.task-page-content .n-list-item) {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(145, 120, 91, 0.1);
+  background: rgba(255, 250, 243, 0.74);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+:deep(.task-page-content .n-base-selection),
+:deep(.task-page-content .n-input),
+:deep(.task-page-content .n-input-number) {
+  border-radius: var(--radius-md);
 }
 
 @media (min-width: 1600px) {
@@ -686,6 +876,7 @@ onUnmounted(() => {
   .table-filters {
     width: 100%;
     justify-content: flex-start;
+    padding: var(--spacing-sm);
   }
 }
 
@@ -708,6 +899,15 @@ onUnmounted(() => {
 
   .table-container {
     margin-top: var(--spacing-md);
+  }
+
+  .desktop-content,
+  .user-list-wrapper {
+    padding: var(--spacing-md);
+  }
+
+  .task-card {
+    padding: var(--spacing-lg);
   }
 }
 </style>

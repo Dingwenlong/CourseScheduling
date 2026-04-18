@@ -13,6 +13,7 @@ import com.paike.admin.mapper.ClassroomMapper;
 import com.paike.admin.mapper.TimetableDetailMapper;
 import com.paike.admin.mapper.TimetableMapper;
 import com.paike.admin.service.StatisticsService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.common.exception.BusinessException;
 import com.paike.common.result.ResultCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +42,14 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private TimetableMapper timetableMapper;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
     @Override
     public StatisticsOverview getOverview(Long timetableId) {
         StatisticsSnapshot snapshot = loadSnapshot(timetableId);
         StatisticsOverview overview = new StatisticsOverview();
-        // 使用timetable表中的scheduledCount，与首页保持一致
-        Timetable timetable = snapshot.getTimetable();
-        overview.setTotalHours(timetable.getScheduledCount() != null ? timetable.getScheduledCount() * 2 : 0);
+        overview.setTotalHours(calculateTotalHours(snapshot));
         overview.setCourseCount(calculateCourseCount(snapshot.getDetails()));
         overview.setClassroomUtilization(buildClassroomUtilization(snapshot.getDetails(), snapshot.getClassrooms()));
         overview.setTeacherWorkload(buildTeacherWorkload(snapshot.getDetails()));
@@ -73,11 +75,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public Integer getTotalScheduledHours(Long timetableId) {
-        Timetable timetable = timetableMapper.selectById(timetableId);
-        if (timetable == null) {
-            return 0;
-        }
-        return timetable.getScheduledCount() != null ? timetable.getScheduledCount() * 2 : 0;
+        return calculateTotalHours(loadSnapshot(timetableId));
     }
 
     @Override
@@ -96,7 +94,15 @@ public class StatisticsServiceImpl implements StatisticsService {
                         .eq(TimetableDetail::getTimetableId, timetableId));
         List<Classroom> classrooms = classroomMapper.selectList(
                 new LambdaQueryWrapper<Classroom>().eq(Classroom::getStatus, 1));
-        return new StatisticsSnapshot(timetable, details, classrooms);
+        return new StatisticsSnapshot(timetable, securityUtils.filterTimetableDetails(details), classrooms);
+    }
+
+    private Integer calculateTotalHours(StatisticsSnapshot snapshot) {
+        if (securityUtils.isAdmin()) {
+            Timetable timetable = snapshot.getTimetable();
+            return timetable.getScheduledCount() != null ? timetable.getScheduledCount() * 2 : 0;
+        }
+        return snapshot.getDetails().size() * 2;
     }
 
     private List<ClassroomUtilization> buildClassroomUtilization(List<TimetableDetail> details, List<Classroom> classrooms) {

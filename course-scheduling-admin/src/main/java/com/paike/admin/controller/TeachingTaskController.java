@@ -9,6 +9,7 @@ import com.paike.admin.entity.Course;
 import com.paike.admin.entity.TeachingTask;
 import com.paike.admin.mapper.CourseMapper;
 import com.paike.admin.service.TeachingTaskService;
+import com.paike.admin.utils.SecurityUtils;
 import com.paike.common.constants.TaskStatus;
 import com.paike.common.result.PageResult;
 import com.paike.common.result.Result;
@@ -38,6 +39,9 @@ public class TeachingTaskController {
     @Autowired
     private CourseMapper courseMapper;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
     @Operation(summary = "分页查询教学任务")
     @GetMapping("/page")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
@@ -50,6 +54,9 @@ public class TeachingTaskController {
         }
         if (StringUtils.hasText(request.getStatus())) {
             wrapper.eq(TeachingTask::getStatus, request.getStatus());
+        }
+        if (securityUtils.isTeacher()) {
+            wrapper.eq(TeachingTask::getTeacherId, securityUtils.requireCurrentTeacherId());
         }
         if (StringUtils.hasText(request.getKeyword())) {
             List<Long> matchedCourseIds = courseMapper.selectList(new LambdaQueryWrapper<Course>()
@@ -80,6 +87,7 @@ public class TeachingTaskController {
         if (task == null) {
             return Result.fail(ResultCode.PARAM_ERROR.getCode(), "教学任务不存在");
         }
+        securityUtils.checkTeachingTaskAccess(task);
         populateCourseNames(List.of(task));
         return Result.success(task);
     }

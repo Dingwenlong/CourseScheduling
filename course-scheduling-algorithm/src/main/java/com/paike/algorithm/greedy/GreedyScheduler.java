@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class GreedyScheduler implements SchedulingService {
 
     private static final Logger log = LoggerFactory.getLogger(GreedyScheduler.class);
+    private static final int SESSION_SLOT_SPAN = 2;
 
     @Autowired
     private GreedyAlgorithmConfig config;
@@ -69,7 +70,7 @@ public class GreedyScheduler implements SchedulingService {
                     int p1 = t1.getPriority() != null ? t1.getPriority() : 5;
                     int p2 = t2.getPriority() != null ? t2.getPriority() : 5;
                     if (p1 != p2) {
-                        return p1 - p2;
+                        return Integer.compare(p2, p1);
                     }
                     int hours1 = t1.getWeeklyHours() != null ? t1.getWeeklyHours() : 0;
                     int hours2 = t2.getWeeklyHours() != null ? t2.getWeeklyHours() : 0;
@@ -94,9 +95,9 @@ public class GreedyScheduler implements SchedulingService {
 
         int weeklyHours = task.getWeeklyHours() != null ? task.getWeeklyHours() : 2;
         int sessions = Math.max(1, (weeklyHours + 1) / 2);
-        int maxStartSlot = Math.max(1, slotsPerDay - 1);
+        int maxStartSlot = Math.max(1, slotsPerDay - SESSION_SLOT_SPAN + 1);
         List<ScheduledTask> selectedSessions = new ArrayList<>();
-        Set<TimeSlot> selectedSlots = new HashSet<>();
+        Set<TimeSlot> selectedOccupiedSlots = new HashSet<>();
 
         for (int session = 0; session < sessions; session++) {
             TimeSlot bestSlot = null;
@@ -107,7 +108,7 @@ public class GreedyScheduler implements SchedulingService {
                 for (int slot = 1; slot <= maxStartSlot; slot++) {
                     TimeSlot timeSlot = new TimeSlot(day, slot);
                     
-                    if (isSlotConflict(task, timeSlot, teacherSchedule, classSchedule, selectedSlots)) {
+                    if (isSlotConflict(task, timeSlot, teacherSchedule, classSchedule, selectedOccupiedSlots)) {
                         continue;
                     }
 
@@ -131,7 +132,7 @@ public class GreedyScheduler implements SchedulingService {
             }
 
             selectedSessions.add(createScheduledTask(task, bestSlot, bestClassroom));
-            selectedSlots.add(bestSlot);
+            selectedOccupiedSlots.addAll(getOccupiedSlots(bestSlot));
         }
 
         return selectedSessions;
@@ -155,22 +156,25 @@ public class GreedyScheduler implements SchedulingService {
                                    TimeSlot timeSlot,
                                    Map<Long, Set<TimeSlot>> teacherSchedule,
                                    Map<Long, Set<TimeSlot>> classSchedule,
-                                   Set<TimeSlot> selectedSlots) {
-        if (selectedSlots.contains(timeSlot)) {
-            return true;
-        }
-        
-        if (task.getTeacherId() != null) {
-            Set<TimeSlot> teacherSlots = teacherSchedule.get(task.getTeacherId());
-            if (teacherSlots != null && teacherSlots.contains(timeSlot)) {
+                                   Set<TimeSlot> selectedOccupiedSlots) {
+        List<TimeSlot> occupiedSlots = getOccupiedSlots(timeSlot);
+        for (TimeSlot occupiedSlot : occupiedSlots) {
+            if (selectedOccupiedSlots.contains(occupiedSlot)) {
                 return true;
             }
-        }
 
-        if (task.getClassId() != null) {
-            Set<TimeSlot> classSlots = classSchedule.get(task.getClassId());
-            if (classSlots != null && classSlots.contains(timeSlot)) {
-                return true;
+            if (task.getTeacherId() != null) {
+                Set<TimeSlot> teacherSlots = teacherSchedule.get(task.getTeacherId());
+                if (teacherSlots != null && teacherSlots.contains(occupiedSlot)) {
+                    return true;
+                }
+            }
+
+            if (task.getClassId() != null) {
+                Set<TimeSlot> classSlots = classSchedule.get(task.getClassId());
+                if (classSlots != null && classSlots.contains(occupiedSlot)) {
+                    return true;
+                }
             }
         }
 
@@ -180,12 +184,18 @@ public class GreedyScheduler implements SchedulingService {
     private boolean isClassroomConflict(ClassroomData classroom, TimeSlot timeSlot,
                                         Map<Long, Set<TimeSlot>> classroomSchedule,
                                         List<ScheduledTask> selectedSessions) {
+        List<TimeSlot> occupiedSlots = getOccupiedSlots(timeSlot);
         Set<TimeSlot> classroomSlots = classroomSchedule.get(classroom.getClassroomId());
-        if (classroomSlots != null && classroomSlots.contains(timeSlot)) {
-            return true;
+        if (classroomSlots != null) {
+            for (TimeSlot occupiedSlot : occupiedSlots) {
+                if (classroomSlots.contains(occupiedSlot)) {
+                    return true;
+                }
+            }
         }
         return selectedSessions.stream()
-                .anyMatch(task -> classroom.getClassroomId().equals(task.getClassroomId()) && timeSlot.equals(task.getTimeSlot()));
+                .anyMatch(task -> classroom.getClassroomId().equals(task.getClassroomId())
+                        && isOverlapping(timeSlot, task.getTimeSlot()));
     }
 
     private int calculateDistributionScore(List<ScheduledTask> selectedSessions, TimeSlot candidate) {
@@ -241,24 +251,42 @@ public class GreedyScheduler implements SchedulingService {
         return scheduledTask;
     }
 
+    private List<TimeSlot> getOccupiedSlots(TimeSlot startSlot) {
+        List<TimeSlot> occupiedSlots = new ArrayList<>(SESSION_SLOT_SPAN);
+        for (int offset = 0; offset < SESSION_SLOT_SPAN; offset++) {
+            occupiedSlots.add(new TimeSlot(startSlot.getDayOfWeek(), startSlot.getSlotNo() + offset));
+        }
+        return occupiedSlots;
+    }
+
+    private boolean isOverlapping(TimeSlot left, TimeSlot right) {
+        if (!Objects.equals(left.getDayOfWeek(), right.getDayOfWeek())) {
+            return false;
+        }
+        int leftEnd = left.getSlotNo() + SESSION_SLOT_SPAN - 1;
+        int rightEnd = right.getSlotNo() + SESSION_SLOT_SPAN - 1;
+        return left.getSlotNo() <= rightEnd && right.getSlotNo() <= leftEnd;
+    }
+
     private void updateSchedules(ScheduledTask task,
                                  Map<Long, Set<TimeSlot>> teacherSchedule,
                                  Map<Long, Set<TimeSlot>> classroomSchedule,
                                  Map<Long, Set<TimeSlot>> classSchedule) {
+        List<TimeSlot> occupiedSlots = getOccupiedSlots(task.getTimeSlot());
         
         if (task.getTeacherId() != null) {
             teacherSchedule.computeIfAbsent(task.getTeacherId(), k -> new HashSet<>())
-                    .add(task.getTimeSlot());
+                    .addAll(occupiedSlots);
         }
 
         if (task.getClassroomId() != null) {
             classroomSchedule.computeIfAbsent(task.getClassroomId(), k -> new HashSet<>())
-                    .add(task.getTimeSlot());
+                    .addAll(occupiedSlots);
         }
 
         if (task.getClassId() != null) {
             classSchedule.computeIfAbsent(task.getClassId(), k -> new HashSet<>())
-                    .add(task.getTimeSlot());
+                    .addAll(occupiedSlots);
         }
     }
 

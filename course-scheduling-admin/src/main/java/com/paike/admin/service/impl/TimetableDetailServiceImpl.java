@@ -15,6 +15,8 @@ import java.util.*;
 @Service
 public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMapper, TimetableDetail> implements TimetableDetailService {
 
+    private static final int SESSION_SLOT_SPAN = 2;
+
     @Override
     public List<TimetableDetail> listByTimetableId(Long timetableId) {
         return list(new LambdaQueryWrapper<TimetableDetail>()
@@ -108,7 +110,7 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
 
         List<TimetableDetail> affectedDetails = new ArrayList<>();
         for (TimetableDetail detail : listByTimetableId(timetableId)) {
-            if (slotKeys.contains(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo()))) {
+            if (getOccupiedSlotKeys(detail).stream().anyMatch(slotKeys::contains)) {
                 affectedDetails.add(detail);
             }
         }
@@ -123,8 +125,10 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
 
         Map<String, List<TimetableDetail>> timeSlotMap = new HashMap<>();
         for (TimetableDetail detail : details) {
-            timeSlotMap.computeIfAbsent(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo()), key -> new ArrayList<>())
-                    .add(detail);
+            for (String slotKey : getOccupiedSlotKeys(detail)) {
+                timeSlotMap.computeIfAbsent(slotKey, key -> new ArrayList<>())
+                        .add(detail);
+            }
         }
 
         List<TimetableDetail> updates = new ArrayList<>(details.size());
@@ -140,9 +144,13 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
     }
 
     private List<String> buildConflicts(TimetableDetail current, List<TimetableDetail> slotDetails) {
-        List<String> conflicts = new ArrayList<>();
+        Set<String> conflicts = new LinkedHashSet<>();
+        Set<Long> processedIds = new HashSet<>();
         for (TimetableDetail other : slotDetails) {
             if (Objects.equals(current.getId(), other.getId())) {
+                continue;
+            }
+            if (other.getId() != null && !processedIds.add(other.getId())) {
                 continue;
             }
 
@@ -156,7 +164,15 @@ public class TimetableDetailServiceImpl extends ServiceImpl<TimetableDetailMappe
                 conflicts.add("班级冲突:" + other.getCourseName());
             }
         }
-        return conflicts;
+        return new ArrayList<>(conflicts);
+    }
+
+    private List<String> getOccupiedSlotKeys(TimetableDetail detail) {
+        List<String> slotKeys = new ArrayList<>(SESSION_SLOT_SPAN);
+        for (int offset = 0; offset < SESSION_SLOT_SPAN; offset++) {
+            slotKeys.add(buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo() + offset));
+        }
+        return slotKeys;
     }
 
     private String buildSlotKey(Integer dayOfWeek, Integer slotNo) {

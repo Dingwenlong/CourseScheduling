@@ -42,19 +42,41 @@ defineEmits(['retry'])
 }
 
 .state {
-  padding: 28px 12px;
+  padding: 32px 16px;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08)),
+    rgba(255, 250, 243, 0.42);
+  border: 1px dashed rgba(145, 120, 91, 0.14);
 }
 
 .state-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  min-height: 160px;
+  min-height: 200px;
 }
 
 .state-text {
   font-size: 13px;
   color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+:deep(.state .n-empty) {
+  padding: var(--spacing-lg) 0;
+}
+
+:deep(.state .n-empty__description) {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+:deep(.state .n-spin-body) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

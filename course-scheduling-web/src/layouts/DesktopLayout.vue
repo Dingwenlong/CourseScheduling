@@ -206,15 +206,21 @@ const resizeTimeout = ref(null)
 
 const isDarkMode = computed(() => themeStore.isDark())
 const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
+const canAccessTeacherFeatures = computed(() => ['ADMIN', 'TEACHER'].includes(userStore.userInfo?.role))
 
 const menuItems = computed(() => {
   const items = [
     { path: '/home', icon: HomeOutline, text: '首页' },
     { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
-    { path: '/task', icon: ClipboardOutline, text: '教学任务' },
-    { path: '/schedule', icon: SearchOutline, text: '排课查询' },
-    { path: '/statistics', icon: BarChartOutline, text: '统计分析' }
+    { path: '/schedule', icon: SearchOutline, text: '课表查询' }
   ]
+
+  if (canAccessTeacherFeatures.value) {
+    items.push(
+      { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+      { path: '/statistics', icon: BarChartOutline, text: '统计分析' }
+    )
+  }
 
   if (isAdmin.value) {
     items.push({ path: '/users', icon: PeopleOutline, text: '用户管理' })
