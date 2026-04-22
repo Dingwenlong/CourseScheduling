@@ -5,6 +5,7 @@ import com.paike.admin.dto.CurrentUserInfoResponse;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
 import com.paike.admin.dto.ResetPasswordRequest;
+import com.paike.admin.dto.UpdateCurrentProfileRequest;
 import com.paike.admin.entity.User;
 import com.paike.admin.mapper.UserMapper;
 import com.paike.admin.service.UserService;
@@ -58,6 +59,12 @@ public class AuthController {
     public Result<CurrentUserInfoResponse> info() {
         User user = securityUtils.getCurrentUser();
         return Result.success(userService.buildCurrentUserInfo(user));
+    }
+
+    @Operation(summary = "更新当前用户资料")
+    @PutMapping("/profile")
+    public Result<CurrentUserInfoResponse> updateProfile(@RequestBody UpdateCurrentProfileRequest request) {
+        return Result.success(userService.updateCurrentProfile(request));
     }
 
     @Operation(summary = "退出登录")

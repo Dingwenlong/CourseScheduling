@@ -1,6 +1,35 @@
 <template>
   <PageContainer with-tabbar class="schedule-page">
-    <PageHeader :title="pageTitle" />
+    <PageHeader :title="pageTitle">
+      <template #actions>
+        <n-space v-if="courses.length > 0" class="no-print" :size="8">
+          <n-button quaternary @click="handlePrint">
+            <template #icon>
+              <n-icon>
+                <PrintOutline />
+              </n-icon>
+            </template>
+            打印课表
+          </n-button>
+          <n-button quaternary @click="handleExportCsv">
+            <template #icon>
+              <n-icon>
+                <DownloadOutline />
+              </n-icon>
+            </template>
+            {{ exportFileLabel }}
+          </n-button>
+          <n-button v-if="canExportCalendar" type="primary" @click="handleExportCalendar">
+            <template #icon>
+              <n-icon>
+                <CalendarOutline />
+              </n-icon>
+            </template>
+            导出到日历
+          </n-button>
+        </n-space>
+      </template>
+    </PageHeader>
 
     <div class="card animate-fade-in">
       <div class="section-title">{{ searchSectionTitle }}</div>
@@ -148,6 +177,7 @@ import { useUserStore } from '@/stores/user'
 import { getLatestTimetable, getClassTimetable, getTeacherTimetable, getClassroomTimetable } from '@/api/timetable'
 import { searchClasses, searchTeachers, searchClassrooms } from '@/api/lookup'
 import { getCurrentSemester } from '@/utils/semester'
+import { exportCoursesAsCsv, exportCoursesAsIcs, printCurrentPage } from '@/utils/timetable-export'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import {
@@ -161,10 +191,14 @@ import {
   NModal,
   NDescriptions,
   NDescriptionsItem,
-  NEmpty
+  NEmpty,
+  NSpace
 } from 'naive-ui'
 import {
-  SearchOutline
+  SearchOutline,
+  DownloadOutline,
+  PrintOutline,
+  CalendarOutline
 } from '@vicons/ionicons5'
 
 const message = useMessage()
@@ -191,6 +225,7 @@ const isStudentView = computed(() => userRole.value === 'STUDENT')
 const isSearchLocked = computed(() => ['TEACHER', 'STUDENT'].includes(userRole.value))
 const showTeacherField = computed(() => !isTeacherView.value)
 const showClassField = computed(() => !isStudentView.value)
+const canExportCalendar = computed(() => isTeacherView.value || isStudentView.value)
 const pageTitle = computed(() => {
   if (isTeacherView.value) {
     return '我的授课表'
@@ -210,6 +245,12 @@ const timetablePanelTitle = computed(() => {
     return '你的课程安排'
   }
   return '课表'
+})
+const exportFileLabel = computed(() => {
+  if (isTeacherView.value || isStudentView.value) {
+    return '导出课表'
+  }
+  return '导出查询结果'
 })
 const typeOptions = computed(() => {
   if (userRole.value === 'TEACHER') {
@@ -390,12 +431,51 @@ const todayScheduleTip = computed(() => {
   return `今天周${weekday}，共有 ${todayCourses.value.length} 节课`
 })
 
+const exportScopeLabel = computed(() => {
+  if (isTeacherView.value) {
+    return `${userStore.userInfo?.realName || '当前教师'}授课表`
+  }
+  if (isStudentView.value) {
+    return `${userStore.userInfo?.realName || '当前班级'}课表`
+  }
+  const labels = {
+    class: '班级课表查询结果',
+    teacher: '教师课表查询结果',
+    classroom: '教室课表查询结果'
+  }
+  return labels[queryType.value] || '课表查询结果'
+})
+
 const showCourseInfo = (day, slot) => {
   const course = getCourse(day, slot)
   if (course) {
     currentCourse.value = course
     showCoursePopup.value = true
   }
+}
+
+const handleExportCsv = () => {
+  exportCoursesAsCsv({
+    courses: courses.value,
+    filename: exportScopeLabel.value,
+    scopeLabel: exportScopeLabel.value,
+    slotMeta
+  })
+  message.success('课表已导出')
+}
+
+const handleExportCalendar = () => {
+  exportCoursesAsIcs({
+    courses: courses.value,
+    filename: exportScopeLabel.value,
+    scopeLabel: exportScopeLabel.value,
+    slotMeta
+  })
+  message.success('日历文件已导出')
+}
+
+const handlePrint = () => {
+  printCurrentPage(exportScopeLabel.value)
 }
 
 const getDefaultSearchKeyword = () => {

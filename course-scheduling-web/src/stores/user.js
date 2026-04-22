@@ -21,9 +21,12 @@ export const useUserStore = defineStore('user', () => {
     return res
   }
 
-  const logout = async () => {
+  const logout = async (options = {}) => {
+    const { remote = true } = options
     try {
-      await logoutApi()
+      if (remote && token.value) {
+        await logoutApi()
+      }
     } catch (e) {
       console.error(e)
     }
@@ -43,7 +46,16 @@ export const useUserStore = defineStore('user', () => {
       avatar: info.avatar,
       status: info.status,
       teacherId: info.teacherId,
-      classId: info.classId
+      classId: info.classId,
+      createTime: info.createTime,
+      updateTime: info.updateTime,
+      teacherNo: info.teacherNo,
+      title: info.title,
+      researchArea: info.researchArea,
+      officeLocation: info.officeLocation,
+      officePhone: info.officePhone,
+      studentNo: info.studentNo,
+      grade: info.grade
     }
   }
 

@@ -1,5 +1,7 @@
 package com.paike.admin.dto;
 
+import java.time.LocalDateTime;
+
 public class CurrentUserInfoResponse {
 
     private Long id;
@@ -12,6 +14,15 @@ public class CurrentUserInfoResponse {
     private Integer status;
     private Long teacherId;
     private Long classId;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+    private String teacherNo;
+    private String title;
+    private String researchArea;
+    private String officeLocation;
+    private String officePhone;
+    private String studentNo;
+    private String grade;
 
     public Long getId() {
         return id;
@@ -91,5 +102,77 @@ public class CurrentUserInfoResponse {
 
     public void setClassId(Long classId) {
         this.classId = classId;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public String getTeacherNo() {
+        return teacherNo;
+    }
+
+    public void setTeacherNo(String teacherNo) {
+        this.teacherNo = teacherNo;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getResearchArea() {
+        return researchArea;
+    }
+
+    public void setResearchArea(String researchArea) {
+        this.researchArea = researchArea;
+    }
+
+    public String getOfficeLocation() {
+        return officeLocation;
+    }
+
+    public void setOfficeLocation(String officeLocation) {
+        this.officeLocation = officeLocation;
+    }
+
+    public String getOfficePhone() {
+        return officePhone;
+    }
+
+    public void setOfficePhone(String officePhone) {
+        this.officePhone = officePhone;
+    }
+
+    public String getStudentNo() {
+        return studentNo;
+    }
+
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
+    }
+
+    public String getGrade() {
+        return grade;
+    }
+
+    public void setGrade(String grade) {
+        this.grade = grade;
     }
 }

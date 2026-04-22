@@ -3,8 +3,11 @@ package com.paike.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.paike.admin.dto.AdjustmentRequest;
+import com.paike.admin.dto.AdjustmentRecommendationResponse;
 import com.paike.admin.dto.AdjustmentResult;
+import com.paike.admin.dto.AdjustmentHistoryResponse;
 import com.paike.admin.dto.SwapAdjustmentRequest;
+import com.paike.admin.dto.SwapAdjustmentHistoryResponse;
 import com.paike.admin.entity.AdjustmentApplication;
 import com.paike.admin.entity.Classroom;
 import com.paike.admin.entity.SwapAdjustmentApplication;
@@ -38,9 +41,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class AdjustmentServiceImpl implements AdjustmentService {
@@ -53,6 +59,9 @@ public class AdjustmentServiceImpl implements AdjustmentService {
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String TIMETABLE_PUBLISHED = "PUBLISHED";
     private static final int DETAIL_STATUS_NORMAL = 1;
+    private static final int SESSION_SLOT_SPAN = 2;
+    private static final int RECOMMENDABLE_DAY_MAX = 5;
+    private static final int RECOMMENDABLE_SLOT_MAX = 9;
     private static final DateTimeFormatter APPLICATION_NO_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
 
     @Autowired
@@ -82,8 +91,9 @@ public class AdjustmentServiceImpl implements AdjustmentService {
     @Override
     public AdjustmentResult checkAdjustment(AdjustmentRequest request) {
         AdjustmentContext context = buildAdjustmentContext(request);
+        Set<Long> ignoredIds = collectLinkedAdjustmentDetailIds(context.getSourceDetail());
         List<String> conflicts = checkDetailConflicts(context.getTargetDetail(),
-                Collections.singleton(context.getSourceDetail().getId()));
+                ignoredIds);
         if (conflicts.isEmpty()) {
             return AdjustmentResult.success("调课检测通过，无冲突");
         }
@@ -139,6 +149,74 @@ public class AdjustmentServiceImpl implements AdjustmentService {
     }
 
     @Override
+    public List<AdjustmentRecommendationResponse> listAdjustmentRecommendations(Long timetableId, Long detailId, int limit) {
+        TimetableDetail sourceDetail = getDetailInTimetable(timetableId, detailId);
+        TeachingTask task = sourceDetail.getTaskId() == null ? null : teachingTaskMapper.selectById(sourceDetail.getTaskId());
+        int safeLimit = Math.min(Math.max(limit, 1), 10);
+        Set<Long> ignoredIds = collectLinkedAdjustmentDetailIds(sourceDetail);
+
+        List<Classroom> candidateClassrooms = loadCandidateClassrooms(sourceDetail, task);
+        List<AdjustmentRecommendationResponse> recommendations = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+
+        for (int day = 1; day <= RECOMMENDABLE_DAY_MAX; day++) {
+            for (int slot = 1; slot <= RECOMMENDABLE_SLOT_MAX; slot++) {
+                for (Classroom classroom : candidateClassrooms) {
+                    if (Objects.equals(sourceDetail.getDayOfWeek(), day)
+                            && Objects.equals(sourceDetail.getSlotNo(), slot)
+                            && Objects.equals(sourceDetail.getClassroomId(), classroom.getId())) {
+                        continue;
+                    }
+
+                    TimetableDetail preview = copyDetail(sourceDetail);
+                    preview.setDayOfWeek(day);
+                    preview.setSlotNo(slot);
+                    preview.setClassroomId(classroom.getId());
+                    preview.setClassroomName(resolveClassroomName(classroom));
+
+                    if (!checkDetailConflicts(preview, ignoredIds).isEmpty()) {
+                        continue;
+                    }
+
+                    String uniqueKey = day + "_" + slot + "_" + classroom.getId();
+                    if (!seen.add(uniqueKey)) {
+                        continue;
+                    }
+
+                    AdjustmentRecommendationResponse recommendation = new AdjustmentRecommendationResponse();
+                    recommendation.setDayOfWeek(day);
+                    recommendation.setSlotNo(slot);
+                    recommendation.setClassroomId(classroom.getId());
+                    recommendation.setClassroomName(resolveClassroomName(classroom));
+                    recommendation.setSummary(buildScheduleSummary(day, slot, classroom.getId(),
+                            Collections.singletonMap(classroom.getId(), resolveClassroomName(classroom))));
+                    recommendations.add(recommendation);
+
+                    if (recommendations.size() >= safeLimit) {
+                        return recommendations;
+                    }
+                }
+            }
+        }
+
+        return recommendations;
+    }
+
+    @Override
+    public AdjustmentApplication getLatestApplication(Long timetableId, Long detailId) {
+        TimetableDetail detail = getDetailInTimetable(timetableId, detailId);
+        User currentUser = requireCurrentUser();
+        LambdaQueryWrapper<AdjustmentApplication> wrapper = new LambdaQueryWrapper<AdjustmentApplication>()
+                .eq(AdjustmentApplication::getDetailId, detail.getId())
+                .orderByDesc(AdjustmentApplication::getApplyTime)
+                .last("LIMIT 1");
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(AdjustmentApplication::getTeacherId, currentUser.getId());
+        }
+        return adjustmentApplicationMapper.selectOne(wrapper);
+    }
+
+    @Override
     public AdjustmentApplication getPendingApplication(Long timetableId, Long detailId) {
         TimetableDetail detail = getDetailInTimetable(timetableId, detailId);
         User currentUser = requireCurrentUser();
@@ -184,39 +262,54 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         }
 
         AdjustmentContext context = buildAdjustmentContext(effectiveRequest);
+        List<TimetableDetail> linkedDetails = findLinkedAdjustmentDetails(context.getSourceDetail());
+        if (linkedDetails.isEmpty()) {
+            linkedDetails = List.of(context.getSourceDetail());
+        }
+        Set<Long> linkedDetailIds = linkedDetails.stream()
+                .map(TimetableDetail::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
         AdjustmentResult checkResult = buildCheckResult(context.getTargetDetail(),
-                Collections.singleton(context.getSourceDetail().getId()),
+                linkedDetailIds,
                 "调课检测通过，无冲突",
                 "调课存在冲突，无法执行");
         if (!Boolean.TRUE.equals(checkResult.getSuccess())) {
             throw new BusinessException(checkResult.getMessage() + ": " + String.join("，", checkResult.getConflicts()));
         }
 
-        TimetableDetail detail = context.getSourceDetail();
-        String oldSlotKey = buildSlotKey(detail.getDayOfWeek(), detail.getSlotNo());
-        String newSlotKey = buildSlotKey(context.getTargetDetail().getDayOfWeek(), context.getTargetDetail().getSlotNo());
+        Set<String> affectedSlotKeys = new LinkedHashSet<>();
+        affectedSlotKeys.addAll(buildOccupiedSlotKeys(context.getTargetDetail().getDayOfWeek(), context.getTargetDetail().getSlotNo()));
+        Set<Long> linkedTaskIds = new LinkedHashSet<>();
 
-        detail.setDayOfWeek(context.getTargetDetail().getDayOfWeek());
-        detail.setSlotNo(context.getTargetDetail().getSlotNo());
-        detail.setClassroomId(context.getTargetDetail().getClassroomId());
-        detail.setClassroomName(context.getTargetDetail().getClassroomName());
-        detail.setIsConflict(0);
-        detail.setConflictInfo(null);
-        timetableDetailMapper.updateById(detail);
+        for (TimetableDetail linkedDetail : linkedDetails) {
+            affectedSlotKeys.addAll(buildOccupiedSlotKeys(linkedDetail.getDayOfWeek(), linkedDetail.getSlotNo()));
+            if (linkedDetail.getTaskId() != null) {
+                linkedTaskIds.add(linkedDetail.getTaskId());
+            }
+            linkedDetail.setDayOfWeek(context.getTargetDetail().getDayOfWeek());
+            linkedDetail.setSlotNo(context.getTargetDetail().getSlotNo());
+            linkedDetail.setClassroomId(context.getTargetDetail().getClassroomId());
+            linkedDetail.setClassroomName(context.getTargetDetail().getClassroomName());
+            linkedDetail.setIsConflict(0);
+            linkedDetail.setConflictInfo(null);
+            timetableDetailMapper.updateById(linkedDetail);
+        }
 
-        refreshConflicts(detail.getTimetableId(), oldSlotKey, newSlotKey);
-        updateTimetableConflictCount(detail.getTimetableId());
+        refreshConflicts(context.getSourceDetail().getTimetableId(), affectedSlotKeys.toArray(String[]::new));
+        updateTimetableConflictCount(context.getSourceDetail().getTimetableId());
 
         if (application != null) {
             approveApplication(application, "已执行调课");
         }
-        closePendingApplicationsForDetails(Collections.singleton(detail.getId()),
+        closePendingApplicationsForDetails(linkedDetailIds,
                 application != null ? application.getId() : null,
                 null,
                 "课程已完成调课");
-        markTasksCompletedIfPublished(context.getTimetable(), detail.getTaskId());
+        markTasksCompletedIfPublished(context.getTimetable(), linkedTaskIds.toArray(Long[]::new));
 
-        log.info("调课执行成功，detailId={}, timetableId={}", detail.getId(), detail.getTimetableId());
+        log.info("调课执行成功，detailIds={}, timetableId={}", linkedDetailIds, context.getSourceDetail().getTimetableId());
         return AdjustmentResult.success("调课成功");
     }
 
@@ -275,6 +368,22 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         log.info("课程交换申请已保存，applicationId={}, detailIds=({}, {})",
                 application.getId(), context.getDetail1().getId(), context.getDetail2().getId());
         return application;
+    }
+
+    @Override
+    public SwapAdjustmentApplication getLatestSwapApplication(Long timetableId, Long detailId1, Long detailId2) {
+        SwapContext context = getSwapContext(timetableId, detailId1, detailId2);
+        User currentUser = requireCurrentUser();
+        LambdaQueryWrapper<SwapAdjustmentApplication> wrapper = new LambdaQueryWrapper<SwapAdjustmentApplication>()
+                .eq(SwapAdjustmentApplication::getTimetableId, context.getTimetable().getId())
+                .eq(SwapAdjustmentApplication::getDetailId1, context.getDetail1().getId())
+                .eq(SwapAdjustmentApplication::getDetailId2, context.getDetail2().getId())
+                .orderByDesc(SwapAdjustmentApplication::getApplyTime)
+                .last("LIMIT 1");
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(SwapAdjustmentApplication::getTeacherId, currentUser.getId());
+        }
+        return swapAdjustmentApplicationMapper.selectOne(wrapper);
     }
 
     @Override
@@ -337,8 +446,9 @@ public class AdjustmentServiceImpl implements AdjustmentService {
 
         TimetableDetail detail1 = context.getDetail1();
         TimetableDetail detail2 = context.getDetail2();
-        String slotKey1 = buildSlotKey(detail1.getDayOfWeek(), detail1.getSlotNo());
-        String slotKey2 = buildSlotKey(detail2.getDayOfWeek(), detail2.getSlotNo());
+        Set<String> affectedSlotKeys = new LinkedHashSet<>();
+        affectedSlotKeys.addAll(buildOccupiedSlotKeys(detail1.getDayOfWeek(), detail1.getSlotNo()));
+        affectedSlotKeys.addAll(buildOccupiedSlotKeys(detail2.getDayOfWeek(), detail2.getSlotNo()));
 
         Integer tempDay = detail1.getDayOfWeek();
         Integer tempSlot = detail1.getSlotNo();
@@ -362,7 +472,7 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         timetableDetailMapper.updateById(detail1);
         timetableDetailMapper.updateById(detail2);
 
-        refreshConflicts(context.getTimetable().getId(), slotKey1, slotKey2);
+        refreshConflicts(context.getTimetable().getId(), affectedSlotKeys.toArray(String[]::new));
         updateTimetableConflictCount(context.getTimetable().getId());
 
         if (application != null) {
@@ -386,6 +496,124 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         request.setDetailId1(detailId1);
         request.setDetailId2(detailId2);
         return executeSwap(request);
+    }
+
+    @Override
+    public List<AdjustmentHistoryResponse> listAdjustmentHistory(int limit) {
+        User currentUser = requireCurrentUser();
+        int safeLimit = normalizeHistoryLimit(limit);
+        LambdaQueryWrapper<AdjustmentApplication> wrapper = new LambdaQueryWrapper<AdjustmentApplication>()
+                .orderByDesc(AdjustmentApplication::getApplyTime)
+                .last("LIMIT " + safeLimit);
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(AdjustmentApplication::getTeacherId, currentUser.getId());
+        }
+
+        List<AdjustmentApplication> applications = adjustmentApplicationMapper.selectList(wrapper);
+        if (applications.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, TimetableDetail> detailMap = timetableDetailMapper.selectBatchIds(applications.stream()
+                        .map(AdjustmentApplication::getDetailId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()))
+                .stream()
+                .collect(Collectors.toMap(TimetableDetail::getId, Function.identity(), (left, right) -> left));
+
+        Map<Long, String> classroomNameMap = resolveClassroomNames(collectAdjustmentClassroomIds(applications));
+
+        List<AdjustmentHistoryResponse> responses = new ArrayList<>(applications.size());
+        for (AdjustmentApplication application : applications) {
+            TimetableDetail detail = detailMap.get(application.getDetailId());
+            AdjustmentHistoryResponse response = new AdjustmentHistoryResponse();
+            response.setId(application.getId());
+            response.setApplicationNo(application.getApplicationNo());
+            response.setTimetableId(detail != null ? detail.getTimetableId() : null);
+            response.setDetailId(application.getDetailId());
+            response.setCourseName(detail != null ? detail.getCourseName() : "课程 #" + application.getDetailId());
+            response.setSourceSummary(buildScheduleSummary(
+                    application.getOldDay(),
+                    application.getOldSlot(),
+                    application.getOldClassroom(),
+                    classroomNameMap));
+            response.setTargetSummary(buildScheduleSummary(
+                    application.getNewDay(),
+                    application.getNewSlot(),
+                    application.getNewClassroom(),
+                    classroomNameMap));
+            response.setReason(application.getReason());
+            response.setStatus(application.getStatus());
+            response.setApplyTime(application.getApplyTime());
+            response.setAuditTime(application.getAuditTime());
+            response.setAuditRemark(application.getAuditRemark());
+            responses.add(response);
+        }
+        return responses;
+    }
+
+    @Override
+    public List<SwapAdjustmentHistoryResponse> listSwapAdjustmentHistory(int limit) {
+        User currentUser = requireCurrentUser();
+        int safeLimit = normalizeHistoryLimit(limit);
+        LambdaQueryWrapper<SwapAdjustmentApplication> wrapper = new LambdaQueryWrapper<SwapAdjustmentApplication>()
+                .orderByDesc(SwapAdjustmentApplication::getApplyTime)
+                .last("LIMIT " + safeLimit);
+        if (!isAdmin(currentUser)) {
+            wrapper.eq(SwapAdjustmentApplication::getTeacherId, currentUser.getId());
+        }
+
+        List<SwapAdjustmentApplication> applications = swapAdjustmentApplicationMapper.selectList(wrapper);
+        if (applications.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> detailIds = new LinkedHashSet<>();
+        for (SwapAdjustmentApplication application : applications) {
+            if (application.getDetailId1() != null) {
+                detailIds.add(application.getDetailId1());
+            }
+            if (application.getDetailId2() != null) {
+                detailIds.add(application.getDetailId2());
+            }
+        }
+
+        Map<Long, TimetableDetail> detailMap = timetableDetailMapper.selectBatchIds(detailIds)
+                .stream()
+                .collect(Collectors.toMap(TimetableDetail::getId, Function.identity(), (left, right) -> left));
+
+        Map<Long, String> classroomNameMap = resolveClassroomNames(collectSwapClassroomIds(applications));
+
+        List<SwapAdjustmentHistoryResponse> responses = new ArrayList<>(applications.size());
+        for (SwapAdjustmentApplication application : applications) {
+            TimetableDetail detail1 = detailMap.get(application.getDetailId1());
+            TimetableDetail detail2 = detailMap.get(application.getDetailId2());
+            SwapAdjustmentHistoryResponse response = new SwapAdjustmentHistoryResponse();
+            response.setId(application.getId());
+            response.setApplicationNo(application.getApplicationNo());
+            response.setTimetableId(application.getTimetableId());
+            response.setDetailId1(application.getDetailId1());
+            response.setDetailId2(application.getDetailId2());
+            response.setCourseName1(detail1 != null ? detail1.getCourseName() : "课程 #" + application.getDetailId1());
+            response.setCourseName2(detail2 != null ? detail2.getCourseName() : "课程 #" + application.getDetailId2());
+            response.setSourceSummary1(buildScheduleSummary(
+                    application.getOldDay1(),
+                    application.getOldSlot1(),
+                    application.getOldClassroom1(),
+                    classroomNameMap));
+            response.setSourceSummary2(buildScheduleSummary(
+                    application.getOldDay2(),
+                    application.getOldSlot2(),
+                    application.getOldClassroom2(),
+                    classroomNameMap));
+            response.setReason(application.getReason());
+            response.setStatus(application.getStatus());
+            response.setApplyTime(application.getApplyTime());
+            response.setAuditTime(application.getAuditTime());
+            response.setAuditRemark(application.getAuditRemark());
+            responses.add(response);
+        }
+        return responses;
     }
 
     private AdjustmentContext buildAdjustmentContext(AdjustmentRequest request) {
@@ -535,17 +763,78 @@ public class AdjustmentServiceImpl implements AdjustmentService {
         return AdjustmentResult.fail(failMessage, conflicts);
     }
 
+    private Set<Long> collectLinkedAdjustmentDetailIds(TimetableDetail sourceDetail) {
+        return findLinkedAdjustmentDetails(sourceDetail).stream()
+                .map(TimetableDetail::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private List<TimetableDetail> findLinkedAdjustmentDetails(TimetableDetail sourceDetail) {
+        if (sourceDetail == null) {
+            return Collections.emptyList();
+        }
+
+        LambdaQueryWrapper<TimetableDetail> wrapper = new LambdaQueryWrapper<TimetableDetail>()
+                .eq(TimetableDetail::getTimetableId, sourceDetail.getTimetableId())
+                .eq(TimetableDetail::getStatus, DETAIL_STATUS_NORMAL)
+                .eq(sourceDetail.getCourseId() != null, TimetableDetail::getCourseId, sourceDetail.getCourseId())
+                .isNull(sourceDetail.getCourseId() == null, TimetableDetail::getCourseId)
+                .eq(sourceDetail.getTeacherId() != null, TimetableDetail::getTeacherId, sourceDetail.getTeacherId())
+                .isNull(sourceDetail.getTeacherId() == null, TimetableDetail::getTeacherId)
+                .eq(sourceDetail.getClassId() != null, TimetableDetail::getClassId, sourceDetail.getClassId())
+                .isNull(sourceDetail.getClassId() == null, TimetableDetail::getClassId)
+                .eq(sourceDetail.getClassroomId() != null, TimetableDetail::getClassroomId, sourceDetail.getClassroomId())
+                .isNull(sourceDetail.getClassroomId() == null, TimetableDetail::getClassroomId)
+                .eq(sourceDetail.getDayOfWeek() != null, TimetableDetail::getDayOfWeek, sourceDetail.getDayOfWeek())
+                .isNull(sourceDetail.getDayOfWeek() == null, TimetableDetail::getDayOfWeek)
+                .eq(sourceDetail.getSlotNo() != null, TimetableDetail::getSlotNo, sourceDetail.getSlotNo())
+                .isNull(sourceDetail.getSlotNo() == null, TimetableDetail::getSlotNo)
+                .eq(sourceDetail.getWeeks() != null, TimetableDetail::getWeeks, sourceDetail.getWeeks())
+                .isNull(sourceDetail.getWeeks() == null, TimetableDetail::getWeeks)
+                .orderByAsc(TimetableDetail::getId);
+
+        List<TimetableDetail> linkedDetails = timetableDetailMapper.selectList(wrapper);
+        if (linkedDetails != null) {
+            linkedDetails = linkedDetails.stream()
+                    .filter(candidate -> isLinkedAdjustmentDetail(sourceDetail, candidate))
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
+        if (linkedDetails == null || linkedDetails.isEmpty()) {
+            return sourceDetail.getId() == null ? Collections.emptyList() : List.of(sourceDetail);
+        }
+        return linkedDetails;
+    }
+
+    private boolean isLinkedAdjustmentDetail(TimetableDetail sourceDetail, TimetableDetail candidate) {
+        if (sourceDetail == null || candidate == null) {
+            return false;
+        }
+        return Objects.equals(sourceDetail.getTimetableId(), candidate.getTimetableId())
+                && Objects.equals(sourceDetail.getCourseId(), candidate.getCourseId())
+                && Objects.equals(sourceDetail.getTeacherId(), candidate.getTeacherId())
+                && Objects.equals(sourceDetail.getClassId(), candidate.getClassId())
+                && Objects.equals(sourceDetail.getClassroomId(), candidate.getClassroomId())
+                && Objects.equals(sourceDetail.getDayOfWeek(), candidate.getDayOfWeek())
+                && Objects.equals(sourceDetail.getSlotNo(), candidate.getSlotNo())
+                && Objects.equals(sourceDetail.getWeeks(), candidate.getWeeks())
+                && Objects.equals(candidate.getStatus(), DETAIL_STATUS_NORMAL);
+    }
+
     private List<String> checkDetailConflicts(TimetableDetail detail, Collection<Long> ignoredIds) {
         List<TimetableDetail> existingDetails = timetableDetailMapper.selectList(new LambdaQueryWrapper<TimetableDetail>()
                 .eq(TimetableDetail::getTimetableId, detail.getTimetableId())
                 .eq(TimetableDetail::getDayOfWeek, detail.getDayOfWeek())
-                .eq(TimetableDetail::getSlotNo, detail.getSlotNo())
                 .eq(TimetableDetail::getStatus, DETAIL_STATUS_NORMAL));
 
         Set<Long> ignored = ignoredIds == null ? Collections.emptySet() : new LinkedHashSet<>(ignoredIds);
+        Set<String> targetSlotKeys = new LinkedHashSet<>(buildOccupiedSlotKeys(detail.getDayOfWeek(), detail.getSlotNo()));
         Set<String> conflicts = new LinkedHashSet<>();
         for (TimetableDetail existing : existingDetails) {
             if (ignored.contains(existing.getId())) {
+                continue;
+            }
+            if (Collections.disjoint(targetSlotKeys, buildOccupiedSlotKeys(existing.getDayOfWeek(), existing.getSlotNo()))) {
                 continue;
             }
             if (detail.getClassroomId() != null && detail.getClassroomId().equals(existing.getClassroomId())) {
@@ -890,6 +1179,104 @@ public class AdjustmentServiceImpl implements AdjustmentService {
 
     private Set<Long> asSet(Long... ids) {
         return uniqueIds(ids);
+    }
+
+    private List<Classroom> loadCandidateClassrooms(TimetableDetail sourceDetail, TeachingTask task) {
+        int requiredCapacity = task != null && task.getStudentCount() != null ? task.getStudentCount() : 0;
+        List<Classroom> classrooms = classroomMapper.selectList(new LambdaQueryWrapper<Classroom>()
+                .eq(Classroom::getStatus, 1)
+                .ge(requiredCapacity > 0, Classroom::getCapacity, requiredCapacity)
+                .orderByAsc(Classroom::getCampusId)
+                .orderByAsc(Classroom::getBuilding)
+                .orderByAsc(Classroom::getRoomNo));
+
+        List<Classroom> candidates = new ArrayList<>();
+        Classroom currentClassroom = sourceDetail.getClassroomId() == null ? null : classroomMapper.selectById(sourceDetail.getClassroomId());
+        if (currentClassroom != null && (currentClassroom.getStatus() == null || currentClassroom.getStatus() == 1)) {
+            candidates.add(currentClassroom);
+        }
+        for (Classroom classroom : classrooms) {
+            if (currentClassroom != null && Objects.equals(classroom.getId(), currentClassroom.getId())) {
+                continue;
+            }
+            candidates.add(classroom);
+        }
+        return candidates;
+    }
+
+    private int normalizeHistoryLimit(int limit) {
+        if (limit <= 0) {
+            return 10;
+        }
+        return Math.min(limit, 50);
+    }
+
+    private Set<Long> collectAdjustmentClassroomIds(List<AdjustmentApplication> applications) {
+        Set<Long> classroomIds = new LinkedHashSet<>();
+        for (AdjustmentApplication application : applications) {
+            if (application.getOldClassroom() != null) {
+                classroomIds.add(application.getOldClassroom());
+            }
+            if (application.getNewClassroom() != null) {
+                classroomIds.add(application.getNewClassroom());
+            }
+        }
+        return classroomIds;
+    }
+
+    private Set<Long> collectSwapClassroomIds(List<SwapAdjustmentApplication> applications) {
+        Set<Long> classroomIds = new LinkedHashSet<>();
+        for (SwapAdjustmentApplication application : applications) {
+            if (application.getOldClassroom1() != null) {
+                classroomIds.add(application.getOldClassroom1());
+            }
+            if (application.getOldClassroom2() != null) {
+                classroomIds.add(application.getOldClassroom2());
+            }
+        }
+        return classroomIds;
+    }
+
+    private Map<Long, String> resolveClassroomNames(Set<Long> classroomIds) {
+        if (classroomIds == null || classroomIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return classroomMapper.selectBatchIds(classroomIds).stream()
+                .collect(Collectors.toMap(Classroom::getId, this::resolveClassroomName, (left, right) -> left));
+    }
+
+    private String buildScheduleSummary(Integer dayOfWeek,
+                                        Integer slotNo,
+                                        Long classroomId,
+                                        Map<Long, String> classroomNameMap) {
+        String weekday = resolveWeekday(dayOfWeek);
+        String slotText = slotNo == null ? "未安排时段" : "第" + slotNo + "节";
+        String classroomName = classroomId == null
+                ? "原教室"
+                : classroomNameMap.getOrDefault(classroomId, "教室 #" + classroomId);
+        return weekday + " · " + slotText + " · " + classroomName;
+    }
+
+    private String resolveWeekday(Integer dayOfWeek) {
+        if (dayOfWeek == null) {
+            return "未安排日期";
+        }
+        String[] labels = {"一", "二", "三", "四", "五", "六", "日"};
+        if (dayOfWeek >= 1 && dayOfWeek <= labels.length) {
+            return "周" + labels[dayOfWeek - 1];
+        }
+        return "周" + dayOfWeek;
+    }
+
+    private List<String> buildOccupiedSlotKeys(Integer dayOfWeek, Integer slotNo) {
+        if (dayOfWeek == null || slotNo == null) {
+            return Collections.emptyList();
+        }
+        List<String> slotKeys = new ArrayList<>(SESSION_SLOT_SPAN);
+        for (int offset = 0; offset < SESSION_SLOT_SPAN; offset++) {
+            slotKeys.add(buildSlotKey(dayOfWeek, slotNo + offset));
+        }
+        return slotKeys;
     }
 
     private String buildSlotKey(Integer dayOfWeek, Integer slotNo) {

@@ -31,6 +31,77 @@
             </div>
           </div>
 
+          <div class="visual-board animate-fade-in">
+            <div class="visual-card visual-card--wide">
+              <div class="section-title">
+                <span>{{ isTeacherView ? '教室使用热度' : '教室利用率可视图' }}</span>
+              </div>
+              <div class="section-hint">
+                {{ isTeacherView ? '你当前授课涉及的教室，会按使用率从高到低显示。' : '优先关注利用率更高的教室，方便判断哪些场地更紧张。' }}
+              </div>
+              <div v-if="topClassroomItems.length" class="visual-list">
+                <div v-for="item in topClassroomItems" :key="item.classroomId" class="visual-row">
+                  <div class="visual-row-head">
+                    <span class="visual-row-name">{{ item.classroomName }}</span>
+                    <span class="visual-row-value">{{ formatPercent(item.utilizationRate) }}</span>
+                  </div>
+                  <div class="visual-bar-track">
+                    <div class="visual-bar-fill" :style="{ width: `${clampPercent(item.utilizationRate)}%` }"></div>
+                  </div>
+                  <div class="visual-row-meta">{{ item.usedSlots }}/{{ item.totalSlots }} 节已排</div>
+                </div>
+              </div>
+              <div v-else class="visual-empty">当前课表下暂无可展示的教室使用数据</div>
+            </div>
+
+            <div class="visual-card">
+              <div class="section-title">
+                <span>{{ isTeacherView ? '授课工作量柱状图' : '教师工作量排行图' }}</span>
+              </div>
+              <div class="section-hint">
+                {{ isTeacherView ? '用柱高快速对比你当前课表里的课程分布。' : '显示当前课表学时最高的教师，方便判断工作量分布。' }}
+              </div>
+              <div v-if="teacherChartBars.length" class="workload-chart">
+                <div class="workload-bars">
+                  <div v-for="item in teacherChartBars" :key="item.teacherId" class="workload-bar-item">
+                    <div class="workload-bar-wrap">
+                      <div class="workload-bar" :style="{ height: `${item.height}%` }"></div>
+                    </div>
+                    <div class="workload-bar-hours">{{ item.totalHours }}</div>
+                    <div class="workload-bar-label">{{ item.shortName }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="visual-empty">当前课表下暂无工作量可视数据</div>
+            </div>
+
+            <div class="visual-card">
+              <div class="section-title">
+                <span>{{ isTeacherView ? '冲突构成环图' : '冲突分布总览' }}</span>
+              </div>
+              <div class="section-hint">
+                {{ isTeacherView ? '优先看教师与教室冲突，它们通常最影响实际授课。' : '通过冲突构成占比快速判断最需要优先治理的问题。' }}
+              </div>
+              <div class="conflict-visual">
+                <div class="conflict-ring" :style="conflictRingStyle">
+                  <div class="conflict-ring-inner">
+                    <div class="conflict-ring-total">{{ totalConflictValue }}</div>
+                    <div class="conflict-ring-label">{{ totalConflictLabel }}</div>
+                  </div>
+                </div>
+                <div class="conflict-legend">
+                  <div v-for="item in conflictBreakdown" :key="item.key" class="conflict-legend-item">
+                    <span class="conflict-legend-dot" :style="{ background: item.color }"></span>
+                    <div class="conflict-legend-copy">
+                      <div class="conflict-legend-label">{{ item.label }}</div>
+                      <div class="conflict-legend-value">{{ item.value }} · {{ item.percentText }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="tabs-container">
             <n-tabs v-model:value="activeTab" class="statistics-tabs">
               <n-tab-pane name="classroom" :tab="classroomTabLabel">
@@ -212,9 +283,68 @@ const totalConflictLabel = computed(() => isTeacherView.value ? '相关冲突' :
 const conflictDetailTitle = computed(() => isTeacherView.value ? '需要你关注的冲突明细' : '冲突详情')
 const conflictEmptyDescription = computed(() => isTeacherView.value ? '当前课表下你的授课安排没有冲突' : '暂无冲突')
 const pageEmptyDescription = computed(() => isTeacherView.value ? '请选择课表后查看你的授课统计' : '请选择课表')
+const topClassroomItems = computed(() =>
+  [...classroomUtilization.value]
+    .sort((a, b) => normalizeRate(b.utilizationRate) - normalizeRate(a.utilizationRate) || (b.usedSlots || 0) - (a.usedSlots || 0))
+    .slice(0, 6)
+)
+const topTeacherItems = computed(() =>
+  [...teacherWorkload.value]
+    .sort((a, b) => (b.totalHours || 0) - (a.totalHours || 0) || (b.courseCount || 0) - (a.courseCount || 0))
+    .slice(0, 6)
+)
+const maxTeacherHours = computed(() => Math.max(...topTeacherItems.value.map(item => item.totalHours || 0), 1))
+const teacherChartBars = computed(() =>
+  topTeacherItems.value.map((item) => ({
+    ...item,
+    shortName: shortenName(item.teacherName),
+    height: Math.max(18, Math.round(((item.totalHours || 0) / maxTeacherHours.value) * 100))
+  }))
+)
+const conflictBreakdown = computed(() => {
+  const total = totalConflictValue.value || 0
+  const items = [
+    { key: 'teacher', label: '教师冲突', value: Number(conflictReport.value?.teacherConflicts || 0), color: '#d96b5f' },
+    { key: 'classroom', label: '教室冲突', value: Number(conflictReport.value?.classroomConflicts || 0), color: '#d8a14e' },
+    { key: 'class', label: '班级冲突', value: Number(conflictReport.value?.classConflicts || 0), color: '#6f8f72' }
+  ]
+  return items.map((item) => ({
+    ...item,
+    percent: total > 0 ? (item.value / total) * 100 : 0,
+    percentText: total > 0 ? `${Math.round((item.value / total) * 100)}%` : '0%'
+  }))
+})
+const totalConflictValue = computed(() => Number(conflictReport.value?.totalConflicts || 0))
+const conflictRingStyle = computed(() => {
+  if (totalConflictValue.value <= 0) {
+    return {
+      background: 'conic-gradient(rgba(145, 120, 91, 0.16) 0deg 360deg)'
+    }
+  }
+  let start = 0
+  const segments = conflictBreakdown.value.map((item) => {
+    const end = start + (item.percent / 100) * 360
+    const segment = `${item.color} ${start}deg ${end}deg`
+    start = end
+    return segment
+  })
+  if (start < 360) {
+    segments.push(`rgba(145, 120, 91, 0.12) ${start}deg 360deg`)
+  }
+  return {
+    background: `conic-gradient(${segments.join(', ')})`
+  }
+})
 
 const slotLabel = (slotNo) => slotMeta[slotNo]?.label || `第${slotNo}节`
 const slotTimeRange = (slotNo) => slotMeta[slotNo]?.time || ''
+const normalizeRate = (value) => Number(value || 0)
+const clampPercent = (value) => Math.max(0, Math.min(100, normalizeRate(value)))
+const formatPercent = (value) => `${normalizeRate(value).toFixed(1)}%`
+const shortenName = (value) => {
+  const text = value || '-'
+  return text.length > 4 ? `${text.slice(0, 4)}…` : text
+}
 const courseTimeText = (item) => {
   if (!item) return '-'
   const weekday = weekdayLabels[(item.dayOfWeek || 1) - 1] || item.dayOfWeek
@@ -297,6 +427,220 @@ onMounted(() => {
 
 .tabs-container {
   margin-top: var(--spacing-lg);
+}
+
+.visual-board {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.visual-card {
+  border: 1px solid rgba(145, 120, 91, 0.18);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.12)),
+    rgba(255, 249, 241, 0.86);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-xl);
+}
+
+.visual-card--wide {
+  min-width: 0;
+}
+
+.visual-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.visual-row {
+  padding: var(--spacing-md);
+  border-radius: 18px;
+  background: rgba(250, 244, 233, 0.72);
+  border: 1px solid rgba(145, 120, 91, 0.1);
+}
+
+.visual-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: 10px;
+}
+
+.visual-row-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.visual-row-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #9a633d;
+}
+
+.visual-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(145, 120, 91, 0.14);
+  overflow: hidden;
+}
+
+.visual-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6f8f72 0%, #c69155 100%);
+}
+
+.visual-row-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.workload-chart {
+  min-height: 280px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.workload-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  align-items: end;
+}
+
+.workload-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.workload-bar-wrap {
+  width: 100%;
+  height: 190px;
+  display: flex;
+  align-items: flex-end;
+  padding: 6px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(145, 120, 91, 0.08), rgba(145, 120, 91, 0.16));
+}
+
+.workload-bar {
+  width: 100%;
+  min-height: 18%;
+  border-radius: 14px 14px 10px 10px;
+  background: linear-gradient(180deg, #d8a14e 0%, #b86b55 100%);
+  box-shadow: 0 12px 24px rgba(184, 107, 85, 0.18);
+}
+
+.workload-bar-hours {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.workload-bar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.conflict-visual {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  min-height: 280px;
+}
+
+.conflict-ring {
+  flex-shrink: 0;
+  width: 172px;
+  height: 172px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict-ring-inner {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: rgba(255, 250, 243, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(145, 120, 91, 0.08);
+}
+
+.conflict-ring-total {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.conflict-ring-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.conflict-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.conflict-legend-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.conflict-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.conflict-legend-copy {
+  min-width: 0;
+}
+
+.conflict-legend-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.conflict-legend-value {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.visual-empty {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .role-guide {
@@ -589,6 +933,17 @@ onMounted(() => {
   }
 }
 
+@media (max-width: 1279px) {
+  .visual-board {
+    grid-template-columns: 1fr;
+  }
+
+  .workload-chart,
+  .conflict-visual {
+    min-height: unset;
+  }
+}
+
 @media (max-width: 767px) {
   .section-title {
     font-size: 15px;
@@ -607,8 +962,33 @@ onMounted(() => {
   }
 
   .card,
-  .statistics-tabs {
+  .statistics-tabs,
+  .visual-card {
     padding: var(--spacing-md);
+  }
+
+  .workload-bars {
+    gap: 8px;
+  }
+
+  .workload-bar-wrap {
+    height: 150px;
+  }
+
+  .conflict-visual {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+  }
+
+  .conflict-ring {
+    width: 148px;
+    height: 148px;
+  }
+
+  .conflict-ring-inner {
+    width: 92px;
+    height: 92px;
   }
 }
 </style>

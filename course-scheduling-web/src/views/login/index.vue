@@ -31,16 +31,19 @@
 
           <div class="form-toolbar">
             <span class="toolbar-text">{{ showDemoAccess ? '演示环境快捷登录' : '校园账号登录' }}</span>
-            <n-button
-              v-if="showDemoAccess"
-              quaternary
-              size="small"
-              class="demo-btn"
-              :disabled="loading"
-              @click="fillDemoCredentials"
-            >
-              填入测试账号
-            </n-button>
+            <div v-if="showDemoAccess" class="demo-btn-group">
+              <n-button
+                v-for="account in demoAccounts"
+                :key="account.key"
+                quaternary
+                size="small"
+                class="demo-btn"
+                :disabled="loading"
+                @click="fillDemoCredentials(account.key)"
+              >
+                {{ account.label }}
+              </n-button>
+            </div>
           </div>
 
           <n-alert
@@ -131,11 +134,11 @@
               </n-button>
             </div>
 
-            <div v-if="showDemoAccess" class="login-note">演示环境可使用管理员测试账号快速进入系统。</div>
+            <div v-if="showDemoAccess" class="login-note">演示环境可直接填入管理员、教师或学生测试账号。</div>
           </n-form>
 
           <footer v-if="showDemoAccess" class="card-footer">
-            <div class="test-account">测试账号：admin / admin123</div>
+            <div class="test-account">测试账号：admin、teacher001、student001，默认密码均为 123456</div>
           </footer>
         </div>
       </section>
@@ -178,18 +181,20 @@ const loading = ref(false)
 const errorMessage = ref('')
 const errorAlertRef = ref(null)
 const showDemoAccess = import.meta.env.DEV
-const demoCredentials = {
-  username: 'admin',
-  password: 'admin123'
-}
+const demoAccounts = [
+  { key: 'admin', label: '管理员', username: 'admin', password: '123456' },
+  { key: 'teacher', label: '教师', username: 'teacher001', password: '123456' },
+  { key: 'student', label: '学生', username: 'student001', password: '123456' }
+]
 
 const normalizeUsername = () => {
   form.username = form.username.trim()
 }
 
-const fillDemoCredentials = () => {
-  form.username = demoCredentials.username
-  form.password = demoCredentials.password
+const fillDemoCredentials = (accountKey = 'admin') => {
+  const account = demoAccounts.find((item) => item.key === accountKey) || demoAccounts[0]
+  form.username = account.username
+  form.password = account.password
   errorMessage.value = ''
 }
 
@@ -435,8 +440,15 @@ const handleLogin = async () => {
   letter-spacing: 0.04em;
 }
 
+.demo-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .demo-btn {
-  min-width: 118px;
+  min-width: 72px;
 }
 
 .form {

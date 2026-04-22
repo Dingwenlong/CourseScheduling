@@ -48,6 +48,29 @@
                 已加载 {{ detailOptions.length }} 门课程，列表已按星期和节次排序。
               </div>
             </n-form-item>
+            <n-form-item label="智能推荐">
+              <div class="recommendation-panel">
+                <div class="field-hint recommendation-hint">
+                  选定课程后，系统会优先推荐无冲突时段，你也可以继续手动调整。
+                </div>
+                <div v-if="recommendationLoading" class="recommendation-empty">正在生成推荐方案...</div>
+                <div v-else-if="recommendations.length" class="recommendation-list">
+                  <button
+                    v-for="item in recommendations"
+                    :key="`${item.dayOfWeek}-${item.slotNo}-${item.classroomId}`"
+                    type="button"
+                    class="recommendation-item"
+                    @click="applyRecommendation(item)"
+                  >
+                    <span class="recommendation-title">{{ item.summary }}</span>
+                    <span class="recommendation-action">采用此方案</span>
+                  </button>
+                </div>
+                <div v-else class="recommendation-empty">
+                  {{ form.detailId ? '暂未找到推荐方案，可以继续手动调整。' : '请先选择要调整的课程。' }}
+                </div>
+              </div>
+            </n-form-item>
             <n-form-item label="调整到哪一天" path="newDayOfWeek">
               <n-select
                 v-model:value="form.newDayOfWeek"
@@ -261,23 +284,174 @@
           </n-space>
         </div>
       </div>
+
+      <div class="adjustment-grid status-grid">
+        <div class="card status-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">当前调课申请状态</h3>
+              <div class="history-subtitle">选中课程后，系统会自动刷新最新审核进度。</div>
+            </div>
+            <n-tag v-if="currentAdjustmentStatus" :type="historyStatusType(currentAdjustmentStatus.status)" size="small">
+              {{ historyStatusLabel(currentAdjustmentStatus.status) }}
+            </n-tag>
+            <n-tag v-else size="small" type="default">未提交</n-tag>
+          </div>
+          <div v-if="hasAdjustmentSelection" class="status-body">
+            <div class="status-focus">{{ selectedAdjustmentLabel }}</div>
+            <div class="status-refresh">最近刷新：{{ formatDateTime(lastStatusRefreshAt) }}</div>
+            <div v-if="currentAdjustmentStatus" class="status-metrics">
+              <div class="status-metric">
+                <span class="status-metric-label">申请单号</span>
+                <span class="status-metric-value">{{ currentAdjustmentStatus.applicationNo || '-' }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">提交时间</span>
+                <span class="status-metric-value">{{ formatDateTime(currentAdjustmentStatus.applyTime) }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">调课到</span>
+                <span class="status-metric-value">{{ adjustmentTargetSummary(currentAdjustmentStatus) }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">处理时间</span>
+                <span class="status-metric-value">{{ formatDateTime(currentAdjustmentStatus.auditTime) }}</span>
+              </div>
+              <div class="status-note">
+                <span class="status-note-label">调课原因</span>
+                <span class="status-note-value">{{ currentAdjustmentStatus.reason || '-' }}</span>
+              </div>
+              <div v-if="currentAdjustmentStatus.auditRemark" class="status-note">
+                <span class="status-note-label">处理备注</span>
+                <span class="status-note-value">{{ currentAdjustmentStatus.auditRemark }}</span>
+              </div>
+            </div>
+            <div v-else class="empty-history">当前课程还没有调课申请</div>
+          </div>
+          <div v-else class="empty-history">请先选择要调整的课程</div>
+        </div>
+
+        <div class="card status-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">当前交换申请状态</h3>
+              <div class="history-subtitle">两门课程都选定后，这里会持续显示交换进度。</div>
+            </div>
+            <n-tag v-if="currentSwapStatus" :type="historyStatusType(currentSwapStatus.status)" size="small">
+              {{ historyStatusLabel(currentSwapStatus.status) }}
+            </n-tag>
+            <n-tag v-else size="small" type="default">未提交</n-tag>
+          </div>
+          <div v-if="hasSwapSelection" class="status-body">
+            <div class="status-focus">{{ selectedSwapLabel }}</div>
+            <div class="status-refresh">最近刷新：{{ formatDateTime(lastStatusRefreshAt) }}</div>
+            <div v-if="currentSwapStatus" class="status-metrics">
+              <div class="status-metric">
+                <span class="status-metric-label">申请单号</span>
+                <span class="status-metric-value">{{ currentSwapStatus.applicationNo || '-' }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">提交时间</span>
+                <span class="status-metric-value">{{ formatDateTime(currentSwapStatus.applyTime) }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">课程一原安排</span>
+                <span class="status-metric-value">{{ swapSourceSummary(currentSwapStatus, 1) }}</span>
+              </div>
+              <div class="status-metric">
+                <span class="status-metric-label">课程二原安排</span>
+                <span class="status-metric-value">{{ swapSourceSummary(currentSwapStatus, 2) }}</span>
+              </div>
+              <div class="status-note">
+                <span class="status-note-label">交换原因</span>
+                <span class="status-note-value">{{ currentSwapStatus.reason || '-' }}</span>
+              </div>
+              <div v-if="currentSwapStatus.auditRemark" class="status-note">
+                <span class="status-note-label">处理备注</span>
+                <span class="status-note-value">{{ currentSwapStatus.auditRemark }}</span>
+              </div>
+            </div>
+            <div v-else class="empty-history">当前课程组合还没有交换申请</div>
+          </div>
+          <div v-else class="empty-history">请先选择两门要交换的课程</div>
+        </div>
+      </div>
+
+      <div class="adjustment-grid history-grid">
+        <div class="card history-card">
+          <div class="card-header">
+            <h3 class="card-title">调课申请记录</h3>
+            <div class="history-subtitle">最近申请的进度、结果和处理备注会同步显示在这里。</div>
+          </div>
+          <div v-if="adjustmentHistory.length" class="history-list">
+            <div v-for="item in adjustmentHistory" :key="`adj-${item.id}`" class="history-item">
+              <div class="history-item-head">
+                <div>
+                  <div class="history-title">{{ item.courseName || '调课申请' }}</div>
+                  <div class="history-no">{{ item.applicationNo }}</div>
+                </div>
+                <n-tag :type="historyStatusType(item.status)" size="small">
+                  {{ historyStatusLabel(item.status) }}
+                </n-tag>
+              </div>
+              <div class="history-meta">原安排：{{ item.sourceSummary || '-' }}</div>
+              <div class="history-meta">目标安排：{{ item.targetSummary || '-' }}</div>
+              <div class="history-meta">提交时间：{{ formatDateTime(item.applyTime) }}</div>
+              <div class="history-meta">原因：{{ item.reason || '-' }}</div>
+              <div v-if="item.auditRemark" class="history-meta">处理备注：{{ item.auditRemark }}</div>
+            </div>
+          </div>
+          <div v-else class="empty-history">暂无调课记录</div>
+        </div>
+
+        <div class="card history-card">
+          <div class="card-header">
+            <h3 class="card-title">课程交换记录</h3>
+            <div class="history-subtitle">交换申请提交后，这里可以持续查看处理状态。</div>
+          </div>
+          <div v-if="swapAdjustmentHistory.length" class="history-list">
+            <div v-for="item in swapAdjustmentHistory" :key="`swap-${item.id}`" class="history-item">
+              <div class="history-item-head">
+                <div>
+                  <div class="history-title">{{ item.courseName1 || '课程一' }} ⇄ {{ item.courseName2 || '课程二' }}</div>
+                  <div class="history-no">{{ item.applicationNo }}</div>
+                </div>
+                <n-tag :type="historyStatusType(item.status)" size="small">
+                  {{ historyStatusLabel(item.status) }}
+                </n-tag>
+              </div>
+              <div class="history-meta">课程一原安排：{{ item.sourceSummary1 || '-' }}</div>
+              <div class="history-meta">课程二原安排：{{ item.sourceSummary2 || '-' }}</div>
+              <div class="history-meta">提交时间：{{ formatDateTime(item.applyTime) }}</div>
+              <div class="history-meta">原因：{{ item.reason || '-' }}</div>
+              <div v-if="item.auditRemark" class="history-meta">处理备注：{{ item.auditRemark }}</div>
+            </div>
+          </div>
+          <div v-else class="empty-history">暂无课程交换记录</div>
+        </div>
+      </div>
     </div>
   </PageContainer>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMessage, useDialog } from 'naive-ui'
 import {
   checkAdjustment,
   applyAdjustment as doApplyAdjustment,
+  getAdjustmentRecommendations,
+  getLatestAdjustment,
   getPendingAdjustment,
+  getAdjustmentHistory,
   cancelAdjustment,
   executeAdjustment as doExecuteAdjustment,
   checkSwapAdjustment,
   applySwapAdjustment as doApplySwapAdjustment,
+  getLatestSwapAdjustment,
   getPendingSwapAdjustment,
+  getSwapAdjustmentHistory,
   cancelSwapAdjustment,
   executeSwapAdjustment as doExecuteSwapAdjustment
 } from '@/api/adjustment'
@@ -309,6 +483,7 @@ import {
   WarningOutline,
   CloseOutline
 } from '@vicons/ionicons5'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const message = useMessage()
@@ -325,6 +500,13 @@ const checkResult = ref(null)
 const swapCheckResult = ref(null)
 const pendingApplication = ref(null)
 const pendingSwapApplication = ref(null)
+const currentAdjustmentStatus = ref(null)
+const currentSwapStatus = ref(null)
+const adjustmentHistory = ref([])
+const swapAdjustmentHistory = ref([])
+const recommendationLoading = ref(false)
+const recommendations = ref([])
+const lastStatusRefreshAt = ref(null)
 const formRef = ref(null)
 const swapFormRef = ref(null)
 const detailOptions = ref([])
@@ -333,6 +515,7 @@ const classroomOptions = ref([])
 const classroomLookupLoading = ref(false)
 const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
 const currentTimetableMeta = ref(null)
+let pollTimer = null
 const slotMeta = {
   1: { label: '上午1', time: '08:00-08:45' },
   2: { label: '上午2', time: '08:55-09:40' },
@@ -372,6 +555,9 @@ const currentTimetableText = computed(() => {
   return currentId ? `课表 #${currentId}` : ''
 })
 
+const hasAdjustmentSelection = computed(() => Boolean(form.timetableId && form.detailId))
+const hasSwapSelection = computed(() => Boolean(swapForm.timetableId && swapForm.detailId1 && swapForm.detailId2))
+
 const weekdayOptions = computed(() => weekdayLabels.slice(0, 5).map((label, index) => ({
   label: `周${label}`,
   value: index + 1
@@ -384,11 +570,62 @@ const slotOptions = computed(() => Object.entries(slotMeta).map(([value, meta]) 
 
 const slotLabel = (slotNo) => slotMeta[slotNo]?.label || `第${slotNo}节`
 const slotTimeRange = (slotNo) => slotMeta[slotNo]?.time || ''
+const formatDateTime = (value) => value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '-'
+const historyStatusType = (status) => ({
+  PENDING: 'warning',
+  APPROVED: 'success',
+  CANCELLED: 'default',
+  REJECTED: 'error'
+}[status] || 'default')
+const historyStatusLabel = (status) => ({
+  PENDING: '处理中',
+  APPROVED: '已完成',
+  CANCELLED: '已取消',
+  REJECTED: '已驳回'
+}[status] || (status || '未知'))
 const courseTimeText = (detail) => {
   const weekday = weekdayLabels[(detail.dayOfWeek || 1) - 1] || detail.dayOfWeek
   const slot = slotLabel(detail.slotNo)
   const time = slotTimeRange(detail.slotNo)
   return time ? `周${weekday} ${slot} · ${time}` : `周${weekday} ${slot}`
+}
+
+const selectedAdjustmentLabel = computed(() => {
+  const matched = detailOptions.value.find(option => option.value === Number(form.detailId || 0))
+  return matched?.label || (form.detailId ? `课程明细 #${form.detailId}` : '')
+})
+
+const selectedSwapLabel = computed(() => {
+  const first = detailOptions.value.find(option => option.value === Number(swapForm.detailId1 || 0))
+  const second = detailOptions.value.find(option => option.value === Number(swapForm.detailId2 || 0))
+  const firstLabel = first?.label || (swapForm.detailId1 ? `课程明细 #${swapForm.detailId1}` : '')
+  const secondLabel = second?.label || (swapForm.detailId2 ? `课程明细 #${swapForm.detailId2}` : '')
+  return [firstLabel, secondLabel].filter(Boolean).join(' ⇄ ')
+})
+
+const statusSummary = (dayOfWeek, slotNo, classroomId) => {
+  const weekday = weekdayLabels[(dayOfWeek || 1) - 1] || dayOfWeek || '-'
+  const slot = slotNo ? slotLabel(slotNo) : '-'
+  const classroomOption = classroomOptions.value.find(option => option.value === Number(classroomId || 0))
+  const classroomText = classroomOption?.label || (classroomId ? `教室 #${classroomId}` : '沿用原教室')
+  return `周${weekday} ${slot} · ${classroomText}`
+}
+
+const adjustmentTargetSummary = (application) => {
+  if (!application) {
+    return '-'
+  }
+  return statusSummary(application.newDay, application.newSlot, application.newClassroom)
+}
+
+const swapSourceSummary = (application, index) => {
+  if (!application) {
+    return '-'
+  }
+  if (index === 1) {
+    return statusSummary(application.oldDay1, application.oldSlot1, application.oldClassroom1)
+  }
+  return statusSummary(application.oldDay2, application.oldSlot2, application.oldClassroom2)
 }
 
 const rules = {
@@ -557,6 +794,14 @@ const handleSwapDetailChange = (field, value) => {
   }
 }
 
+const applyRecommendation = async (recommendation) => {
+  form.newDayOfWeek = recommendation.dayOfWeek
+  form.newSlotNo = recommendation.slotNo
+  form.newClassroomId = recommendation.classroomId
+  ensureOption(classroomOptions, recommendation.classroomId, recommendation.classroomName)
+  message.success('已采用推荐方案，可直接填写原因后提交')
+}
+
 const handleTimetableChange = async (value) => {
   const normalizedValue = value ? Number(value) : null
   const previousValue = form.timetableId || swapForm.timetableId || null
@@ -569,6 +814,8 @@ const handleTimetableChange = async (value) => {
 
   pendingApplication.value = null
   pendingSwapApplication.value = null
+  currentAdjustmentStatus.value = null
+  currentSwapStatus.value = null
   checkResult.value = null
   swapCheckResult.value = null
   form.applicationId = null
@@ -578,6 +825,53 @@ const handleTimetableChange = async (value) => {
   swapForm.detailId2 = null
 
   await loadDetailOptions(normalizedValue)
+}
+
+const syncStatusRefreshTime = () => {
+  lastStatusRefreshAt.value = new Date()
+}
+
+const loadLatestAdjustmentStatus = async ({ hydratePending = false } = {}) => {
+  if (!form.timetableId || !form.detailId) {
+    currentAdjustmentStatus.value = null
+    pendingApplication.value = null
+    form.applicationId = null
+    return null
+  }
+
+  try {
+    const res = await getLatestAdjustment({
+      timetableId: form.timetableId,
+      detailId: form.detailId
+    })
+    currentAdjustmentStatus.value = res.data || null
+    if (currentAdjustmentStatus.value?.status === 'PENDING') {
+      pendingApplication.value = currentAdjustmentStatus.value
+      form.applicationId = currentAdjustmentStatus.value.id
+      if (hydratePending) {
+        form.newDayOfWeek = currentAdjustmentStatus.value.newDay
+        form.newSlotNo = currentAdjustmentStatus.value.newSlot
+        form.newClassroomId = currentAdjustmentStatus.value.newClassroom
+        ensureOption(classroomOptions, currentAdjustmentStatus.value.newClassroom, `教室 #${currentAdjustmentStatus.value.newClassroom}`)
+        form.reason = currentAdjustmentStatus.value.reason || ''
+        checkResult.value = {
+          success: true,
+          message: '已存在待处理申请，可更新后重新提交或直接执行',
+          conflicts: []
+        }
+      }
+    } else {
+      pendingApplication.value = null
+      form.applicationId = null
+    }
+    syncStatusRefreshTime()
+    return currentAdjustmentStatus.value
+  } catch (e) {
+    currentAdjustmentStatus.value = null
+    pendingApplication.value = null
+    form.applicationId = null
+    return null
+  }
 }
 
 const loadPendingApplication = async ({ hydrate = true } = {}) => {
@@ -618,6 +912,76 @@ const loadPendingApplication = async ({ hydrate = true } = {}) => {
   }
 }
 
+const loadRecommendations = async () => {
+  if (!form.timetableId || !form.detailId) {
+    recommendations.value = []
+    return
+  }
+
+  recommendationLoading.value = true
+  try {
+    const res = await getAdjustmentRecommendations({
+      timetableId: form.timetableId,
+      detailId: form.detailId,
+      limit: 5
+    })
+    recommendations.value = res.data || []
+  } catch (e) {
+    recommendations.value = []
+  } finally {
+    recommendationLoading.value = false
+  }
+}
+
+const loadAdjustmentHistoryList = async () => {
+  try {
+    const res = await getAdjustmentHistory({ limit: 8 })
+    adjustmentHistory.value = res.data || []
+  } catch (e) {
+    adjustmentHistory.value = []
+  }
+}
+
+const loadLatestSwapStatus = async ({ hydratePending = false } = {}) => {
+  if (!swapForm.timetableId || !swapForm.detailId1 || !swapForm.detailId2) {
+    currentSwapStatus.value = null
+    pendingSwapApplication.value = null
+    swapForm.applicationId = null
+    return null
+  }
+
+  try {
+    const res = await getLatestSwapAdjustment({
+      timetableId: swapForm.timetableId,
+      detailId1: swapForm.detailId1,
+      detailId2: swapForm.detailId2
+    })
+    currentSwapStatus.value = res.data || null
+    if (currentSwapStatus.value?.status === 'PENDING') {
+      pendingSwapApplication.value = currentSwapStatus.value
+      swapForm.applicationId = currentSwapStatus.value.id
+      if (hydratePending) {
+        swapForm.reason = currentSwapStatus.value.reason || ''
+        swapCheckResult.value = {
+          success: true,
+          message: '已存在待处理交换申请，可更新后重新提交或直接执行',
+          conflicts: []
+        }
+      }
+    } else {
+      pendingSwapApplication.value = null
+      swapForm.applicationId = null
+    }
+    syncStatusRefreshTime()
+    return currentSwapStatus.value
+  } catch (e) {
+    currentSwapStatus.value = null
+    pendingSwapApplication.value = null
+    swapForm.applicationId = null
+    return null
+  }
+}
+
 const loadPendingSwapApplication = async ({ hydrate = true } = {}) => {
   if (!swapForm.timetableId || !swapForm.detailId1 || !swapForm.detailId2) {
     pendingSwapApplication.value = null
@@ -653,6 +1017,15 @@ const loadPendingSwapApplication = async ({ hydrate = true } = {}) => {
   }
 }
 
+const loadSwapAdjustmentHistoryList = async () => {
+  try {
+    const res = await getSwapAdjustmentHistory({ limit: 8 })
+    swapAdjustmentHistory.value = res.data || []
+  } catch (e) {
+    swapAdjustmentHistory.value = []
+  }
+}
+
 const handleSubmit = async () => {
   try {
     await formRef.value?.validate()
@@ -662,11 +1035,11 @@ const handleSubmit = async () => {
 
   loading.value = true
   try {
-    const pending = await loadPendingApplication({ hydrate: false })
+    const pending = await loadLatestAdjustmentStatus({ hydratePending: false })
     const res = await checkAdjustment(form)
     checkResult.value = res.data
     if (res.data.success) {
-      message.success(pending ? '检测通过，已存在待处理申请' : '检测通过')
+      message.success(pending?.status === 'PENDING' ? '检测通过，已存在待处理申请' : '检测通过')
     }
   } catch (e) {
     message.error(e.message || '检测失败')
@@ -687,6 +1060,9 @@ const submitApplication = async () => {
     const res = await doApplyAdjustment(form)
     pendingApplication.value = res.data || null
     form.applicationId = pendingApplication.value?.id || null
+    currentAdjustmentStatus.value = pendingApplication.value
+    syncStatusRefreshTime()
+    await loadAdjustmentHistoryList()
     message.success(
       hadExisting
         ? `申请已更新：${pendingApplication.value?.applicationNo || ''}`
@@ -718,9 +1094,10 @@ const executeAdjustment = async () => {
           applicationId: pendingApplication.value.id
         })
         message.success('调课成功')
-        pendingApplication.value = null
+        await loadLatestAdjustmentStatus({ hydratePending: false })
         checkResult.value = null
         resetForm({ keepTimetableId: true })
+        await loadAdjustmentHistoryList()
       } catch (e) {
         message.error(e.message || '调课失败')
       } finally {
@@ -739,11 +1116,11 @@ const handleSwapCheck = async () => {
 
   checkingSwap.value = true
   try {
-    const pending = await loadPendingSwapApplication({ hydrate: false })
+    const pending = await loadLatestSwapStatus({ hydratePending: false })
     const res = await checkSwapAdjustment(swapForm)
     swapCheckResult.value = res.data
     if (res.data.success) {
-      message.success(pending ? '检测通过，已存在待处理交换申请' : '检测通过')
+      message.success(pending?.status === 'PENDING' ? '检测通过，已存在待处理交换申请' : '检测通过')
     }
   } catch (e) {
     message.error(e.message || '交换检测失败')
@@ -764,6 +1141,9 @@ const submitSwapApplication = async () => {
     const res = await doApplySwapAdjustment(swapForm)
     pendingSwapApplication.value = res.data || null
     swapForm.applicationId = pendingSwapApplication.value?.id || null
+    currentSwapStatus.value = pendingSwapApplication.value
+    syncStatusRefreshTime()
+    await loadSwapAdjustmentHistoryList()
     message.success(
       hadExisting
         ? `交换申请已更新：${pendingSwapApplication.value?.applicationNo || ''}`
@@ -795,9 +1175,10 @@ const executeSwapCourse = async () => {
           applicationId: pendingSwapApplication.value.id
         })
         message.success('课程交换成功')
-        pendingSwapApplication.value = null
+        await loadLatestSwapStatus({ hydratePending: false })
         swapCheckResult.value = null
         resetSwapForm({ keepTimetableId: true })
+        await loadSwapAdjustmentHistoryList()
       } catch (e) {
         message.error(e.message || '课程交换失败')
       } finally {
@@ -811,6 +1192,8 @@ const resetState = () => {
   const currentTimetableId = form.timetableId || swapForm.timetableId || null
   pendingApplication.value = null
   pendingSwapApplication.value = null
+  currentAdjustmentStatus.value = null
+  currentSwapStatus.value = null
   checkResult.value = null
   swapCheckResult.value = null
   resetForm({ keepTimetableId: Boolean(currentTimetableId) })
@@ -830,6 +1213,12 @@ const onReset = () => {
     }
     if (tasks.length > 0) {
       await Promise.all(tasks)
+      await Promise.all([
+        loadAdjustmentHistoryList(),
+        loadSwapAdjustmentHistoryList(),
+        loadLatestAdjustmentStatus({ hydratePending: false }),
+        loadLatestSwapStatus({ hydratePending: false })
+      ])
     }
     resetState()
   }
@@ -896,15 +1285,70 @@ onMounted(async () => {
   }
 
   if (form.timetableId && form.detailId) {
-    await loadPendingApplication()
+    await Promise.all([
+      loadPendingApplication(),
+      loadLatestAdjustmentStatus({ hydratePending: false }),
+      loadRecommendations()
+    ])
   }
   if (swapForm.timetableId && swapForm.detailId1 && swapForm.detailId2) {
-    await loadPendingSwapApplication()
+    await Promise.all([
+      loadPendingSwapApplication(),
+      loadLatestSwapStatus({ hydratePending: false })
+    ])
   }
+  await Promise.all([loadAdjustmentHistoryList(), loadSwapAdjustmentHistoryList()])
+
+  pollTimer = window.setInterval(() => {
+    Promise.allSettled([
+      loadAdjustmentHistoryList(),
+      loadSwapAdjustmentHistoryList(),
+      loadLatestAdjustmentStatus({ hydratePending: false }),
+      loadLatestSwapStatus({ hydratePending: false })
+    ])
+  }, 15000)
 })
 
 onUnmounted(() => {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
   layoutStore.clearHeaderAction()
+})
+
+watch(() => [form.timetableId, form.detailId], async ([timetableId, detailId], [prevTimetableId, prevDetailId]) => {
+  if (!timetableId || !detailId) {
+    recommendations.value = []
+    pendingApplication.value = null
+    currentAdjustmentStatus.value = null
+    form.applicationId = null
+    return
+  }
+  if (timetableId === prevTimetableId && detailId === prevDetailId) {
+    return
+  }
+  await Promise.all([
+    loadRecommendations(),
+    loadPendingApplication(),
+    loadLatestAdjustmentStatus({ hydratePending: false })
+  ])
+})
+
+watch(() => [swapForm.timetableId, swapForm.detailId1, swapForm.detailId2], async ([timetableId, detailId1, detailId2], [prevTimetableId, prevDetailId1, prevDetailId2]) => {
+  if (!timetableId || !detailId1 || !detailId2) {
+    pendingSwapApplication.value = null
+    currentSwapStatus.value = null
+    swapForm.applicationId = null
+    return
+  }
+  if (timetableId === prevTimetableId && detailId1 === prevDetailId1 && detailId2 === prevDetailId2) {
+    return
+  }
+  await Promise.all([
+    loadPendingSwapApplication(),
+    loadLatestSwapStatus({ hydratePending: false })
+  ])
 })
 </script>
 
@@ -1009,6 +1453,63 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
+.recommendation-panel {
+  width: 100%;
+}
+
+.recommendation-hint {
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+}
+
+.recommendation-list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid rgba(114, 137, 103, 0.18);
+  border-radius: 16px;
+  background: rgba(247, 251, 245, 0.88);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.recommendation-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(114, 137, 103, 0.32);
+  box-shadow: 0 10px 24px rgba(114, 137, 103, 0.12);
+}
+
+.recommendation-title {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.recommendation-action {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #728967;
+}
+
+.recommendation-empty {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 16px;
+  background: rgba(255, 250, 243, 0.68);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .card-title {
   font-size: 19px;
   font-weight: 600;
@@ -1027,6 +1528,133 @@ onUnmounted(() => {
 
 .result-card + .result-card {
   margin-top: var(--spacing-xl);
+}
+
+.history-grid {
+  margin-top: var(--spacing-xl);
+}
+
+.status-grid {
+  margin-top: var(--spacing-xl);
+}
+
+.status-card .card-header {
+  align-items: flex-start;
+}
+
+.status-body {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.status-focus {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.status-refresh {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.status-metrics {
+  margin-top: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.status-metric,
+.status-note {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.88);
+  border: 1px solid rgba(145, 120, 91, 0.12);
+}
+
+.status-note {
+  grid-column: 1 / -1;
+}
+
+.status-metric-label,
+.status-note-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.status-metric-value,
+.status-note-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.history-card .card-header {
+  align-items: flex-start;
+}
+
+.history-subtitle {
+  max-width: 260px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.history-list {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.history-item {
+  padding: var(--spacing-lg);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.88);
+  border: 1px solid rgba(145, 120, 91, 0.12);
+}
+
+.history-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.history-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.history-no {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.history-meta {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.history-meta + .history-meta {
+  margin-top: 4px;
+}
+
+.empty-history {
+  padding: var(--spacing-xl);
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .conflicts-section {
@@ -1143,6 +1771,10 @@ onUnmounted(() => {
 
 @media (max-width: 1199px) {
   .adjustment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-metrics {
     grid-template-columns: 1fr;
   }
 

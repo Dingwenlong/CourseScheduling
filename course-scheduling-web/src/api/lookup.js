@@ -15,3 +15,11 @@ export function searchClassrooms(params) {
 export function searchCourses(params) {
   return request.get('/lookup/courses', { params })
 }
+
+export function searchDepartments(params) {
+  return request.get('/lookup/departments', { params })
+}
+
+export function searchCampuses(params) {
+  return request.get('/lookup/campuses', { params })
+}

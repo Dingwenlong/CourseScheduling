@@ -6,6 +6,7 @@ import com.paike.admin.dto.ChangePasswordRequest;
 import com.paike.admin.dto.CurrentUserInfoResponse;
 import com.paike.admin.dto.LoginRequest;
 import com.paike.admin.dto.LoginResponse;
+import com.paike.admin.dto.UpdateCurrentProfileRequest;
 import com.paike.admin.entity.Student;
 import com.paike.admin.entity.Teacher;
 import com.paike.admin.entity.User;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -98,6 +100,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .eq(Student::getUserId, user.getId())
                 .last("LIMIT 1"));
 
+        return buildCurrentUserInfo(user, teacher, student);
+    }
+
+    @Override
+    public CurrentUserInfoResponse updateCurrentProfile(UpdateCurrentProfileRequest request) {
+        User currentUser = securityUtils.requireCurrentUser();
+        if (request == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        if (!StringUtils.hasText(request.getRealName())) {
+            throw new BusinessException("真实姓名不能为空");
+        }
+
+        currentUser.setRealName(request.getRealName().trim());
+        currentUser.setPhone(normalizeOptional(request.getPhone()));
+        currentUser.setEmail(normalizeOptional(request.getEmail()));
+        currentUser.setAvatar(normalizeOptional(request.getAvatar()));
+        updateById(currentUser);
+
+        Teacher teacher = teacherMapper.selectOne(new LambdaQueryWrapper<Teacher>()
+                .eq(Teacher::getUserId, currentUser.getId())
+                .last("LIMIT 1"));
+        if (teacher != null) {
+            teacher.setTitle(normalizeOptional(request.getTitle()));
+            teacher.setResearchArea(normalizeOptional(request.getResearchArea()));
+            teacher.setOfficeLocation(normalizeOptional(request.getOfficeLocation()));
+            teacher.setOfficePhone(normalizeOptional(request.getOfficePhone()));
+            teacherMapper.updateById(teacher);
+        }
+
+        User refreshedUser = getById(currentUser.getId());
+        Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>()
+                .eq(Student::getUserId, currentUser.getId())
+                .last("LIMIT 1"));
+        return buildCurrentUserInfo(refreshedUser, teacher, student);
+    }
+
+    private CurrentUserInfoResponse buildCurrentUserInfo(User user, Teacher teacher, Student student) {
         CurrentUserInfoResponse response = new CurrentUserInfoResponse();
         response.setId(user.getId());
         response.setUsername(user.getUsername());
@@ -109,7 +149,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         response.setStatus(user.getStatus());
         response.setTeacherId(teacher != null ? teacher.getId() : null);
         response.setClassId(student != null ? student.getClassId() : null);
+        response.setCreateTime(user.getCreateTime());
+        response.setUpdateTime(user.getUpdateTime());
+        response.setTeacherNo(teacher != null ? teacher.getTeacherNo() : null);
+        response.setTitle(teacher != null ? teacher.getTitle() : null);
+        response.setResearchArea(teacher != null ? teacher.getResearchArea() : null);
+        response.setOfficeLocation(teacher != null ? teacher.getOfficeLocation() : null);
+        response.setOfficePhone(teacher != null ? teacher.getOfficePhone() : null);
+        response.setStudentNo(student != null ? student.getStudentNo() : null);
+        response.setGrade(student != null ? student.getGrade() : null);
         return response;
+    }
+
+    private String normalizeOptional(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
     }
 
     @Override

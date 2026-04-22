@@ -11,6 +11,22 @@
             </template>
             返回
           </n-button>
+          <n-button v-if="details.length > 0" quaternary class="no-print" @click="handlePrint">
+            <template #icon>
+              <n-icon>
+                <PrintOutline />
+              </n-icon>
+            </template>
+            打印方案
+          </n-button>
+          <n-button v-if="details.length > 0" quaternary class="no-print" @click="handleExportCsv">
+            <template #icon>
+              <n-icon>
+                <DownloadOutline />
+              </n-icon>
+            </template>
+            导出方案
+          </n-button>
           <n-tag :type="getStatusTagType(timetable?.status)" size="large">
             {{ getStatusText(timetable?.status) }}
           </n-tag>
@@ -253,6 +269,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMessage, useDialog } from 'naive-ui'
 import dayjs from 'dayjs'
 import { getTimetableById, getTimetableDetails, getConflicts, publishTimetable, archiveTimetable, deleteTimetable } from '@/api/timetable'
+import { exportCoursesAsCsv, printCurrentPage } from '@/utils/timetable-export'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useLayoutStore } from '@/stores/layout'
@@ -274,7 +291,9 @@ import {
 import {
   ArrowBackOutline,
   EllipsisHorizontalOutline,
+  DownloadOutline,
   ListOutline,
+  PrintOutline,
   CheckmarkDoneOutline,
   WarningOutline,
   TrendingUpOutline,
@@ -440,6 +459,8 @@ const slotMeta = {
   9: { label: '晚上1', time: '19:00-19:45' },
   10: { label: '晚上2', time: '19:55-20:40' }
 }
+
+const exportScopeLabel = computed(() => timetable.value?.name || '排课方案')
 
 const courseDialogTitle = computed(() => {
   if (isTeacherView.value) {
@@ -803,6 +824,20 @@ const onDropdownSelect = async (value) => {
 }
 
 const goBack = () => router.back()
+
+const handleExportCsv = () => {
+  exportCoursesAsCsv({
+    courses: details.value,
+    filename: exportScopeLabel.value,
+    scopeLabel: exportScopeLabel.value,
+    slotMeta
+  })
+  message.success('排课方案已导出')
+}
+
+const handlePrint = () => {
+  printCurrentPage(exportScopeLabel.value)
+}
 
 const loadData = async () => {
   loading.value = true

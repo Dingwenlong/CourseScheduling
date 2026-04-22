@@ -72,8 +72,7 @@ const tabItems = computed(() => {
   if (userRole.value === 'STUDENT') {
     return [
       { path: '/home', icon: HomeOutline, text: '首页' },
-      { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
-      { path: '/schedule', icon: SearchOutline, text: '课表查询' },
+      { path: '/schedule', icon: SearchOutline, text: '我的课表' },
       { path: '/profile', icon: PersonOutline, text: '个人中心' }
     ]
   }

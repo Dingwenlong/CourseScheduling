@@ -2,14 +2,18 @@ package com.paike.admin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.paike.admin.dto.LookupOptionResponse;
+import com.paike.admin.entity.Campus;
 import com.paike.admin.entity.Clazz;
 import com.paike.admin.entity.Classroom;
 import com.paike.admin.entity.Course;
+import com.paike.admin.entity.Department;
 import com.paike.admin.entity.Teacher;
 import com.paike.admin.entity.User;
+import com.paike.admin.mapper.CampusMapper;
 import com.paike.admin.mapper.ClassMapper;
 import com.paike.admin.mapper.ClassroomMapper;
 import com.paike.admin.mapper.CourseMapper;
+import com.paike.admin.mapper.DepartmentMapper;
 import com.paike.admin.mapper.TeacherMapper;
 import com.paike.admin.mapper.UserMapper;
 import com.paike.common.result.Result;
@@ -33,7 +37,6 @@ import java.util.stream.Collectors;
 @Tag(name = "轻量字典查询", description = "前端搜索选择器使用的轻量查询接口")
 @RestController
 @RequestMapping("/lookup")
-@PreAuthorize("hasRole('ADMIN')")
 public class LookupController {
 
     private static final int DEFAULT_LIMIT = 20;
@@ -54,8 +57,15 @@ public class LookupController {
     @Autowired
     private CourseMapper courseMapper;
 
+    @Autowired
+    private DepartmentMapper departmentMapper;
+
+    @Autowired
+    private CampusMapper campusMapper;
+
     @Operation(summary = "搜索教师")
     @GetMapping("/teachers")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<List<LookupOptionResponse>> teachers(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit) {
@@ -105,6 +115,7 @@ public class LookupController {
 
     @Operation(summary = "搜索班级")
     @GetMapping("/classes")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<List<LookupOptionResponse>> classes(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit) {
@@ -128,6 +139,7 @@ public class LookupController {
 
     @Operation(summary = "搜索教室")
     @GetMapping("/classrooms")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public Result<List<LookupOptionResponse>> classrooms(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit) {
@@ -153,6 +165,7 @@ public class LookupController {
 
     @Operation(summary = "搜索课程")
     @GetMapping("/courses")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<List<LookupOptionResponse>> courses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit) {
@@ -169,6 +182,56 @@ public class LookupController {
                         course.getId(),
                         course.getCourseName() + " (" + course.getCourseCode() + ")",
                         course.getCourseCode()
+                ))
+                .toList();
+        return Result.success(options);
+    }
+
+    @Operation(summary = "搜索院系")
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<List<LookupOptionResponse>> departments(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer limit) {
+        LambdaQueryWrapper<Department> wrapper = new LambdaQueryWrapper<Department>()
+                .eq(Department::getStatus, 1)
+                .orderByAsc(Department::getSortOrder)
+                .orderByAsc(Department::getDeptCode)
+                .last("LIMIT " + normalizeLimit(limit));
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(q -> q.like(Department::getDeptCode, keyword).or().like(Department::getDeptName, keyword));
+        }
+
+        List<LookupOptionResponse> options = departmentMapper.selectList(wrapper).stream()
+                .map(department -> LookupOptionResponse.of(
+                        department.getId(),
+                        department.getDeptName() + " (" + department.getDeptCode() + ")",
+                        department.getDeptCode()
+                ))
+                .toList();
+        return Result.success(options);
+    }
+
+    @Operation(summary = "搜索校区")
+    @GetMapping("/campuses")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<List<LookupOptionResponse>> campuses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer limit) {
+        LambdaQueryWrapper<Campus> wrapper = new LambdaQueryWrapper<Campus>()
+                .eq(Campus::getStatus, 1)
+                .orderByAsc(Campus::getSortOrder)
+                .orderByAsc(Campus::getCampusCode)
+                .last("LIMIT " + normalizeLimit(limit));
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(q -> q.like(Campus::getCampusCode, keyword).or().like(Campus::getCampusName, keyword));
+        }
+
+        List<LookupOptionResponse> options = campusMapper.selectList(wrapper).stream()
+                .map(campus -> LookupOptionResponse.of(
+                        campus.getId(),
+                        campus.getCampusName() + " (" + campus.getCampusCode() + ")",
+                        campus.getCampusCode()
                 ))
                 .toList();
         return Result.success(options);

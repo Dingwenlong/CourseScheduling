@@ -43,7 +43,7 @@
           <div class="card info-card">
             <div class="info-card-header">
               <div class="section-title">基本信息</div>
-              <n-button type="primary" size="small" class="edit-btn" @click="showEditProfile = true">
+              <n-button type="primary" size="small" class="edit-btn" @click="openEditProfile">
                 <template #icon>
                   <n-icon :component="CreateOutline" />
                 </template>
@@ -51,7 +51,7 @@
               </n-button>
             </div>
 
-            <div class="info-grid">
+          <div class="info-grid">
               <div class="info-item">
                 <div class="info-icon-wrapper" style="background: rgba(114, 137, 103, 0.12);">
                   <n-icon :component="PersonOutline" size="20" color="#728967" />
@@ -94,6 +94,76 @@
                 </div>
               </div>
 
+              <div v-if="userRole === 'TEACHER' && userStore.userInfo?.teacherNo" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(81, 202, 186, 0.12);">
+                  <n-icon :component="IdCardOutline" size="20" color="#51caba" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">教师工号</div>
+                  <div class="info-value">{{ userStore.userInfo?.teacherNo }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'TEACHER'" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(245, 158, 11, 0.12);">
+                  <n-icon :component="ShieldCheckmarkOutline" size="20" color="#f59e0b" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">教师职称</div>
+                  <div class="info-value">{{ getTeacherTitleName(userStore.userInfo?.title) }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'TEACHER'" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(111, 137, 163, 0.12);">
+                  <n-icon :component="CalendarOutline" size="20" color="#6f89a3" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">研究方向</div>
+                  <div class="info-value info-value--wrap">{{ userStore.userInfo?.researchArea || '-' }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'TEACHER'" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(184, 102, 89, 0.12);">
+                  <n-icon :component="InformationCircleOutline" size="20" color="#b86659" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">办公地点</div>
+                  <div class="info-value">{{ userStore.userInfo?.officeLocation || '-' }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'TEACHER'" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(114, 137, 103, 0.12);">
+                  <n-icon :component="CallOutline" size="20" color="#728967" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">办公电话</div>
+                  <div class="info-value">{{ userStore.userInfo?.officePhone || '-' }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'STUDENT' && userStore.userInfo?.studentNo" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(81, 202, 186, 0.12);">
+                  <n-icon :component="IdCardOutline" size="20" color="#51caba" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">学号</div>
+                  <div class="info-value">{{ userStore.userInfo?.studentNo }}</div>
+                </div>
+              </div>
+
+              <div v-if="userRole === 'STUDENT'" class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(245, 158, 11, 0.12);">
+                  <n-icon :component="CalendarOutline" size="20" color="#f59e0b" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">所在年级</div>
+                  <div class="info-value">{{ userStore.userInfo?.grade || '-' }}</div>
+                </div>
+              </div>
+
               <div class="info-item">
                 <div class="info-icon-wrapper" style="background: rgba(111, 137, 163, 0.12);">
                   <n-icon :component="CallOutline" size="20" color="#6f89a3" />
@@ -121,6 +191,16 @@
                 <div class="info-content">
                   <div class="info-label">注册时间</div>
                   <div class="info-value">{{ formatDate(userStore.userInfo?.createTime) }}</div>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-icon-wrapper" style="background: rgba(81, 202, 186, 0.12);">
+                  <n-icon :component="TimeOutline" size="20" color="#51caba" />
+                </div>
+                <div class="info-content">
+                  <div class="info-label">最近更新</div>
+                  <div class="info-value">{{ formatDateTime(userStore.userInfo?.updateTime) }}</div>
                 </div>
               </div>
             </div>
@@ -166,6 +246,48 @@
       </n-form>
     </n-modal>
 
+    <n-modal
+      v-model:show="showEditProfile"
+      preset="dialog"
+      title="编辑资料"
+      class="edit-profile-dialog"
+      positive-text="保存"
+      negative-text="取消"
+      @positive-click="handleUpdateProfile"
+    >
+      <n-form :model="profileForm" label-placement="left" label-width="90px">
+        <n-form-item label="真实姓名">
+          <n-input v-model:value="profileForm.realName" placeholder="请输入真实姓名" />
+        </n-form-item>
+        <n-form-item label="联系电话">
+          <n-input v-model:value="profileForm.phone" placeholder="请输入联系电话" />
+        </n-form-item>
+        <n-form-item label="电子邮箱">
+          <n-input v-model:value="profileForm.email" placeholder="请输入电子邮箱" />
+        </n-form-item>
+        <n-form-item label="头像地址">
+          <n-input v-model:value="profileForm.avatar" placeholder="请输入头像 URL，可留空" />
+        </n-form-item>
+        <n-form-item v-if="userRole === 'TEACHER'" label="教师职称">
+          <n-select v-model:value="profileForm.title" :options="teacherTitleOptions" clearable placeholder="请选择职称" />
+        </n-form-item>
+        <n-form-item v-if="userRole === 'TEACHER'" label="研究方向">
+          <n-input
+            v-model:value="profileForm.researchArea"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入研究方向"
+          />
+        </n-form-item>
+        <n-form-item v-if="userRole === 'TEACHER'" label="办公地点">
+          <n-input v-model:value="profileForm.officeLocation" placeholder="请输入办公地点" />
+        </n-form-item>
+        <n-form-item v-if="userRole === 'TEACHER'" label="办公电话">
+          <n-input v-model:value="profileForm.officePhone" placeholder="请输入办公电话" />
+        </n-form-item>
+      </n-form>
+    </n-modal>
+
     <n-modal v-model:show="showAbout" preset="card" title="关于系统" class="about-dialog">
         <div class="about-content">
           <div class="about-logo">
@@ -187,9 +309,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMessage, useDialog, NButton, NModal, NInput, NForm, NFormItem, NImage, NTag, NIcon, NList, NListItem, NDescriptions, NDescriptionsItem } from 'naive-ui'
+import { useMessage, useDialog, NButton, NModal, NInput, NForm, NFormItem, NImage, NTag, NIcon, NList, NListItem, NDescriptions, NDescriptionsItem, NSelect } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
-import { changePassword } from '@/api/auth'
+import { changePassword, updateProfile } from '@/api/auth'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { CalendarOutline, PersonOutline, LockClosedOutline, InformationCircleOutline, CallOutline, MailOutline, CreateOutline, IdCardOutline, ShieldCheckmarkOutline, TimeOutline } from '@vicons/ionicons5'
@@ -200,11 +322,19 @@ const userStore = useUserStore()
 const message = useMessage()
 const dialog = useDialog()
 
-const avatar = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+const defaultAvatar = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+const avatar = computed(() => userStore.userInfo?.avatar || defaultAvatar)
 const showPassword = ref(false)
 const showAbout = ref(false)
 const showEditProfile = ref(false)
+const editProfileLoading = ref(false)
 const userRole = computed(() => userStore.userInfo?.role)
+const teacherTitleOptions = [
+  { label: '教授', value: 'PROFESSOR' },
+  { label: '副教授', value: 'ASSOCIATE_PROFESSOR' },
+  { label: '讲师', value: 'LECTURER' },
+  { label: '助教', value: 'ASSISTANT' }
+]
 const pageTitle = computed(() => {
   if (userRole.value === 'TEACHER') {
     return '我的资料'
@@ -257,6 +387,17 @@ const aboutDescription = computed(() => {
   return '用于统筹排课、维护教学任务、查看统计并管理系统用户。'
 })
 
+const profileForm = ref({
+  realName: '',
+  phone: '',
+  email: '',
+  avatar: '',
+  title: null,
+  researchArea: '',
+  officeLocation: '',
+  officePhone: ''
+})
+
 const passwordForm = ref({
   oldPassword: '',
   newPassword: '',
@@ -281,8 +422,40 @@ const getRoleClass = (role) => {
   return map[role] || 'tag-default'
 }
 
+const getTeacherTitleName = (title) => {
+  const map = {
+    'PROFESSOR': '教授',
+    'ASSOCIATE_PROFESSOR': '副教授',
+    'LECTURER': '讲师',
+    'ASSISTANT': '助教'
+  }
+  return map[title] || title || '-'
+}
+
 const formatDate = (date) => {
   return date ? dayjs(date).format('YYYY-MM-DD') : '-'
+}
+
+const formatDateTime = (date) => {
+  return date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'
+}
+
+const syncProfileForm = () => {
+  profileForm.value = {
+    realName: userStore.userInfo?.realName || '',
+    phone: userStore.userInfo?.phone || '',
+    email: userStore.userInfo?.email || '',
+    avatar: userStore.userInfo?.avatar || '',
+    title: userStore.userInfo?.title || null,
+    researchArea: userStore.userInfo?.researchArea || '',
+    officeLocation: userStore.userInfo?.officeLocation || '',
+    officePhone: userStore.userInfo?.officePhone || ''
+  }
+}
+
+const openEditProfile = () => {
+  syncProfileForm()
+  showEditProfile.value = true
 }
 
 const handleLogout = async () => {
@@ -318,9 +491,40 @@ const handleChangePassword = async () => {
   }
 }
 
+const handleUpdateProfile = async () => {
+  if (!profileForm.value.realName?.trim()) {
+    message.error('真实姓名不能为空')
+    return false
+  }
+
+  editProfileLoading.value = true
+  try {
+    const res = await updateProfile({
+      realName: profileForm.value.realName,
+      phone: profileForm.value.phone,
+      email: profileForm.value.email,
+      avatar: profileForm.value.avatar,
+      title: profileForm.value.title,
+      researchArea: profileForm.value.researchArea,
+      officeLocation: profileForm.value.officeLocation,
+      officePhone: profileForm.value.officePhone
+    })
+    userStore.setUserInfo(res.data)
+    showEditProfile.value = false
+    message.success('资料已更新')
+  } catch (e) {
+    message.error(e.message || '资料更新失败')
+    return false
+  } finally {
+    editProfileLoading.value = false
+  }
+}
+
 onMounted(() => {
   if (!userStore.userInfo) {
     loadUserInfo()
+  } else {
+    syncProfileForm()
   }
 })
 </script>
@@ -516,6 +720,11 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.info-value--wrap {
+  white-space: normal;
+  line-height: 1.6;
 }
 
 .card-header {

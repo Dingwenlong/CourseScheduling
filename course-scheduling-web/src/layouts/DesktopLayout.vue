@@ -182,9 +182,11 @@ import {
   ArrowBackOutline,
   HomeOutline,
   SearchOutline,
+  SwapHorizontalOutline,
   BarChartOutline,
   PeopleOutline,
   PersonOutline,
+  SettingsOutline,
   MenuOutline,
   MoonOutline,
   SunnyOutline,
@@ -211,19 +213,26 @@ const canAccessTeacherFeatures = computed(() => ['ADMIN', 'TEACHER'].includes(us
 const menuItems = computed(() => {
   const items = [
     { path: '/home', icon: HomeOutline, text: '首页' },
-    { path: '/timetable', icon: CalendarOutline, text: '课表管理' },
     { path: '/schedule', icon: SearchOutline, text: '课表查询' }
   ]
+
+  if (isAdmin.value) {
+    items.splice(1, 0, { path: '/timetable', icon: CalendarOutline, text: '课表管理' })
+  }
 
   if (canAccessTeacherFeatures.value) {
     items.push(
       { path: '/task', icon: ClipboardOutline, text: '教学任务' },
+      { path: '/adjustment', icon: SwapHorizontalOutline, text: '调课管理' },
       { path: '/statistics', icon: BarChartOutline, text: '统计分析' }
     )
   }
 
   if (isAdmin.value) {
-    items.push({ path: '/users', icon: PeopleOutline, text: '用户管理' })
+    items.push(
+      { path: '/settings', icon: SettingsOutline, text: '系统设置' },
+      { path: '/users', icon: PeopleOutline, text: '用户管理' }
+    )
   }
 
   items.push({ path: '/profile', icon: PersonOutline, text: '个人中心' })

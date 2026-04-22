@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
 const { message } = createDiscreteApi(['message'])
+let authFailureInProgress = false
 
 const request = axios.create({
   baseURL: '/api',
@@ -72,12 +73,20 @@ const handleApiFailure = async (code, rawMessage) => {
 }
 
 const handleAuthFailure = async (code, rawMessage) => {
+  if (authFailureInProgress) {
+    return
+  }
+  authFailureInProgress = true
   const userStore = useUserStore()
   const messageText = resolveAuthMessage(code, rawMessage)
-  message.error(messageText)
-  await userStore.logout()
-  if (router.currentRoute.value.path !== '/login') {
-    await router.push('/login')
+  try {
+    message.error(messageText)
+    await userStore.logout({ remote: false })
+    if (router.currentRoute.value.path !== '/login') {
+      await router.push('/login')
+    }
+  } finally {
+    authFailureInProgress = false
   }
 }
 

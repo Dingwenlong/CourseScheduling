@@ -108,7 +108,8 @@ import {
   SwapHorizontalOutline,
   BarChartOutline,
   PeopleOutline,
-  SettingsOutline
+  SettingsOutline,
+  PersonOutline
 } from '@vicons/ionicons5'
 
 const router = useRouter()
@@ -149,13 +150,16 @@ const gridColumns = computed(() => {
 
 const quickActions = computed(() => {
   const actions = [
-    { to: '/timetable', text: isAdmin.value ? '课表管理' : '课表总览', icon: CalendarOutline, color: '#728967' },
     { to: '/schedule', text: userRole.value === 'TEACHER' ? '我的授课表' : userRole.value === 'STUDENT' ? '我的课表' : '课表查询', icon: SearchOutline, color: '#c69054' },
-    { to: '/profile', text: '个人中心', icon: SettingsOutline, color: '#7d7064' }
+    { to: '/profile', text: '个人中心', icon: PersonOutline, color: '#7d7064' }
   ]
 
+  if (isAdmin.value) {
+    actions.unshift({ to: '/timetable', text: '课表管理', icon: CalendarOutline, color: '#728967' })
+  }
+
   if (canAccessTeacherFeatures.value) {
-    actions.splice(1, 0,
+    actions.splice(isAdmin.value ? 1 : 0, 0,
       { to: '/task', text: userRole.value === 'TEACHER' ? '我的课程任务' : '教学任务', icon: ClipboardOutline, color: '#7d9563' },
       { to: '/adjustment', text: userRole.value === 'TEACHER' ? '申请调课' : '调课管理', icon: SwapHorizontalOutline, color: '#b86659' },
       { to: '/statistics', text: userRole.value === 'TEACHER' ? '授课统计' : '统计分析', icon: BarChartOutline, color: '#6f89a3' }
@@ -163,7 +167,10 @@ const quickActions = computed(() => {
   }
   
   if (isAdmin.value) {
-    actions.splice(actions.length - 1, 0, { to: '/users', text: '用户管理', icon: PeopleOutline, color: '#9b7652' })
+    actions.splice(actions.length - 1, 0,
+      { to: '/settings', text: '系统设置', icon: SettingsOutline, color: '#90724e' },
+      { to: '/users', text: '用户管理', icon: PeopleOutline, color: '#9b7652' }
+    )
   }
   
   return actions

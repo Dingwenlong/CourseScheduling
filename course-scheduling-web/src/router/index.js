@@ -26,13 +26,13 @@ const routes = [
         path: 'timetable',
         name: 'Timetable',
         component: () => import('@/views/timetable/index.vue'),
-        meta: { title: '课表管理' }
+        meta: { title: '课表管理', requiresAdmin: true }
       },
       {
         path: 'timetable/detail/:id',
         name: 'TimetableDetail',
         component: () => import('@/views/timetable/detail.vue'),
-        meta: { title: '课表详情' }
+        meta: { title: '课表详情', requiresAdmin: true }
       },
       {
         path: 'task',
@@ -69,6 +69,12 @@ const routes = [
         name: 'Users',
         component: () => import('@/views/user/index.vue'),
         meta: { title: '用户管理', requiresAdmin: true }
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/settings/index.vue'),
+        meta: { title: '系统设置', requiresAdmin: true }
       }
     ]
   },

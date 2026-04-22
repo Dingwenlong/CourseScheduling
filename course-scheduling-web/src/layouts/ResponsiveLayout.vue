@@ -5,11 +5,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { markRaw, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import DesktopLayout from './DesktopLayout.vue'
 import MainLayout from './MainLayout.vue'
 
-const currentLayout = ref(null)
+const desktopLayout = markRaw(DesktopLayout)
+const mobileLayout = markRaw(MainLayout)
+const currentLayout = shallowRef(desktopLayout)
 const resizeTimeout = ref(null)
 
 const checkScreenSize = () => {
@@ -18,7 +20,7 @@ const checkScreenSize = () => {
   }
   
   resizeTimeout.value = setTimeout(() => {
-    currentLayout.value = window.innerWidth >= 1024 ? DesktopLayout : MainLayout
+    currentLayout.value = window.innerWidth >= 1024 ? desktopLayout : mobileLayout
   }, 100)
 }
 
