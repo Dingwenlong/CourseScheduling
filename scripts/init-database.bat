@@ -22,7 +22,7 @@ echo.
 
 cd /d "%~dp0..\database\mysql"
 
-mysql -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < init-schema.sql
+mysql --default-character-set=utf8mb4 -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < init-schema.sql
 if %errorlevel% neq 0 (
     echo 数据库结构创建失败！
     pause

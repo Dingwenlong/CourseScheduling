@@ -4,6 +4,8 @@
 -- 字符集: utf8mb4
 -- ========================================================
 
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS course_scheduling 
 DEFAULT CHARACTER SET utf8mb4 
 DEFAULT COLLATE utf8mb4_unicode_ci;
@@ -472,17 +474,17 @@ INSERT IGNORE INTO sys_department (dept_code, dept_name, campus_id, parent_id, l
 ('ENG', '外国语学院', 3, 0, '刘教授', '13800000005', 5, 1);
 
 -- ----------------------------
--- 3. 用户数据 (admin密码: admin123, 其他密码: 123456，使用BCrypt加密)
+-- 3. 用户数据 (演示账号统一密码: 123456，使用BCrypt加密)
 -- ----------------------------
 INSERT IGNORE INTO sys_user (username, password, real_name, role, phone, email, status) VALUES
-('admin', '$2a$10$paVlGooEQpZlYkRAecl4ZOaDU9q6J3ZVPs1cIJk2CA.9IqLgCMBbS', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
-('teacher001', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '张三', 'TEACHER', '13800000011', 'zhangsan@example.com', 1),
-('teacher002', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '李四', 'TEACHER', '13800000012', 'lisi@example.com', 1),
-('teacher003', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '王五', 'TEACHER', '13800000013', 'wangwu@example.com', 1),
-('teacher004', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '赵六', 'TEACHER', '13800000014', 'zhaoliu@example.com', 1),
-('teacher005', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '钱七', 'TEACHER', '13800000015', 'qianqi@example.com', 1),
-('student001', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '学生甲', 'STUDENT', '13800000021', 'student001@example.com', 1),
-('student002', '$2a$10$EqKcp1WFKVQISheBxmXJGePJwJbvHfEFvEqJjGWQv2Mb6AqPQvWIi', '学生乙', 'STUDENT', '13800000022', 'student002@example.com', 1);
+('admin', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '系统管理员', 'ADMIN', '13800000000', 'admin@example.com', 1),
+('teacher001', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '张三', 'TEACHER', '13800000011', 'zhangsan@example.com', 1),
+('teacher002', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '李四', 'TEACHER', '13800000012', 'lisi@example.com', 1),
+('teacher003', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '王五', 'TEACHER', '13800000013', 'wangwu@example.com', 1),
+('teacher004', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '赵六', 'TEACHER', '13800000014', 'zhaoliu@example.com', 1),
+('teacher005', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '钱七', 'TEACHER', '13800000015', 'qianqi@example.com', 1),
+('student001', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '学生甲', 'STUDENT', '13800000021', 'student001@example.com', 1),
+('student002', '$2a$10$L9FUNREJFnMbNJGiYf.Ak.LQ6HYa0jTUxvLgFAmctYupskPmkCxRO', '学生乙', 'STUDENT', '13800000022', 'student002@example.com', 1);
 
 -- ----------------------------
 -- 4. 教师数据

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo.
@@ -55,7 +56,7 @@ if %errorlevel% equ 0 (
     echo       Database schema already exists
 ) else (
     echo       Database schema not found, initializing...
-    type database\mysql\init-schema.sql | docker exec -i course-scheduling-mysql mysql -uroot -proot123456
+    type "database\mysql\init-schema.sql" | docker exec -i course-scheduling-mysql mysql --default-character-set=utf8mb4 -uroot -proot123456
     if %errorlevel% neq 0 (
         echo [ERROR] Database initialization failed
         echo         If MySQL was initialized with another root password, clear the old volume:
@@ -64,6 +65,18 @@ if %errorlevel% equ 0 (
         exit /b 1
     )
     echo       Database initialized
+)
+
+set "EXPECTED_MAIN_CAMPUS_HEX=E4B8BBE6A0A1E58CBA"
+set "MAIN_CAMPUS_HEX="
+for /f "usebackq delims=" %%A in (`docker exec course-scheduling-mysql mysql --default-character-set=utf8mb4 -uroot -proot123456 -Nse "SELECT HEX(campus_name) FROM course_scheduling.sys_campus WHERE campus_code='MAIN' LIMIT 1;" 2^>nul`) do set "MAIN_CAMPUS_HEX=%%A"
+if /i not "!MAIN_CAMPUS_HEX!"=="%EXPECTED_MAIN_CAMPUS_HEX%" (
+    echo [WARNING] Database Chinese text encoding looks abnormal.
+    echo           Existing Docker volume may contain previously garbled data.
+    echo           To rebuild it, run: docker-compose down -v
+    echo           Then run scripts\start-all.bat again.
+) else (
+    echo       Database encoding looks correct
 )
 
 echo.
